@@ -6,733 +6,546 @@
   <title>Antigua Ladder League · Antigua Pickleball</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;700&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Readex+Pro:wght@300;400;500;600;700&family=Bebas+Neue&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"/>
   <style>
-    /* ════════════════════════════════════════
-       ANTIGUA LADDER LEAGUE — ladder.html
-       All styles scoped to .ll-* or --ll-*
-    ════════════════════════════════════════ */
-
+    /* ═══════════════════════════════════════════
+       ANTIGUA LADDER LEAGUE
+    ═══════════════════════════════════════════ */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
     html { scroll-behavior: smooth; }
 
-    /* ── Shared site variables (for nav/footer compat) ── */
-    :root {
-      --green:      #2D6A4F;
-      --gray-100:   #F3F4F6;
-      --gray-200:   #E5E7EB;
-      --gray-400:   #9CA3AF;
-      --gray-500:   #6B7280;
-      --gray-700:   #374151;
-      --radius-sm:  8px;
-      --radius-full:9999px;
-      --shadow-md:  0 4px 16px rgba(0,0,0,.10);
-
-      /* ── Ladder League palette ── */
-      --ll-bg:          #08080a;
-      --ll-bg2:         #111115;
-      --ll-bg3:         #18181d;
-      --ll-surface:     #1e1e25;
-      --ll-blue:        #0047E0;
-      --ll-blue-glow:   rgba(0,71,224,0.18);
-      --ll-blue-border: rgba(0,71,224,0.28);
-      --ll-yellow:      #FFD000;
-      --ll-yellow-glow: rgba(255,208,0,0.15);
-      --ll-white:       #F5F5F0;
-      --ll-gray:        #88888f;
-      --ll-gray-dim:    #3a3a42;
-    }
-
     body {
-      font-family: 'DM Sans', sans-serif;
-      background: var(--ll-bg);
-      color: var(--ll-white);
+      font-family: 'Readex Pro', system-ui, -apple-system, sans-serif;
+      background: #000;
+      color: #fff;
+      -webkit-font-smoothing: antialiased;
       overflow-x: hidden;
     }
 
-    /* ════════════════════════════════════════
-       NAV — site nav, Ladder bg override
-    ════════════════════════════════════════ */
-    nav {
-      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
-      background: rgba(8,8,10,.94);
-      backdrop-filter: blur(14px);
-      border-bottom: 1px solid var(--ll-blue-border);
-    }
-    .nav-inner {
-      display: flex; align-items: center; justify-content: space-between;
-      max-width: 1140px; margin: 0 auto; padding: 0 24px; height: 64px;
-    }
-    .nav-logo {
-      display: flex; align-items: center; gap: 10px;
-      text-decoration: none; color: inherit; flex-shrink: 0;
-    }
-    .nav-logo img {
-      height: 44px; width: auto;
-      filter: brightness(0) invert(1);
-    }
-    .nav-links {
-      display: flex; align-items: center; gap: 2px; list-style: none;
-    }
-    .nav-links a {
-      display: block; padding: 5px 11px;
-      font-family: 'Space Mono', monospace;
-      font-size: .72rem; font-weight: 400;
-      letter-spacing: .1em; text-transform: uppercase;
-      color: var(--ll-gray);
-      text-decoration: none; border-radius: 2px;
-      transition: color .2s, background .2s;
-      white-space: nowrap;
-    }
-    .nav-links a:hover { color: var(--ll-white); background: rgba(255,255,255,.06); }
-    .nav-links a.active { color: var(--ll-white); }
-    .nav-links a.nav-ladder {
-      color: var(--ll-blue);
-      border: 1px solid var(--ll-blue-border);
-      background: var(--ll-blue-glow);
-    }
-    .nav-links a.nav-ladder:hover { background: rgba(0,71,224,.28); color: #fff; }
-    .nav-cta {
-      display: flex; align-items: center; gap: 8px; flex-shrink: 0;
-    }
-    .btn-wa {
-      display: flex; align-items: center; gap: 6px;
-      background: #25D366; color: #fff;
-      padding: 7px 14px; border-radius: 2px;
-      font-family: 'Space Mono', monospace;
-      font-size: .72rem; letter-spacing: .08em; text-transform: uppercase;
-      font-weight: 700; text-decoration: none;
-      transition: opacity .2s; white-space: nowrap;
-    }
-    .btn-wa:hover { opacity: .88; }
-    .hamburger {
-      display: none; background: none; border: none; cursor: pointer;
-      padding: 6px;
-    }
-    .hamburger span {
-      display: block; width: 22px; height: 2px;
-      background: var(--ll-white); border-radius: 1px; margin: 5px 0;
-      transition: .3s;
-    }
-    .mobile-menu {
-      display: none; flex-direction: column;
-      padding: 12px 24px 20px;
-      border-top: 1px solid var(--ll-blue-border);
-      background: rgba(8,8,10,.97);
-    }
-    .mobile-menu.open { display: flex; }
-    .mobile-menu a {
-      font-family: 'Space Mono', monospace;
-      font-size: .82rem; letter-spacing: .08em; text-transform: uppercase;
-      color: var(--ll-gray);
-      text-decoration: none; padding: 11px 0;
-      border-bottom: 1px solid var(--ll-gray-dim);
-    }
-    .mobile-menu a:last-child { border: none; }
-    .mobile-menu a.nav-ladder { color: var(--ll-blue); }
-
-    /* ════════════════════════════════════════
-       LAYOUT UTILS
-    ════════════════════════════════════════ */
-    .ll-container { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
-
-    .ll-divider {
-      width: 100%; height: 1px; border: none; margin: 0;
-      background: linear-gradient(90deg, transparent, var(--ll-blue), transparent);
-      opacity: .5;
+    :root {
+      --ll-bg:          #08080a;
+      --ll-bg2:         #0d0d10;
+      --ll-bg3:         #14141a;
+      --ll-surface:     #1a1a22;
+      --ll-blue:        #0047E0;
+      --ll-blue-glow:   rgba(0,71,224,0.18);
+      --ll-blue-border: rgba(0,71,224,0.30);
+      --ll-yellow:      #FFD000;
+      --ll-yellow-glow: rgba(255,208,0,0.12);
+      --ll-white:       #F5F5F0;
+      --ll-gray:        #88888f;
+      --ll-gray-dim:    #2e2e38;
     }
 
-    .ll-label {
-      font-family: 'Space Mono', monospace;
-      font-size: .72rem; font-weight: 700;
-      letter-spacing: .16em; text-transform: uppercase;
-      color: var(--ll-blue);
+    .hero-title {
+      letter-spacing: -0.04em;
+      line-height: 0.92;
     }
 
     /* ════════════════════════════════════════
        HERO
     ════════════════════════════════════════ */
-    .ll-hero {
+    #hero {
       position: relative;
-      padding: 130px 24px 100px;
-      background: var(--ll-bg);
+      height: 100svh;
+      min-height: 600px;
+      width: 100%;
       overflow: hidden;
-      text-align: center;
+      background: #000;
     }
 
-    /* Decorative grid — same pattern as bracket.html .ph-grid */
-    .ll-hero-grid {
-      position: absolute; inset: 0; pointer-events: none;
-      background-image:
-        linear-gradient(rgba(0,71,224,.06) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(0,71,224,.06) 1px, transparent 1px);
-      background-size: 48px 48px;
-    }
-    .ll-hero-grid::after {
-      content: '';
+    /* Court grid */
+    .hero-court {
       position: absolute; inset: 0;
-      background: radial-gradient(ellipse 70% 60% at 50% 40%, transparent 40%, var(--ll-bg) 100%);
+      background:
+        linear-gradient(rgba(0,71,224,.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,71,224,.04) 1px, transparent 1px);
+      background-size: 52px 52px;
+      animation: courtPulse 8s ease-in-out infinite;
+    }
+    @keyframes courtPulse {
+      0%,100% { opacity: .5; }
+      50%      { opacity: 1;  }
+    }
+    .hero-court::before {
+      content: '';
+      position: absolute; left: 50%; top: 0; bottom: 0; width: 1px;
+      background: linear-gradient(to bottom, transparent, rgba(0,71,224,.14) 30%, rgba(0,71,224,.14) 70%, transparent);
+      transform: translateX(-50%);
+    }
+    .hero-court::after {
+      content: '';
+      position: absolute; left: 0; right: 0; top: 42%; height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(0,71,224,.14) 20%, rgba(0,71,224,.14) 80%, transparent);
     }
 
-    /* Blue glow blob */
-    .ll-hero-glow {
-      position: absolute; top: -80px; left: 50%; transform: translateX(-50%);
-      width: 600px; height: 400px; pointer-events: none;
-      background: radial-gradient(ellipse at center, rgba(0,71,224,.22) 0%, transparent 70%);
-      filter: blur(40px);
+    /* Animated pickleball balls */
+    .hero-balls { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+
+    .pb-ball {
+      position: absolute;
+      border-radius: 50%;
+      border: 1.5px solid rgba(255,255,255,.08);
+      animation: pbDrift linear infinite;
+    }
+    .pb-ball::before {
+      content: '';
+      position: absolute; inset: 18%;
+      border-radius: 50%;
+      background:
+        radial-gradient(circle 5% at 30% 25%, rgba(255,255,255,.12) 0%, transparent 100%),
+        radial-gradient(circle 5% at 70% 25%, rgba(255,255,255,.12) 0%, transparent 100%),
+        radial-gradient(circle 5% at 20% 55%, rgba(255,255,255,.12) 0%, transparent 100%),
+        radial-gradient(circle 5% at 80% 55%, rgba(255,255,255,.12) 0%, transparent 100%),
+        radial-gradient(circle 5% at 50% 80%, rgba(255,255,255,.12) 0%, transparent 100%),
+        radial-gradient(circle 5% at 50% 20%, rgba(255,255,255,.12) 0%, transparent 100%);
     }
 
-    .ll-hero-inner { position: relative; z-index: 1; }
+    @keyframes pbDrift {
+      0%   { transform: translate(0,0) rotate(0deg);                  opacity: 0; }
+      5%   {                                                            opacity: 1; }
+      95%  {                                                            opacity: 1; }
+      100% { transform: translate(var(--dx),var(--dy)) rotate(var(--dr)); opacity: 0; }
+    }
 
-    .ll-hero-tag {
-      display: inline-block;
+    .pb-1 { width:160px; height:160px; top:8%;   left:4%;   --dx:90px;   --dy:130px;  --dr:180deg;  animation-duration:22s; animation-delay:-4s;  }
+    .pb-2 { width:100px; height:100px; top:58%;  left:74%;  --dx:-70px;  --dy:-90px;  --dr:-240deg; animation-duration:18s; animation-delay:-9s;  }
+    .pb-3 { width:200px; height:200px; top:28%;  left:48%;  --dx:-110px; --dy:90px;   --dr:300deg;  animation-duration:28s; animation-delay:-14s; opacity:.6; }
+    .pb-4 { width:80px;  height:80px;  top:72%;  left:18%;  --dx:130px;  --dy:-70px;  --dr:-180deg; animation-duration:15s; animation-delay:-7s;  }
+    .pb-5 { width:130px; height:130px; top:4%;   left:78%;  --dx:-90px;  --dy:110px;  --dr:220deg;  animation-duration:24s; animation-delay:-2s;  }
+    .pb-6 { width:56px;  height:56px;  top:48%;  left:6%;   --dx:50px;   --dy:-80px;  --dr:-120deg; animation-duration:12s; animation-delay:-11s; }
+
+    /* Blue radial glow */
+    .hero-glow {
+      position: absolute; top: -20%; left: 50%; transform: translateX(-50%);
+      width: 800px; height: 600px; pointer-events: none;
+      background: radial-gradient(ellipse at center, rgba(0,71,224,.22) 0%, transparent 65%);
+      filter: blur(60px);
+      animation: glowPulse 6s ease-in-out infinite;
+    }
+    @keyframes glowPulse {
+      0%,100% { opacity: .7; transform: translateX(-50%) scale(1);    }
+      50%      { opacity: 1;  transform: translateX(-50%) scale(1.08); }
+    }
+
+    /* Bottom fade */
+    .hero-fade {
+      pointer-events: none;
+      position: absolute; bottom: 0; left: 0; right: 0; height: 220px;
+      background: linear-gradient(to bottom, transparent, #000);
+      z-index: 5;
+    }
+
+    /* ════════════════════════════════════════
+       NAVBAR — floating pill
+    ════════════════════════════════════════ */
+    #main-nav {
+      position: absolute; top: 0; left: 0; right: 0; z-index: 20;
+      padding: 20px 24px;
+    }
+    .nav-inner {
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    }
+
+    .nav-brand {
+      display: flex; align-items: center; gap: 10px;
+      background: rgba(12,12,16,.88); backdrop-filter: blur(16px);
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 9999px; padding: 10px 20px 10px 14px;
+      text-decoration: none; flex-shrink: 0;
+    }
+    .nav-brand img { height: 22px; width: auto; filter: brightness(0) invert(1); }
+    .nav-brand-sep { width: 1px; height: 14px; background: rgba(255,255,255,.18); flex-shrink: 0; }
+    .nav-brand-sub {
       font-family: 'Space Mono', monospace;
-      font-size: .72rem; letter-spacing: .18em; text-transform: uppercase;
-      color: var(--ll-blue);
-      border: 1px solid var(--ll-blue-border);
-      background: var(--ll-blue-glow);
-      padding: 6px 18px;
-      border-radius: 2px;
-      margin-bottom: 28px;
+      font-size: .65rem; letter-spacing: .14em; text-transform: uppercase;
+      color: var(--ll-blue); font-weight: 700; white-space: nowrap;
     }
 
-    .ll-hero-title {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: clamp(3.6rem, 9vw, 7.5rem);
-      line-height: .95;
-      letter-spacing: .04em;
-      color: var(--ll-white);
-      margin-bottom: 20px;
-      text-shadow: 0 0 80px rgba(0,71,224,.3);
+    .nav-links-pill { display: none; }
+    @media (min-width: 768px) {
+      .nav-links-pill {
+        display: flex; align-items: center; gap: 2px;
+        background: rgba(12,12,16,.88); backdrop-filter: blur(16px);
+        border: 1px solid rgba(255,255,255,.08);
+        border-radius: 9999px; padding: 6px; list-style: none;
+      }
     }
-    .ll-hero-title span {
-      color: var(--ll-blue);
+    .nav-links-pill a {
+      font-size: .82rem; font-weight: 400; color: rgba(255,255,255,.55);
+      text-decoration: none; padding: 7px 18px; border-radius: 9999px;
+      transition: color .2s, background .2s; white-space: nowrap;
     }
+    .nav-links-pill a:hover { color: #fff; background: rgba(255,255,255,.06); }
 
-    .ll-hero-sub {
-      font-size: 1.05rem; font-weight: 300;
-      color: var(--ll-gray);
-      max-width: 480px; margin: 0 auto 44px;
-      line-height: 1.65;
-    }
+    .nav-cta-pill { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
 
-    .ll-hero-actions {
-      display: flex; gap: 14px; justify-content: center; flex-wrap: wrap;
-    }
-
-    .ll-btn-primary {
-      display: inline-block;
+    .nav-btn {
       background: var(--ll-blue); color: #fff;
-      padding: 14px 36px;
       font-family: 'Space Mono', monospace;
-      font-size: .82rem; font-weight: 700; letter-spacing: .14em; text-transform: uppercase;
-      text-decoration: none; border-radius: 2px;
-      transition: opacity .2s, transform .2s;
-      border: 2px solid var(--ll-blue);
+      font-size: .7rem; letter-spacing: .12em; text-transform: uppercase;
+      font-weight: 700; padding: 11px 22px;
+      border-radius: 9999px; text-decoration: none;
+      transition: opacity .2s, transform .2s; white-space: nowrap;
     }
-    .ll-btn-primary:hover { opacity: .88; transform: translateY(-2px); }
+    .nav-btn:hover { opacity: .88; transform: translateY(-1px); }
 
-    .ll-btn-outline {
-      display: inline-block;
-      background: transparent; color: var(--ll-white);
-      padding: 12px 34px;
-      font-family: 'Space Mono', monospace;
-      font-size: .82rem; font-weight: 700; letter-spacing: .14em; text-transform: uppercase;
-      text-decoration: none; border-radius: 2px;
-      border: 2px solid var(--ll-gray-dim);
-      transition: border-color .2s, color .2s;
+    .hamburger {
+      display: flex; background: rgba(12,12,16,.88); backdrop-filter: blur(16px);
+      border: 1px solid rgba(255,255,255,.08); border-radius: 9999px;
+      padding: 10px 14px; cursor: pointer; flex-direction: column; gap: 5px;
     }
-    .ll-btn-outline:hover { border-color: var(--ll-white); color: #fff; }
+    .hamburger span { display: block; width: 20px; height: 1.5px; background: #fff; border-radius: 1px; }
+    @media (min-width: 768px) { .hamburger { display: none; } }
+
+    .mobile-menu {
+      display: none; flex-direction: column;
+      position: absolute; top: calc(100% + 8px); left: 24px; right: 24px;
+      background: rgba(8,8,12,.96); backdrop-filter: blur(20px);
+      border: 1px solid rgba(255,255,255,.08); border-radius: 16px;
+      padding: 12px; z-index: 30;
+    }
+    .mobile-menu.open { display: flex; }
+    .mobile-menu a {
+      font-size: .9rem; color: rgba(255,255,255,.65); text-decoration: none;
+      padding: 12px 16px; border-radius: 8px; transition: background .2s, color .2s;
+    }
+    .mobile-menu a:hover { background: rgba(255,255,255,.06); color: #fff; }
+    .mobile-menu a.back-link { color: var(--ll-blue); }
 
     /* ════════════════════════════════════════
-       COMO FUNCIONA
+       HERO FOREGROUND
     ════════════════════════════════════════ */
-    .ll-how {
-      padding: 90px 0;
-      background: var(--ll-bg2);
-    }
+    .hero-content { position: absolute; inset: 0; z-index: 10; }
 
-    .ll-section-head {
-      margin-bottom: 52px;
-    }
-    .ll-section-head h2 {
+    .hero-word {
+      position: absolute;
       font-family: 'Bebas Neue', sans-serif;
-      font-size: clamp(2.4rem, 5vw, 3.8rem);
-      letter-spacing: .06em;
-      color: var(--ll-white);
-      margin-top: 10px;
-      line-height: 1;
-    }
-
-    .ll-how-grid {
-      display: grid;
-      gap: 2px;
-      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-    }
-
-    .ll-how-card {
-      background: var(--ll-surface);
-      padding: 36px 28px;
-      border-left: 3px solid var(--ll-blue);
-      position: relative;
-    }
-
-    .ll-how-num {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: 3.5rem;
-      color: var(--ll-blue-border);
-      line-height: 1;
-      margin-bottom: 12px;
-    }
-
-    .ll-how-card h3 {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: 1.5rem;
-      letter-spacing: .06em;
-      color: var(--ll-white);
-      margin-bottom: 10px;
-    }
-
-    .ll-how-card p {
-      font-size: .9rem; font-weight: 300;
-      color: var(--ll-gray);
-      line-height: 1.65;
-    }
-
-    /* ════════════════════════════════════════
-       HORARIOS Y CATEGORÍAS
-    ════════════════════════════════════════ */
-    .ll-schedule {
-      padding: 90px 0;
-      background: var(--ll-bg);
-    }
-
-    .ll-schedule-grid {
-      display: grid; gap: 2px;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      margin-bottom: 36px;
-    }
-
-    .ll-sched-card {
-      background: var(--ll-bg3);
-      border-top: 3px solid var(--ll-blue);
-      padding: 32px 28px;
-    }
-
-    .ll-sched-time {
-      font-family: 'Space Mono', monospace;
-      font-size: .78rem; letter-spacing: .14em; text-transform: uppercase;
-      color: var(--ll-blue);
-      margin-bottom: 10px;
-    }
-
-    .ll-sched-card h3 {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: 1.8rem; letter-spacing: .05em;
-      color: var(--ll-white);
-      margin-bottom: 6px;
-    }
-
-    .ll-sched-dupr {
-      font-family: 'Space Mono', monospace;
-      font-size: .72rem; letter-spacing: .12em; text-transform: uppercase;
-      color: var(--ll-gray);
-      padding: 3px 10px;
-      border: 1px solid var(--ll-gray-dim);
-      border-radius: 2px;
-      display: inline-block;
-      margin-bottom: 16px;
-    }
-
-    .ll-sched-card p {
-      font-size: .88rem; font-weight: 300;
-      color: var(--ll-gray);
-      line-height: 1.6;
-    }
-
-    .ll-price-note {
-      background: var(--ll-surface);
-      border-left: 3px solid var(--ll-yellow);
-      padding: 20px 28px;
-      display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
-    }
-
-    .ll-price-badge {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: 2rem; letter-spacing: .06em;
-      color: var(--ll-yellow);
-    }
-
-    .ll-price-note p {
-      font-size: .88rem; font-weight: 300;
-      color: var(--ll-gray);
-      line-height: 1.55;
-    }
-
-    /* ════════════════════════════════════════
-       STANDINGS / RANKING
-    ════════════════════════════════════════ */
-    .ll-standings {
-      padding: 90px 0;
-      background: var(--ll-bg2);
-    }
-
-    .ll-tabs {
-      display: flex; gap: 2px;
-      margin-bottom: 32px;
-      border-bottom: 1px solid var(--ll-gray-dim);
-    }
-
-    .ll-tab {
-      font-family: 'Space Mono', monospace;
-      font-size: .75rem; letter-spacing: .14em; text-transform: uppercase;
-      color: var(--ll-gray);
-      background: none; border: none; cursor: pointer;
-      padding: 12px 20px;
-      border-bottom: 2px solid transparent;
-      margin-bottom: -1px;
-      transition: color .2s, border-color .2s;
-    }
-    .ll-tab:hover { color: var(--ll-white); }
-    .ll-tab.active {
-      color: var(--ll-blue);
-      border-bottom-color: var(--ll-blue);
-    }
-
-    .ll-table-wrap {
-      overflow-x: auto;
-    }
-
-    .ll-table {
-      width: 100%; border-collapse: collapse;
-    }
-
-    .ll-table thead tr {
-      border-bottom: 1px solid var(--ll-gray-dim);
-    }
-
-    .ll-table th {
-      font-family: 'Space Mono', monospace;
-      font-size: .68rem; letter-spacing: .16em; text-transform: uppercase;
-      color: var(--ll-gray);
-      padding: 10px 16px; text-align: left;
+      font-size: clamp(4.5rem, 15vw, 13rem);
       font-weight: 400;
-      white-space: nowrap;
+      color: #fff; text-transform: uppercase;
+      pointer-events: none; user-select: none;
     }
-    .ll-table th:not(:first-child) { text-align: right; }
-
-    .ll-table td {
-      padding: 14px 16px;
-      font-size: .9rem; font-weight: 300;
-      color: var(--ll-white);
-      border-bottom: 1px solid rgba(255,255,255,.04);
-    }
-    .ll-table td:not(:first-child) { text-align: right; }
-
-    .ll-table tr:hover td { background: rgba(255,255,255,.02); }
-
-    /* Rank column */
-    .ll-table td.ll-rank {
-      font-family: 'Space Mono', monospace;
-      font-size: .82rem;
-      color: var(--ll-gray);
-      font-weight: 700;
-    }
-
-    /* Top-1 row highlight */
-    .ll-table tr.ll-top1 td {
-      background: var(--ll-yellow-glow);
-    }
-    .ll-table tr.ll-top1 td.ll-rank {
-      color: var(--ll-yellow);
-      font-weight: 700;
-    }
-    .ll-table tr.ll-top1 td.ll-name {
-      color: var(--ll-yellow);
-      font-weight: 700;
-    }
-
-    .ll-pct {
-      font-family: 'Space Mono', monospace;
-      font-size: .85rem; font-weight: 700;
+    .hero-word.w1 { left: 4vw;  top: 16%; }
+    .hero-word.w2 {
+      right: 4vw; top: 37%; text-align: right;
       color: var(--ll-blue);
+      text-shadow: 0 0 100px rgba(0,71,224,.55), 0 0 40px rgba(0,71,224,.35);
+    }
+    .hero-word.w3 { left: 12vw; top: 57%; }
+
+    .hero-desc {
+      position: absolute; left: 5vw; top: 48%;
+      max-width: 210px; font-size: 13px; font-weight: 300;
+      line-height: 1.6; color: rgba(255,255,255,.55);
+    }
+    @media (max-width: 767px) { .hero-desc { display: none; } }
+
+    /* Stats */
+    .stat-block { position: absolute; }
+    .stat-tr { right: 5vw; top: 13%; text-align: right; }
+    .stat-tr .stat-row { display: flex; align-items: center; gap: 14px; justify-content: flex-end; }
+    .stat-bl { left: 5vw; bottom: clamp(80px, 10vh, 120px); }
+    .stat-bl .stat-row { display: flex; align-items: center; gap: 14px; }
+    .stat-br { right: 5vw; bottom: clamp(60px, 8vh, 100px); text-align: right; }
+    .stat-br .stat-row { display: flex; align-items: center; gap: 14px; justify-content: flex-end; }
+
+    .stat-divider { display: none; height: 1px; width: 80px; background: rgba(255,255,255,.28); }
+    @media (min-width: 768px) { .stat-divider { display: block; } }
+    .tilt-up   { transform: rotate(20deg);  }
+    .tilt-down { transform: rotate(-20deg); }
+
+    .stat-num {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(2.4rem, 5vw, 4.4rem);
+      letter-spacing: -.01em; line-height: 1;
+    }
+    .stat-label {
+      font-size: .73rem; font-weight: 300;
+      color: rgba(255,255,255,.5); margin-top: 4px; letter-spacing: .04em;
     }
 
-    .ll-empty-state {
-      text-align: center;
-      padding: 64px 24px;
+    .scroll-hint {
+      position: absolute; bottom: 28px; left: 50%; transform: translateX(-50%);
+      display: flex; flex-direction: column; align-items: center; gap: 7px; z-index: 10;
+      animation: scrollBounce 2.5s ease-in-out infinite;
     }
-    .ll-empty-state p {
+    .scroll-hint span {
       font-family: 'Space Mono', monospace;
-      font-size: .82rem; letter-spacing: .12em; text-transform: uppercase;
-      color: var(--ll-gray);
+      font-size: .58rem; letter-spacing: .18em; text-transform: uppercase;
+      color: rgba(255,255,255,.25);
+    }
+    .scroll-hint svg { opacity: .25; }
+    @keyframes scrollBounce {
+      0%,100% { transform: translateX(-50%) translateY(0);  }
+      50%      { transform: translateX(-50%) translateY(7px); }
     }
 
     /* ════════════════════════════════════════
-       CALENDARIO
+       BELOW-FOLD
     ════════════════════════════════════════ */
-    .ll-calendar {
-      padding: 90px 0;
-      background: var(--ll-bg);
-    }
+    .ll-container { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
 
-    .ll-weeks {
-      display: grid; gap: 2px;
-      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    .ll-divider {
+      width: 100%; height: 1px; border: none;
+      background: linear-gradient(90deg, transparent, var(--ll-blue-border), transparent);
     }
+    .ll-label {
+      font-family: 'Space Mono', monospace;
+      font-size: .68rem; font-weight: 700;
+      letter-spacing: .18em; text-transform: uppercase;
+      color: var(--ll-blue);
+    }
+    .ll-section-h2 {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(2.4rem, 5vw, 4rem);
+      letter-spacing: .05em; color: var(--ll-white);
+      line-height: 1; margin-top: 8px;
+    }
+    .ll-section-head { margin-bottom: 52px; }
 
-    .ll-week {
-      background: var(--ll-surface);
-      padding: 22px 20px;
-      border-left: 3px solid var(--ll-gray-dim);
-      position: relative;
-    }
+    /* Cómo funciona */
+    .ll-how { padding: 96px 0; background: var(--ll-bg); }
+    .ll-how-grid { display: grid; gap: 2px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+    .ll-how-card { background: var(--ll-surface); padding: 36px 28px; border-left: 3px solid var(--ll-blue); }
+    .ll-how-num { font-family: 'Bebas Neue', sans-serif; font-size: 3.2rem; color: var(--ll-blue-border); line-height: 1; margin-bottom: 14px; }
+    .ll-how-card h3 { font-family: 'Bebas Neue', sans-serif; font-size: 1.5rem; letter-spacing: .05em; color: var(--ll-white); margin-bottom: 10px; }
+    .ll-how-card p { font-size: .88rem; font-weight: 300; color: var(--ll-gray); line-height: 1.65; }
+
+    /* Horarios */
+    .ll-schedule { padding: 96px 0; background: var(--ll-bg2); }
+    .ll-schedule-grid { display: grid; gap: 2px; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); margin-bottom: 32px; }
+    .ll-sched-card { background: var(--ll-bg3); border-top: 3px solid var(--ll-blue); padding: 32px 28px; }
+    .ll-sched-time { font-family: 'Space Mono', monospace; font-size: .7rem; letter-spacing: .14em; text-transform: uppercase; color: var(--ll-blue); margin-bottom: 12px; }
+    .ll-sched-card h3 { font-family: 'Bebas Neue', sans-serif; font-size: 1.9rem; letter-spacing: .04em; color: var(--ll-white); margin-bottom: 8px; }
+    .ll-sched-dupr { font-family: 'Space Mono', monospace; font-size: .66rem; letter-spacing: .12em; text-transform: uppercase; color: var(--ll-gray); padding: 3px 10px; border: 1px solid var(--ll-gray-dim); border-radius: 2px; display: inline-block; margin-bottom: 14px; }
+    .ll-sched-card p { font-size: .86rem; font-weight: 300; color: var(--ll-gray); line-height: 1.65; }
+    .ll-price-note { background: var(--ll-surface); border-left: 3px solid var(--ll-yellow); padding: 20px 28px; display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
+    .ll-price-badge { font-family: 'Bebas Neue', sans-serif; font-size: 2.4rem; letter-spacing: .04em; color: var(--ll-yellow); }
+    .ll-price-note p { font-size: .86rem; font-weight: 300; color: var(--ll-gray); line-height: 1.55; }
+
+    /* Standings */
+    .ll-standings { padding: 96px 0; background: var(--ll-bg); }
+    .ll-tabs { display: flex; gap: 2px; margin-bottom: 28px; border-bottom: 1px solid var(--ll-gray-dim); }
+    .ll-tab { font-family: 'Space Mono', monospace; font-size: .68rem; letter-spacing: .14em; text-transform: uppercase; color: var(--ll-gray); background: none; border: none; cursor: pointer; padding: 11px 18px; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: color .2s, border-color .2s; }
+    .ll-tab:hover { color: var(--ll-white); }
+    .ll-tab.active { color: var(--ll-blue); border-bottom-color: var(--ll-blue); }
+    .ll-table-wrap { overflow-x: auto; }
+    .ll-table { width: 100%; border-collapse: collapse; }
+    .ll-table thead tr { border-bottom: 1px solid var(--ll-gray-dim); }
+    .ll-table th { font-family: 'Space Mono', monospace; font-size: .63rem; letter-spacing: .16em; text-transform: uppercase; color: var(--ll-gray); padding: 10px 16px; text-align: left; font-weight: 400; white-space: nowrap; }
+    .ll-table th:not(:first-child) { text-align: right; }
+    .ll-table td { padding: 14px 16px; font-size: .88rem; font-weight: 300; color: var(--ll-white); border-bottom: 1px solid rgba(255,255,255,.04); }
+    .ll-table td:not(:first-child) { text-align: right; }
+    .ll-table tr:hover td { background: rgba(255,255,255,.02); }
+    .ll-table td.ll-rank { font-family: 'Space Mono', monospace; font-size: .78rem; color: var(--ll-gray); font-weight: 700; }
+    .ll-table tr.ll-top1 td { background: var(--ll-yellow-glow); }
+    .ll-table tr.ll-top1 td.ll-rank { color: var(--ll-yellow); }
+    .ll-table tr.ll-top1 td.ll-name { color: var(--ll-yellow); font-weight: 600; }
+    .ll-pct { font-family: 'Space Mono', monospace; font-size: .82rem; font-weight: 700; color: var(--ll-blue); }
+    .ll-empty-state { text-align: center; padding: 64px 24px; }
+    .ll-empty-state p { font-family: 'Space Mono', monospace; font-size: .76rem; letter-spacing: .12em; text-transform: uppercase; color: var(--ll-gray); }
+
+    /* Calendario */
+    .ll-calendar { padding: 96px 0; background: var(--ll-bg2); }
+    .ll-weeks { display: grid; gap: 2px; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); }
+    .ll-week { background: var(--ll-surface); padding: 22px 20px; border-left: 3px solid var(--ll-gray-dim); }
     .ll-week.jugada    { border-left-color: var(--ll-gray); }
     .ll-week.proxima   { border-left-color: var(--ll-blue); background: rgba(0,71,224,.07); }
-    .ll-week.cancelada { border-left-color: #cc2222; opacity: .6; }
-    .ll-week.gran-final { border-left-color: var(--ll-yellow); background: var(--ll-yellow-glow); }
-
-    .ll-week-num {
-      font-family: 'Space Mono', monospace;
-      font-size: .65rem; letter-spacing: .16em; text-transform: uppercase;
-      color: var(--ll-gray);
-      margin-bottom: 6px;
-    }
-
-    .ll-week-date {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: 1.5rem; letter-spacing: .06em;
-      color: var(--ll-white);
-      margin-bottom: 6px;
-    }
+    .ll-week.cancelada { border-left-color: #cc2222; opacity: .55; }
+    .ll-week.gran-final{ border-left-color: var(--ll-yellow); background: var(--ll-yellow-glow); }
+    .ll-week-num { font-family: 'Space Mono', monospace; font-size: .6rem; letter-spacing: .16em; text-transform: uppercase; color: var(--ll-gray); margin-bottom: 6px; }
+    .ll-week-date { font-family: 'Bebas Neue', sans-serif; font-size: 1.5rem; letter-spacing: .05em; color: var(--ll-white); margin-bottom: 6px; }
     .ll-week.gran-final .ll-week-date { color: var(--ll-yellow); }
-
-    .ll-week-status {
-      font-family: 'Space Mono', monospace;
-      font-size: .65rem; letter-spacing: .12em; text-transform: uppercase;
-    }
-    .jugada    .ll-week-status { color: var(--ll-gray); }
-    .proxima   .ll-week-status { color: var(--ll-blue); }
+    .ll-week-status { font-family: 'Space Mono', monospace; font-size: .6rem; letter-spacing: .12em; text-transform: uppercase; }
+    .jugada .ll-week-status    { color: var(--ll-gray); }
+    .proxima .ll-week-status   { color: var(--ll-blue); }
     .cancelada .ll-week-status { color: #cc4444; }
     .pendiente .ll-week-status { color: var(--ll-gray-dim); }
-    .gran-final .ll-week-status { color: var(--ll-yellow); }
+    .gran-final .ll-week-status{ color: var(--ll-yellow); }
+    .ll-week-note { font-size: .75rem; color: var(--ll-gray); margin-top: 6px; line-height: 1.5; }
 
-    .ll-week-note {
-      font-size: .78rem; color: var(--ll-gray); margin-top: 6px; line-height: 1.5;
-    }
-
-    /* ════════════════════════════════════════
-       POLÍTICA DE ASISTENCIA
-    ════════════════════════════════════════ */
-    .ll-policy {
-      padding: 90px 0;
-      background: var(--ll-bg2);
-    }
-
-    .ll-policy-grid {
-      display: grid; gap: 2px;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    }
-
-    .ll-policy-item {
-      background: var(--ll-bg3);
-      padding: 28px;
-      border-left: 3px solid var(--ll-gray-dim);
-    }
+    /* Política */
+    .ll-policy { padding: 96px 0; background: var(--ll-bg); }
+    .ll-policy-grid { display: grid; gap: 2px; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+    .ll-policy-item { background: var(--ll-bg2); padding: 32px 28px; border-left: 3px solid var(--ll-gray-dim); }
     .ll-policy-item.ok   { border-left-color: #2a9d3a; }
     .ll-policy-item.warn { border-left-color: #e08c00; }
     .ll-policy-item.bad  { border-left-color: #cc2222; }
+    .ll-policy-icon { font-size: 1.8rem; margin-bottom: 14px; }
+    .ll-policy-item h3 { font-family: 'Bebas Neue', sans-serif; font-size: 1.4rem; letter-spacing: .05em; color: var(--ll-white); margin-bottom: 10px; }
+    .ll-policy-item p { font-size: .86rem; font-weight: 300; color: var(--ll-gray); line-height: 1.65; }
 
-    .ll-policy-icon {
-      font-size: 1.8rem; margin-bottom: 14px;
-    }
-
-    .ll-policy-item h3 {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: 1.3rem; letter-spacing: .06em;
-      color: var(--ll-white);
-      margin-bottom: 8px;
-    }
-
-    .ll-policy-item p {
-      font-size: .88rem; font-weight: 300;
-      color: var(--ll-gray); line-height: 1.6;
-    }
-
-    /* ════════════════════════════════════════
-       FINAL CTA
-    ════════════════════════════════════════ */
+    /* Final CTA */
     .ll-cta-final {
-      background: var(--ll-blue);
-      padding: 90px 24px;
-      text-align: center;
+      background: var(--ll-blue); padding: 100px 24px;
+      text-align: center; position: relative; overflow: hidden;
     }
-
-    .ll-cta-final h2 {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: clamp(2.8rem, 6vw, 5rem);
-      letter-spacing: .06em;
-      color: #fff;
-      line-height: 1;
-      margin-bottom: 16px;
+    .ll-cta-final::before {
+      content: ''; position: absolute; inset: 0;
+      background:
+        linear-gradient(rgba(255,255,255,.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.04) 1px, transparent 1px);
+      background-size: 40px 40px;
     }
-
-    .ll-cta-final p {
-      font-size: 1rem; font-weight: 300;
-      color: rgba(255,255,255,.78);
-      max-width: 480px; margin: 0 auto 40px;
-      line-height: 1.65;
-    }
-
-    .ll-btn-cta {
-      display: inline-block;
-      background: var(--ll-yellow); color: #08080a;
-      padding: 18px 52px;
-      font-family: 'Space Mono', monospace;
-      font-size: .9rem; font-weight: 700; letter-spacing: .14em; text-transform: uppercase;
-      text-decoration: none; border-radius: 2px;
-      transition: opacity .2s, transform .2s;
-    }
+    .ll-cta-final h2 { font-family: 'Bebas Neue', sans-serif; font-size: clamp(3rem, 7vw, 6rem); letter-spacing: .05em; color: #fff; line-height: .95; margin-bottom: 20px; position: relative; }
+    .ll-cta-final p { font-size: .95rem; font-weight: 300; color: rgba(255,255,255,.72); max-width: 460px; margin: 0 auto 44px; line-height: 1.7; position: relative; }
+    .ll-btn-cta { display: inline-block; background: var(--ll-yellow); color: #06060a; padding: 18px 56px; font-family: 'Space Mono', monospace; font-size: .8rem; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; text-decoration: none; border-radius: 9999px; transition: opacity .2s, transform .2s; position: relative; }
     .ll-btn-cta:hover { opacity: .9; transform: translateY(-2px); }
 
-    /* ════════════════════════════════════════
-       FOOTER — site footer
-    ════════════════════════════════════════ */
-    footer {
-      background: #0a0a0c;
-      border-top: 1px solid var(--ll-blue-border);
-      color: rgba(255,255,255,.55);
-      padding: 56px 24px 32px;
-    }
-    .footer-inner {
-      max-width: 1140px; margin: 0 auto;
-      display: grid; gap: 40px;
-      grid-template-columns: 2fr 1fr 1fr 1fr;
-    }
-    .footer-brand h3 { font-size: 1rem; font-weight: 800; color: #fff; margin-bottom: 10px; }
-    .footer-brand p  { font-size: .87rem; line-height: 1.65; }
-    .footer-col h4 {
-      font-family: 'Space Mono', monospace;
-      font-size: .72rem; font-weight: 700; color: #fff;
-      margin-bottom: 14px; text-transform: uppercase; letter-spacing: .1em;
-    }
-    .footer-col ul   { list-style: none; display: flex; flex-direction: column; gap: 9px; }
-    .footer-col ul li a {
-      font-size: .87rem; color: rgba(255,255,255,.45); text-decoration: none;
-      transition: color .2s;
-    }
+    /* Footer */
+    footer { background: #000; border-top: 1px solid rgba(0,71,224,.18); color: rgba(255,255,255,.5); padding: 56px 24px 32px; }
+    .footer-inner { max-width: 1100px; margin: 0 auto; display: grid; gap: 40px; grid-template-columns: 2fr 1fr 1fr 1fr; }
+    .footer-brand h3 { font-family: 'Bebas Neue', sans-serif; font-size: 1.4rem; letter-spacing: .06em; color: #fff; margin-bottom: 10px; }
+    .footer-brand p  { font-size: .84rem; line-height: 1.65; font-weight: 300; }
+    .footer-col h4 { font-family: 'Space Mono', monospace; font-size: .66rem; font-weight: 700; color: #fff; margin-bottom: 14px; text-transform: uppercase; letter-spacing: .12em; }
+    .footer-col ul { list-style: none; display: flex; flex-direction: column; gap: 9px; }
+    .footer-col ul li a { font-size: .84rem; color: rgba(255,255,255,.38); text-decoration: none; font-weight: 300; transition: color .2s; }
     .footer-col ul li a:hover { color: #fff; }
     .social-row { display: flex; gap: 8px; margin-top: 20px; }
-    .social-icon {
-      width: 36px; height: 36px; border-radius: 2px;
-      background: rgba(255,255,255,.08);
-      display: flex; align-items: center; justify-content: center;
-      text-decoration: none; font-size: 1rem;
-      transition: background .2s;
-    }
-    .social-icon:hover { background: rgba(255,255,255,.16); }
-    .footer-bottom {
-      max-width: 1140px; margin: 36px auto 0;
-      padding-top: 22px; border-top: 1px solid rgba(255,255,255,.08);
-      display: flex; align-items: center; justify-content: space-between;
-      flex-wrap: wrap; gap: 10px; font-size: .8rem;
-    }
+    .social-icon { width: 34px; height: 34px; border-radius: 4px; background: rgba(255,255,255,.07); display: flex; align-items: center; justify-content: center; text-decoration: none; font-size: .9rem; transition: background .2s; }
+    .social-icon:hover { background: rgba(255,255,255,.14); }
+    .footer-bottom { max-width: 1100px; margin: 32px auto 0; padding-top: 20px; border-top: 1px solid rgba(255,255,255,.07); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; font-family: 'Space Mono', monospace; font-size: .66rem; letter-spacing: .08em; text-transform: uppercase; }
 
-    /* ════════════════════════════════════════
-       RESPONSIVE
-    ════════════════════════════════════════ */
-    @media (max-width: 900px) {
-      .nav-links { display: none; }
-      .nav-cta   { display: none; }
-      .hamburger { display: block; }
+    /* Reveal */
+    .reveal { opacity: 0; transform: translateY(20px); transition: opacity .6s ease, transform .6s ease; }
+    .reveal.visible { opacity: 1; transform: none; }
+
+    /* Responsive */
+    @media (max-width: 767px) {
+      .hero-word { font-size: clamp(3.8rem, 19vw, 7rem); }
+      .hero-word.w1 { top: 17%; }
+      .hero-word.w2 { top: 39%; }
+      .hero-word.w3 { top: 58%; left: 6vw; }
+      .stat-tr { top: 10%; }
+      .stat-bl, .stat-br { bottom: 60px; }
       .footer-inner { grid-template-columns: 1fr 1fr; }
     }
     @media (max-width: 480px) {
       .footer-inner { grid-template-columns: 1fr; }
-      .ll-hero { padding: 110px 20px 80px; }
-      .ll-table th, .ll-table td { padding: 10px 10px; }
+      .stat-br { display: none; }
     }
-
-    /* ════════════════════════════════════════
-       REVEAL ANIMATION
-    ════════════════════════════════════════ */
-    .reveal {
-      opacity: 0; transform: translateY(22px);
-      transition: opacity .6s ease, transform .6s ease;
-    }
-    .reveal.visible { opacity: 1; transform: none; }
   </style>
 </head>
 <body>
 
-<!-- ════════════════════════
-     NAV
-════════════════════════ -->
-<nav id="main-nav">
-  <div class="nav-inner">
-    <a href="https://antigua-pickleball.com" class="nav-logo">
-      <img src="logo.png" height="44" alt="Antigua Pickleball"/>
-    </a>
-    <ul class="nav-links">
-      <li><a href="https://antigua-pickleball.com">Inicio</a></li>
-      <li><a href="https://antigua-pickleball.com/eventos.html">Eventos</a></li>
-      <li><a href="https://antigua-pickleball.com/canchas.html">Canchas</a></li>
-      <li><a href="https://antigua-pickleball.com/calendario.html">Calendario</a></li>
-      <li><a href="https://antigua-pickleball.com/clinicas.html">Clínicas</a></li>
-      <li><a href="/" class="nav-ladder active">Ladder</a></li>
-      <li><a href="https://antigua-pickleball.com/merch.html">Merch</a></li>
-      <li><a href="https://antigua-pickleball.com/media.html">Media</a></li>
-      <li><a href="https://antigua-pickleball.com/patrocinadores.html">Patrocinadores</a></li>
-    </ul>
-    <div class="nav-cta">
-      <a class="btn-wa" href="https://wa.me/50230912707" target="_blank" rel="noopener">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.136.561 4.14 1.541 5.877L0 24l6.305-1.52A11.95 11.95 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.89 0-3.663-.497-5.195-1.365l-.373-.217-3.741.902.942-3.641-.237-.385A9.94 9.94 0 012 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/></svg>
-        Contáctanos
-      </a>
-    </div>
-    <button class="hamburger" id="hamburger" aria-label="Menú"><span></span><span></span><span></span></button>
-  </div>
-  <div class="mobile-menu" id="mobile-menu">
-    <a href="https://antigua-pickleball.com">Inicio</a>
-    <a href="https://antigua-pickleball.com/eventos.html">Eventos</a>
-    <a href="https://antigua-pickleball.com/canchas.html">Canchas</a>
-    <a href="https://antigua-pickleball.com/calendario.html">Calendario</a>
-    <a href="https://antigua-pickleball.com/clinicas.html">Clínicas</a>
-    <a href="/" class="nav-ladder">⬆ Ladder League</a>
-    <a href="https://antigua-pickleball.com/merch.html">Merch</a>
-    <a href="https://antigua-pickleball.com/media.html">Media</a>
-    <a href="https://antigua-pickleball.com/patrocinadores.html">Patrocinadores</a>
-    <a href="https://wa.me/50230912707" target="_blank" style="color:#25D366;border:none">💬 Contáctanos</a>
-  </div>
-</nav>
-
-<!-- ════════════════════════
+<!-- ══════════════════════════════════
      HERO
-════════════════════════ -->
-<section class="ll-hero">
-  <div class="ll-hero-grid"></div>
-  <div class="ll-hero-glow"></div>
-  <div class="ll-hero-inner">
-    <div class="ll-hero-tag">Temporada 1 · Julio – Agosto 2026</div>
-    <h1 class="ll-hero-title">ANTIGUA<br><span>LADDER</span><br>LEAGUE</h1>
-    <p class="ll-hero-sub">La competencia semanal de pickleball de Antigua Guatemala</p>
-    <div class="ll-hero-actions">
-      <a class="ll-btn-primary" href="https://forms.gle/7VHLy9qM9CfYbdWx9" target="_blank" rel="noopener">INSCRÍBETE</a>
-      <a class="ll-btn-outline" href="#standings">VER RANKING</a>
-    </div>
+══════════════════════════════════ -->
+<section id="hero">
+
+  <div class="hero-court"></div>
+  <div class="hero-balls">
+    <div class="pb-ball pb-1"></div>
+    <div class="pb-ball pb-2"></div>
+    <div class="pb-ball pb-3"></div>
+    <div class="pb-ball pb-4"></div>
+    <div class="pb-ball pb-5"></div>
+    <div class="pb-ball pb-6"></div>
   </div>
+  <div class="hero-glow"></div>
+
+  <!-- NAV -->
+  <nav id="main-nav">
+    <div class="nav-inner">
+
+      <a href="https://antigua-pickleball.com" class="nav-brand">
+        <img src="logo.png" alt="Antigua Pickleball" height="22"/>
+        <div class="nav-brand-sep"></div>
+        <span class="nav-brand-sub">Ladder League</span>
+      </a>
+
+      <ul class="nav-links-pill">
+        <li><a href="#como-funciona">Formato</a></li>
+        <li><a href="#horarios">Horarios</a></li>
+        <li><a href="#standings">Ranking</a></li>
+        <li><a href="#calendario">Calendario</a></li>
+      </ul>
+
+      <div class="nav-cta-pill">
+        <a class="nav-btn" href="https://forms.gle/7VHLy9qM9CfYbdWx9" target="_blank" rel="noopener">Inscríbete</a>
+        <button class="hamburger" id="hamburger" aria-label="Menú">
+          <span></span><span></span><span></span>
+        </button>
+      </div>
+
+    </div>
+    <div class="mobile-menu" id="mobile-menu">
+      <a href="#como-funciona">Formato</a>
+      <a href="#horarios">Horarios</a>
+      <a href="#standings">Ranking</a>
+      <a href="#calendario">Calendario</a>
+      <a href="https://antigua-pickleball.com" class="back-link">← Antigua Pickleball</a>
+    </div>
+  </nav>
+
+  <!-- Foreground copy -->
+  <div class="hero-content">
+
+    <h1 class="hero-title hero-word w1">ANTIGUA</h1>
+    <h1 class="hero-title hero-word w2">LADDER</h1>
+    <h1 class="hero-title hero-word w3">LEAGUE</h1>
+
+    <p class="hero-desc">
+      Competencia semanal de pickleball. Llegas solo, te asignamos grupo, subes o bajas según tus resultados.
+    </p>
+
+    <!-- Stat top-right -->
+    <div class="stat-block stat-tr">
+      <div class="stat-row">
+        <div class="stat-divider tilt-up"></div>
+        <div>
+          <div class="stat-num">T1</div>
+          <div class="stat-label">temporada 1 · 2026</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stat bottom-left -->
+    <div class="stat-block stat-bl">
+      <div class="stat-row">
+        <div>
+          <div class="stat-num">8</div>
+          <div class="stat-label">semanas de competencia</div>
+        </div>
+        <div class="stat-divider tilt-down"></div>
+      </div>
+    </div>
+
+    <!-- Stat bottom-right -->
+    <div class="stat-block stat-br">
+      <div class="stat-row">
+        <div class="stat-divider tilt-down"></div>
+        <div>
+          <div class="stat-num">3</div>
+          <div class="stat-label" style="text-align:right">categorías</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="hero-fade"></div>
+
+  <div class="scroll-hint">
+    <span>scroll</span>
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="white" stroke-width="1.5">
+      <path d="M8 3v10M4 9l4 4 4-4"/>
+    </svg>
+  </div>
+
 </section>
 
-<hr class="ll-divider"/>
-
-<!-- ════════════════════════
+<!-- ══════════════════════════════════
      CÓMO FUNCIONA
-════════════════════════ -->
-<section class="ll-how">
+══════════════════════════════════ -->
+<hr class="ll-divider"/>
+<section class="ll-how" id="como-funciona">
   <div class="ll-container">
     <div class="ll-section-head reveal">
       <div class="ll-label">El formato</div>
-      <h2>CÓMO FUNCIONA</h2>
+      <h2 class="ll-section-h2">CÓMO FUNCIONA</h2>
     </div>
     <div class="ll-how-grid">
       <div class="ll-how-card reveal">
@@ -759,16 +572,15 @@
   </div>
 </section>
 
+<!-- ══════════════════════════════════
+     HORARIOS
+══════════════════════════════════ -->
 <hr class="ll-divider"/>
-
-<!-- ════════════════════════
-     HORARIOS Y CATEGORÍAS
-════════════════════════ -->
-<section class="ll-schedule">
+<section class="ll-schedule" id="horarios">
   <div class="ll-container">
     <div class="ll-section-head reveal">
       <div class="ll-label">Cada sábado</div>
-      <h2>HORARIOS Y CATEGORÍAS</h2>
+      <h2 class="ll-section-h2">HORARIOS Y CATEGORÍAS</h2>
     </div>
     <div class="ll-schedule-grid">
       <div class="ll-sched-card reveal">
@@ -793,58 +605,53 @@
     <div class="ll-price-note reveal">
       <div class="ll-price-badge">Q60</div>
       <p>Por jugador por sesión · Pago anticipado por transferencia bancaria o Bim<br>
-      <span style="font-size:.8rem;opacity:.7">El pago reserva tu lugar. Sin pago confirmado no hay cupo garantizado.</span></p>
+      <span style="font-size:.78rem;opacity:.6">El pago reserva tu lugar. Sin pago confirmado no hay cupo garantizado.</span></p>
     </div>
   </div>
 </section>
 
+<!-- ══════════════════════════════════
+     STANDINGS
+══════════════════════════════════ -->
 <hr class="ll-divider"/>
-
-<!-- ════════════════════════
-     STANDINGS / RANKING
-════════════════════════ -->
 <section class="ll-standings" id="standings">
   <div class="ll-container">
     <div class="ll-section-head reveal">
       <div class="ll-label">Temporada 1</div>
-      <h2>RANKING</h2>
+      <h2 class="ll-section-h2">RANKING</h2>
     </div>
-
     <div class="ll-tabs" role="tablist">
       <button class="ll-tab active" data-cat="principiante" role="tab">Principiante</button>
       <button class="ll-tab" data-cat="intermedio" role="tab">Intermedio</button>
       <button class="ll-tab" data-cat="open" role="tab">Open</button>
     </div>
-
     <div id="standings-body" class="ll-table-wrap"></div>
   </div>
 </section>
 
-<hr class="ll-divider"/>
-
-<!-- ════════════════════════
+<!-- ══════════════════════════════════
      CALENDARIO
-════════════════════════ -->
-<section class="ll-calendar">
+══════════════════════════════════ -->
+<hr class="ll-divider"/>
+<section class="ll-calendar" id="calendario">
   <div class="ll-container">
     <div class="ll-section-head reveal">
       <div class="ll-label">Julio – Agosto 2026</div>
-      <h2>CALENDARIO</h2>
+      <h2 class="ll-section-h2">CALENDARIO</h2>
     </div>
     <div class="ll-weeks" id="calendar-weeks"></div>
   </div>
 </section>
 
+<!-- ══════════════════════════════════
+     POLÍTICA
+══════════════════════════════════ -->
 <hr class="ll-divider"/>
-
-<!-- ════════════════════════
-     POLÍTICA DE ASISTENCIA
-════════════════════════ -->
-<section class="ll-policy">
+<section class="ll-policy" id="politica">
   <div class="ll-container">
     <div class="ll-section-head reveal">
       <div class="ll-label">Importante</div>
-      <h2>POLÍTICA DE ASISTENCIA</h2>
+      <h2 class="ll-section-h2">POLÍTICA DE ASISTENCIA</h2>
     </div>
     <div class="ll-policy-grid">
       <div class="ll-policy-item ok reveal">
@@ -866,24 +673,24 @@
   </div>
 </section>
 
-<!-- ════════════════════════
-     FINAL CTA
-════════════════════════ -->
+<!-- ══════════════════════════════════
+     CTA FINAL
+══════════════════════════════════ -->
 <section class="ll-cta-final">
-  <div class="ll-label" style="color:rgba(255,255,255,.6);display:block;margin-bottom:16px">Temporada 1 · 8 semanas · Julio – Agosto 2026</div>
+  <div class="ll-label" style="color:rgba(255,255,255,.5);display:block;margin-bottom:20px;position:relative">Temporada 1 · 8 semanas · Julio – Agosto 2026</div>
   <h2>¿LISTO PARA<br>SUBIR LA ESCALERA?</h2>
   <p>Cupo limitado a 10 jugadores por categoría. Inscríbete ahora y asegura tu lugar en la primera temporada de la Antigua Ladder League.</p>
   <a class="ll-btn-cta" href="https://forms.gle/7VHLy9qM9CfYbdWx9" target="_blank" rel="noopener">INSCRIBIRME AHORA</a>
 </section>
 
-<!-- ════════════════════════
+<!-- ══════════════════════════════════
      FOOTER
-════════════════════════ -->
+══════════════════════════════════ -->
 <footer>
   <div class="footer-inner">
     <div class="footer-brand">
-      <h3>Antigua Pickleball</h3>
-      <p>La comunidad de pickleball más activa de La Antigua Guatemala. El pickleball es para todos.</p>
+      <h3>ANTIGUA LADDER LEAGUE</h3>
+      <p>Competencia semanal de pickleball en La Antigua Guatemala. Temporada 1 · Julio – Agosto 2026.</p>
       <div class="social-row">
         <a class="social-icon" href="https://www.instagram.com/antiguapickleball" target="_blank" title="Instagram">📷</a>
         <a class="social-icon" href="https://www.facebook.com/p/Antigua-Pickleball-61567310379538/" target="_blank" title="Facebook">👥</a>
@@ -891,22 +698,22 @@
       </div>
     </div>
     <div class="footer-col">
-      <h4>Eventos</h4>
+      <h4>Ladder</h4>
       <ul>
-        <li><a href="https://antigua-pickleball.com/liga-antiguena.html">Liga Antigüeña</a></li>
-        <li><a href="https://antigua-pickleball.com/mundialito.html">El Mundialito</a></li>
-        <li><a href="/">Ladder League</a></li>
-        <li><a href="https://antigua-pickleball.com/calendario.html">Calendario</a></li>
+        <li><a href="#como-funciona">Formato</a></li>
+        <li><a href="#horarios">Horarios</a></li>
+        <li><a href="#standings">Ranking</a></li>
+        <li><a href="#calendario">Calendario</a></li>
+        <li><a href="#politica">Política</a></li>
       </ul>
     </div>
     <div class="footer-col">
-      <h4>Comunidad</h4>
+      <h4>Antigua PB</h4>
       <ul>
+        <li><a href="https://antigua-pickleball.com">Inicio</a></li>
+        <li><a href="https://antigua-pickleball.com/eventos.html">Eventos</a></li>
         <li><a href="https://antigua-pickleball.com/canchas.html">Canchas</a></li>
         <li><a href="https://antigua-pickleball.com/clinicas.html">Clínicas</a></li>
-        <li><a href="https://antigua-pickleball.com/merch.html">Merch</a></li>
-        <li><a href="https://antigua-pickleball.com/media.html">Media</a></li>
-        <li><a href="https://antigua-pickleball.com/patrocinadores.html">Patrocinadores</a></li>
       </ul>
     </div>
     <div class="footer-col">
@@ -914,12 +721,13 @@
       <ul>
         <li><a href="https://wa.me/50230912707">+502 3091-2707</a></li>
         <li><a href="mailto:info@antiguapickleball.gt">Email</a></li>
+        <li><a href="https://forms.gle/7VHLy9qM9CfYbdWx9" target="_blank">Inscripción</a></li>
       </ul>
     </div>
   </div>
   <div class="footer-bottom">
-    <span>© 2026 Antigua Pickleball · La Antigua Guatemala</span>
-    <span style="color:rgba(255,255,255,.25)">Antigua Ladder League — Temporada 1 🏓</span>
+    <span>© 2026 Antigua Pickleball</span>
+    <span style="color:rgba(255,255,255,.2)">Ladder League · Temporada 1 🏓</span>
   </div>
 </footer>
 
@@ -927,17 +735,15 @@
 /* ════════════════════════════════════════════════════════════
    DATOS — editar aquí cada semana
    ─────────────────────────────────────────────────────────
-   Para actualizar el ranking:
-   1. Edita los valores de ptosGanados y ptosPosibles por jugador
-   2. El % se calcula solo (ptosGanados / ptosPosibles * 100)
-   3. Actualiza semanaActual para marcar la semana activa en el calendario
+   1. Actualiza ptosGanados y ptosPosibles por jugador
+   2. El % se calcula automáticamente
+   3. Cambia semanaActual para reflejar la semana en curso
 ════════════════════════════════════════════════════════════ */
-
 const TEMPORADA = {
   nombre: 'Temporada 1',
   inicio: '4 Jul 2026',
   fin: '29 Ago 2026',
-  semanaActual: 1,  // ← Cambia este número cada semana (1–8)
+  semanaActual: 1,
 };
 
 const JUGADORES = {
@@ -979,33 +785,22 @@ const JUGADORES = {
   ],
 };
 
-/* ════════════════════════════════════════════════════════════
-   CALENDARIO — no editar salvo para marcar semanas jugadas
-════════════════════════════════════════════════════════════ */
 const SEMANAS = [
-  { num: 1, fecha: '4 Jul',   estado: 'proxima'   },
-  { num: 2, fecha: '11 Jul',  estado: 'cancelada', nota: 'Torneo en Santuario' },
-  { num: 3, fecha: '18 Jul',  estado: 'pendiente' },
-  { num: 4, fecha: '25 Jul',  estado: 'pendiente' },
-  { num: 5, fecha: '1 Ago',   estado: 'pendiente' },
-  { num: 6, fecha: '8 Ago',   estado: 'pendiente' },
-  { num: 7, fecha: '15 Ago',  estado: 'pendiente' },
-  { num: 8, fecha: '22 Ago',  estado: 'pendiente' },
-  { num: 9, fecha: '29 Ago',  estado: 'gran-final', nota: 'Gran Final' },
+  { num: 1, fecha: '4 Jul',  estado: 'proxima'                          },
+  { num: 2, fecha: '11 Jul', estado: 'cancelada', nota: 'Torneo en Santuario' },
+  { num: 3, fecha: '18 Jul', estado: 'pendiente'                        },
+  { num: 4, fecha: '25 Jul', estado: 'pendiente'                        },
+  { num: 5, fecha: '1 Ago',  estado: 'pendiente'                        },
+  { num: 6, fecha: '8 Ago',  estado: 'pendiente'                        },
+  { num: 7, fecha: '15 Ago', estado: 'pendiente'                        },
+  { num: 8, fecha: '22 Ago', estado: 'pendiente'                        },
+  { num: 9, fecha: '29 Ago', estado: 'gran-final', nota: 'Gran Final'   },
 ];
 
-/* ════════════════════════════════════════════════════════════
-   RENDER STANDINGS
-════════════════════════════════════════════════════════════ */
-function calcPct(g, p) {
-  if (!p) return null;
-  return (g / p * 100);
-}
-
+/* ── Render ── */
 function renderStandings(cat) {
   const jugadores = [...JUGADORES[cat]].map(j => ({
-    ...j,
-    pct: calcPct(j.ptosGanados, j.ptosPosibles),
+    ...j, pct: j.ptosPosibles ? j.ptosGanados / j.ptosPosibles * 100 : null,
   })).sort((a, b) => {
     if (a.pct === null && b.pct === null) return 0;
     if (a.pct === null) return 1;
@@ -1013,100 +808,57 @@ function renderStandings(cat) {
     return b.pct - a.pct;
   });
 
-  const allZero = jugadores.every(j => j.pct === null);
-
   const wrap = document.getElementById('standings-body');
-
-  if (allZero) {
-    wrap.innerHTML = `
-      <div class="ll-empty-state">
-        <p>La temporada aún no ha comenzado</p>
-        <p style="margin-top:10px;font-size:.72rem;opacity:.5">El ranking aparecerá aquí después de la primera sesión</p>
-      </div>`;
+  if (jugadores.every(j => j.pct === null)) {
+    wrap.innerHTML = `<div class="ll-empty-state">
+      <p>La temporada aún no ha comenzado</p>
+      <p style="margin-top:10px;font-size:.65rem;opacity:.4">El ranking aparecerá aquí después de la primera sesión</p>
+    </div>`;
     return;
   }
-
-  const rows = jugadores.map((j, i) => {
-    const pos = i + 1;
-    const isTop = pos === 1;
-    const pctStr = j.pct !== null ? `${j.pct.toFixed(1)}%` : '—';
-    return `
-      <tr class="${isTop ? 'll-top1' : ''}">
-        <td class="ll-rank">${pos}</td>
+  wrap.innerHTML = `<table class="ll-table">
+    <thead><tr><th>Pos</th><th>Jugador</th><th>Sesiones</th><th>Pts Ganados</th><th>Pts Posibles</th><th>%</th></tr></thead>
+    <tbody>${jugadores.map((j,i) => `
+      <tr class="${i===0?'ll-top1':''}">
+        <td class="ll-rank">${i+1}</td>
         <td class="ll-name">${j.nombre}</td>
-        <td>${j.sesiones}</td>
-        <td>${j.ptosGanados}</td>
-        <td>${j.ptosPosibles}</td>
-        <td><span class="ll-pct">${pctStr}</span></td>
-      </tr>`;
-  }).join('');
-
-  wrap.innerHTML = `
-    <table class="ll-table">
-      <thead>
-        <tr>
-          <th>Pos</th>
-          <th>Jugador</th>
-          <th>Sesiones</th>
-          <th>Pts Ganados</th>
-          <th>Pts Posibles</th>
-          <th>%</th>
-        </tr>
-      </thead>
-      <tbody>${rows}</tbody>
-    </table>`;
+        <td>${j.sesiones}</td><td>${j.ptosGanados}</td><td>${j.ptosPosibles}</td>
+        <td><span class="ll-pct">${j.pct!==null?j.pct.toFixed(1)+'%':'—'}</span></td>
+      </tr>`).join('')}
+    </tbody></table>`;
 }
 
-/* ════════════════════════════════════════════════════════════
-   RENDER CALENDAR
-════════════════════════════════════════════════════════════ */
 function renderCalendar() {
-  const wrap = document.getElementById('calendar-weeks');
-  const estadoLabel = {
-    jugada:    'JUGADA',
-    proxima:   'PRÓXIMA',
-    cancelada: 'CANCELADA',
-    pendiente: 'PENDIENTE',
-    'gran-final': 'GRAN FINAL',
-  };
-  wrap.innerHTML = SEMANAS.map(s => `
+  const labels = { jugada:'JUGADA', proxima:'PRÓXIMA', cancelada:'CANCELADA', pendiente:'PENDIENTE', 'gran-final':'GRAN FINAL' };
+  document.getElementById('calendar-weeks').innerHTML = SEMANAS.map(s => `
     <div class="ll-week ${s.estado}">
-      <div class="ll-week-num">${s.estado === 'gran-final' ? 'FINAL' : `Semana ${s.num}`}</div>
+      <div class="ll-week-num">${s.estado==='gran-final'?'FINAL':`Semana ${s.num}`}</div>
       <div class="ll-week-date">${s.fecha}</div>
-      <div class="ll-week-status">${estadoLabel[s.estado] || s.estado}</div>
-      ${s.nota ? `<div class="ll-week-note">${s.nota}</div>` : ''}
+      <div class="ll-week-status">${labels[s.estado]||s.estado}</div>
+      ${s.nota?`<div class="ll-week-note">${s.nota}</div>`:''}
     </div>`).join('');
 }
 
-/* ════════════════════════════════════════════════════════════
-   INIT
-════════════════════════════════════════════════════════════ */
 document.addEventListener('DOMContentLoaded', () => {
-  // Tabs
-  let currentCat = 'principiante';
-  renderStandings(currentCat);
+  renderStandings('principiante');
   renderCalendar();
 
   document.querySelectorAll('.ll-tab').forEach(btn => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('.ll-tab').forEach(t => t.classList.remove('active'));
       btn.classList.add('active');
-      currentCat = btn.dataset.cat;
-      renderStandings(currentCat);
+      renderStandings(btn.dataset.cat);
     });
   });
 
-  // Hamburger
-  document.getElementById('hamburger').addEventListener('click', () => {
-    document.getElementById('mobile-menu').classList.toggle('open');
-  });
+  const ham = document.getElementById('hamburger');
+  const menu = document.getElementById('mobile-menu');
+  ham.addEventListener('click', () => menu.classList.toggle('open'));
+  menu.querySelectorAll('a').forEach(a => a.addEventListener('click', () => menu.classList.remove('open')));
 
-  // Reveal on scroll
   const obs = new IntersectionObserver(entries => {
-    entries.forEach(e => {
-      if (e.isIntersecting) { e.target.classList.add('visible'); obs.unobserve(e.target); }
-    });
-  }, { threshold: 0.08 });
+    entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); obs.unobserve(e.target); } });
+  }, { threshold: 0.07 });
   document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
 });
 </script>
