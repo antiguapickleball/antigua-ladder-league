@@ -196,14 +196,37 @@
       position: absolute;
       animation: floatBall linear infinite;
     }
+    .pb-deco img {
+      width: 100%; height: auto; display: block;
+    }
     @keyframes floatBall {
       0%   { transform: translate(0,0) rotate(0deg); }
       50%  { transform: translate(var(--mx), var(--my)) rotate(180deg); }
       100% { transform: translate(0,0) rotate(360deg); }
     }
-    .pb-deco-1 { right: 8%;  top: 15%; width: 120px; --mx:12px; --my:18px; animation-duration:14s; }
-    .pb-deco-2 { right: 28%; top: 50%; width: 80px;  --mx:-10px;--my:-14px;animation-duration:11s;animation-delay:-5s; }
-    .pb-deco-3 { right: 12%; top: 72%; width: 60px;  --mx:8px;  --my:-10px;animation-duration:9s; animation-delay:-3s; }
+    /* Ball: natural yellow — real pickleball color, looks great on white */
+    .pb-deco-1 { right: 8%;  top: 15%; width: 110px; --mx:12px; --my:18px; animation-duration:14s; opacity:.18; }
+    .pb-deco-2 { right: 28%; top: 50%; width: 75px;  --mx:-10px;--my:-14px;animation-duration:11s;animation-delay:-5s; opacity:.14; }
+    .pb-deco-3 { right: 12%; top: 72%; width: 55px;  --mx:8px;  --my:-10px;animation-duration:9s; animation-delay:-3s; opacity:.12; }
+    /* Paddle decoration */
+    .pb-paddle {
+      position: absolute; pointer-events: none; z-index: 2;
+      animation: floatBall linear infinite;
+    }
+    .pb-paddle img { width: 100%; height: auto; display: block; }
+    /* Recolor paddle: shift green+yellow → red+white via hue-rotate */
+    .pb-paddle-1 {
+      right: 3%; top: 30%; width: 90px;
+      --mx:-8px; --my:14px; animation-duration:18s; animation-delay:-6s;
+      opacity:.13;
+      filter: hue-rotate(305deg) saturate(2) brightness(1.1);
+    }
+    .pb-paddle-2 {
+      right: 35%; top: 8%; width: 60px;
+      --mx:10px; --my:10px; animation-duration:22s; animation-delay:-10s;
+      opacity:.1;
+      filter: hue-rotate(305deg) saturate(2) brightness(1.1);
+    }
 
     /* Hero content */
     .hero-content {
@@ -826,51 +849,13 @@
     </svg>
   </div>
 
-  <!-- Floating pickleball SVGs -->
+  <!-- Floating pickleball illustrations -->
   <div class="hero-balls-deco">
-    <!-- Ball 1 -->
-    <div class="pb-deco pb-deco-1">
-      <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <circle cx="50" cy="50" r="47" stroke="#e4252e" stroke-width="2" fill="rgba(228,37,46,.05)"/>
-        <circle cx="50" cy="50" r="6" fill="#e4252e" opacity=".5"/>
-        <circle cx="34" cy="36" r="5" fill="#e4252e" opacity=".5"/>
-        <circle cx="66" cy="36" r="5" fill="#e4252e" opacity=".5"/>
-        <circle cx="28" cy="54" r="5" fill="#e4252e" opacity=".5"/>
-        <circle cx="72" cy="54" r="5" fill="#e4252e" opacity=".5"/>
-        <circle cx="34" cy="66" r="5" fill="#e4252e" opacity=".5"/>
-        <circle cx="66" cy="66" r="5" fill="#e4252e" opacity=".5"/>
-        <circle cx="50" cy="28" r="5" fill="#e4252e" opacity=".5"/>
-        <circle cx="50" cy="72" r="5" fill="#e4252e" opacity=".5"/>
-        <circle cx="40" cy="22" r="4" fill="#e4252e" opacity=".35"/>
-        <circle cx="60" cy="22" r="4" fill="#e4252e" opacity=".35"/>
-        <circle cx="20" cy="42" r="4" fill="#e4252e" opacity=".35"/>
-        <circle cx="80" cy="42" r="4" fill="#e4252e" opacity=".35"/>
-      </svg>
-    </div>
-    <!-- Ball 2 -->
-    <div class="pb-deco pb-deco-2">
-      <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <circle cx="50" cy="50" r="47" stroke="#e4252e" stroke-width="2" fill="rgba(228,37,46,.06)"/>
-        <circle cx="50" cy="50" r="6" fill="#e4252e" opacity=".4"/>
-        <circle cx="34" cy="36" r="5" fill="#e4252e" opacity=".4"/>
-        <circle cx="66" cy="36" r="5" fill="#e4252e" opacity=".4"/>
-        <circle cx="28" cy="54" r="5" fill="#e4252e" opacity=".4"/>
-        <circle cx="72" cy="54" r="5" fill="#e4252e" opacity=".4"/>
-        <circle cx="34" cy="66" r="5" fill="#e4252e" opacity=".4"/>
-        <circle cx="66" cy="66" r="5" fill="#e4252e" opacity=".4"/>
-      </svg>
-    </div>
-    <!-- Ball 3 -->
-    <div class="pb-deco pb-deco-3">
-      <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <circle cx="50" cy="50" r="47" stroke="#e4252e" stroke-width="2" fill="rgba(228,37,46,.05)"/>
-        <circle cx="50" cy="50" r="5" fill="#e4252e" opacity=".4"/>
-        <circle cx="35" cy="38" r="4" fill="#e4252e" opacity=".4"/>
-        <circle cx="65" cy="38" r="4" fill="#e4252e" opacity=".4"/>
-        <circle cx="30" cy="56" r="4" fill="#e4252e" opacity=".4"/>
-        <circle cx="70" cy="56" r="4" fill="#e4252e" opacity=".4"/>
-      </svg>
-    </div>
+    <div class="pb-deco pb-deco-1"><img src="img/pickleball.png" alt=""/></div>
+    <div class="pb-deco pb-deco-2"><img src="img/pickleball.png" alt=""/></div>
+    <div class="pb-deco pb-deco-3"><img src="img/pickleball.png" alt=""/></div>
+    <div class="pb-paddle pb-paddle-1"><img src="img/paddle.png" alt=""/></div>
+    <div class="pb-paddle pb-paddle-2"><img src="img/paddle.png" alt=""/></div>
   </div>
 
   <!-- Hero text -->
@@ -935,17 +920,7 @@
         <div class="feature-card-img fc-img-1">
           <img src="img/card-ranking.jpg" alt="Ranking" loading="lazy" onerror="this.style.display='none'"/>
           <div class="feature-card-img-fallback">
-            <!-- Pickleball SVG fallback -->
-            <svg width="80" height="80" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" opacity=".5">
-              <circle cx="50" cy="50" r="47" stroke="white" stroke-width="2"/>
-              <circle cx="50" cy="50" r="6" fill="white"/>
-              <circle cx="34" cy="36" r="5" fill="white"/>
-              <circle cx="66" cy="36" r="5" fill="white"/>
-              <circle cx="28" cy="54" r="5" fill="white"/>
-              <circle cx="72" cy="54" r="5" fill="white"/>
-              <circle cx="34" cy="66" r="5" fill="white"/>
-              <circle cx="66" cy="66" r="5" fill="white"/>
-            </svg>
+            <img src="img/pickleball.png" alt="" style="width:80px;opacity:.4"/>
           </div>
         </div>
         <div class="feature-card-body">
@@ -1170,27 +1145,11 @@
      CTA FINAL
 ══════════════════════════════════════ -->
 <section class="cta-section">
-  <!-- Decorative pickleball -->
-  <svg class="cta-ball" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <circle cx="100" cy="100" r="95" stroke="white" stroke-width="4"/>
-    <circle cx="100" cy="100" r="12" fill="white"/>
-    <circle cx="68" cy="72" r="10" fill="white"/>
-    <circle cx="132" cy="72" r="10" fill="white"/>
-    <circle cx="56" cy="108" r="10" fill="white"/>
-    <circle cx="144" cy="108" r="10" fill="white"/>
-    <circle cx="68" cy="136" r="10" fill="white"/>
-    <circle cx="132" cy="136" r="10" fill="white"/>
-    <circle cx="100" cy="56" r="10" fill="white"/>
-    <circle cx="100" cy="152" r="10" fill="white"/>
-    <circle cx="80" cy="44" r="8" fill="white"/>
-    <circle cx="120" cy="44" r="8" fill="white"/>
-    <circle cx="40" cy="84" r="8" fill="white"/>
-    <circle cx="160" cy="84" r="8" fill="white"/>
-    <circle cx="40" cy="124" r="8" fill="white"/>
-    <circle cx="160" cy="124" r="8" fill="white"/>
-    <circle cx="80" cy="158" r="8" fill="white"/>
-    <circle cx="120" cy="158" r="8" fill="white"/>
-  </svg>
+  <!-- Decorative pickleball + paddle -->
+  <img class="cta-ball" src="img/pickleball.png" alt=""
+       style="filter: brightness(0) invert(1);"/>
+  <img class="cta-paddle" src="img/paddle.png" alt=""
+       style="position:absolute;left:-60px;bottom:50%;transform:translateY(50%) rotate(30deg);width:260px;opacity:.1;filter:brightness(0) invert(1);pointer-events:none;"/>
 
   <span class="cta-label">Temporada 1 · 8 semanas · Julio – Agosto 2026</span>
   <h2>¿Listo para<br>subir la escalera?</h2>
@@ -1316,18 +1275,7 @@ function renderStandings(cat) {
   const wrap = document.getElementById('standings-body');
   if (j.every(p => p.pct === null)) {
     wrap.innerHTML = `<div class="standings-empty">
-      <svg width="80" height="80" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <circle cx="50" cy="50" r="47" stroke="#e4252e" stroke-width="2"/>
-        <circle cx="50" cy="50" r="6" fill="#e4252e"/>
-        <circle cx="34" cy="36" r="5" fill="#e4252e"/>
-        <circle cx="66" cy="36" r="5" fill="#e4252e"/>
-        <circle cx="28" cy="54" r="5" fill="#e4252e"/>
-        <circle cx="72" cy="54" r="5" fill="#e4252e"/>
-        <circle cx="34" cy="66" r="5" fill="#e4252e"/>
-        <circle cx="66" cy="66" r="5" fill="#e4252e"/>
-        <circle cx="50" cy="28" r="5" fill="#e4252e"/>
-        <circle cx="50" cy="72" r="5" fill="#e4252e"/>
-      </svg>
+      <img src="img/pickleball.png" alt="" style="width:80px;filter:hue-rotate(305deg) saturate(2);"/>
       <p>La temporada aún no ha comenzado</p>
       <p>El ranking aparecerá aquí después de la primera sesión</p>
     </div>`;
