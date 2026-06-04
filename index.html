@@ -6,483 +6,478 @@
   <title>Antigua Ladder League · Antigua Pickleball</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700;800;900&family=Barlow:wght@300;400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,400;0,600;0,700;0,800;0,900;1,700;1,900&family=Barlow:wght@300;400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"/>
   <style>
-    /* ═══════════════════════════════════════════
+    /* ═══════════════════════════════════════════════════
        ANTIGUA LADDER LEAGUE
-       Design ref: majorleaguepickleball.co
-       Accent:     STL Shock red #e4252e
-    ═══════════════════════════════════════════ */
+       Ref: majorleaguepickleball.co  ·  stlshock.com
+       Palette: white/light · red #e4252e · dark #111
+    ═══════════════════════════════════════════════════ */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    html, body { height: 100%; }
     html { scroll-behavior: smooth; }
-
     body {
       font-family: 'Barlow', sans-serif;
-      background: #0a0a0c;
-      color: #f0f0ee;
+      background: #fff;
+      color: #111113;
       -webkit-font-smoothing: antialiased;
       overflow-x: hidden;
     }
 
     :root {
-      --red:         #e4252e;
-      --red-dark:    #b81d24;
-      --red-glow:    rgba(228,37,46,0.14);
-      --red-border:  rgba(228,37,46,0.28);
-      --yellow:      #FFD000;
-      --yellow-glow: rgba(255,208,0,0.11);
-      --bg:          #0a0a0c;
-      --bg2:         #101013;
-      --bg3:         #161619;
-      --surface:     #1c1c21;
-      --surface2:    #222228;
-      --line:        rgba(255,255,255,0.07);
-      --line-red:    rgba(228,37,46,0.22);
-      --text:        #f0f0ee;
-      --muted:       #7a7a82;
-      --muted2:      #3a3a42;
+      --red:        #e4252e;
+      --red-dark:   #b81d24;
+      --red-light:  #fdecea;
+      --yellow:     #f5c800;
+      --dark:       #111113;
+      --dark2:      #1c1c1e;
+      --text:       #1c1c1e;
+      --muted:      #6b6b74;
+      --light:      #f7f7f5;
+      --light2:     #eeeeeb;
+      --border:     #e2e2de;
+      --court:      #4a7a50;
+      --court-light:#e8f3ea;
     }
 
-    /* ── Utils ── */
+    /* ── Layout ── */
     .container { max-width: 1160px; margin: 0 auto; padding: 0 24px; }
-
-    hr.divider {
-      border: none; height: 1px;
-      background: var(--line);
-    }
-    hr.divider-red {
-      border: none; height: 1px;
-      background: linear-gradient(90deg, transparent, var(--red-border), transparent);
-    }
 
     .label {
       font-family: 'Space Mono', monospace;
       font-size: .65rem; font-weight: 700;
       letter-spacing: .18em; text-transform: uppercase;
       color: var(--red);
+      display: flex; align-items: center; gap: 10px;
     }
+    .label::before { content: ''; display: block; width: 24px; height: 3px; background: var(--red); flex-shrink: 0; }
 
     .section-title {
       font-family: 'Barlow Condensed', sans-serif;
-      font-size: clamp(2rem, 4.5vw, 3.4rem);
-      font-weight: 800; letter-spacing: .02em; text-transform: uppercase;
-      color: var(--text); line-height: 1; margin-top: 6px;
+      font-size: clamp(2rem, 4.5vw, 3.2rem);
+      font-weight: 900; letter-spacing: .01em; text-transform: uppercase;
+      color: var(--dark); line-height: 1; margin-top: 8px;
     }
 
     .reveal {
-      opacity: 0; transform: translateY(18px);
+      opacity: 0; transform: translateY(16px);
       transition: opacity .55s ease, transform .55s ease;
     }
     .reveal.visible { opacity: 1; transform: none; }
 
-    /* ════════════════════════════════════════
-       NAV — MLP style top bar, floating pill
-    ════════════════════════════════════════ */
+    /* ════════════════════════════════════════════
+       NAV — clean white sports bar
+    ════════════════════════════════════════════ */
     #nav {
       position: fixed; top: 0; left: 0; right: 0; z-index: 100;
-      background: rgba(10,10,12,0.92);
-      backdrop-filter: blur(18px);
-      border-bottom: 1px solid var(--line);
+      background: rgba(255,255,255,.96);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      box-shadow: 0 1px 12px rgba(0,0,0,.07);
     }
     .nav-inner {
       display: flex; align-items: center; justify-content: space-between;
       max-width: 1160px; margin: 0 auto;
       padding: 0 24px; height: 60px;
     }
-
-    /* Brand */
     .nav-brand {
       display: flex; align-items: center; gap: 12px;
       text-decoration: none; flex-shrink: 0;
     }
-    .nav-brand img { height: 28px; width: auto; filter: brightness(0) invert(1); }
-    .nav-brand-divider { width: 1px; height: 18px; background: var(--line-red); }
+    .nav-brand img { height: 28px; width: auto; }
+    .nav-brand-divider { width: 1px; height: 18px; background: var(--border); }
     .nav-brand-name {
       font-family: 'Barlow Condensed', sans-serif;
-      font-size: 1.1rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase;
+      font-size: 1.05rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase;
       color: var(--red);
     }
-
-    /* Links */
     .nav-links {
-      display: none;
-      align-items: center; gap: 0; list-style: none;
+      display: none; align-items: center; gap: 0; list-style: none;
     }
     @media (min-width: 860px) { .nav-links { display: flex; } }
     .nav-links a {
       font-family: 'Barlow Condensed', sans-serif;
-      font-size: .9rem; font-weight: 600; letter-spacing: .06em; text-transform: uppercase;
+      font-size: .9rem; font-weight: 600; letter-spacing: .05em; text-transform: uppercase;
       color: var(--muted); text-decoration: none;
       padding: 6px 14px; transition: color .2s;
     }
-    .nav-links a:hover { color: var(--text); }
-    .nav-links a.active { color: var(--text); }
-
-    /* Right actions */
+    .nav-links a:hover { color: var(--dark); }
     .nav-actions { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
-
     .nav-btn {
       font-family: 'Barlow Condensed', sans-serif;
-      font-size: .88rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+      font-size: .88rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
       background: var(--red); color: #fff;
-      padding: 8px 20px; text-decoration: none;
+      padding: 9px 22px; text-decoration: none;
       transition: background .2s; white-space: nowrap;
     }
     .nav-btn:hover { background: var(--red-dark); }
-
     .hamburger {
       display: flex; flex-direction: column; gap: 5px;
-      background: none; border: 1px solid var(--line);
-      padding: 9px 12px; cursor: pointer;
+      background: none; border: 1px solid var(--border);
+      padding: 9px 11px; cursor: pointer;
     }
-    .hamburger span { display: block; width: 18px; height: 1.5px; background: var(--text); }
+    .hamburger span { display: block; width: 18px; height: 1.5px; background: var(--dark); }
     @media (min-width: 860px) { .hamburger { display: none; } }
-
     .mobile-menu {
       display: none; flex-direction: column;
-      background: var(--bg2); border-top: 1px solid var(--line);
+      background: #fff; border-top: 1px solid var(--border);
       padding: 8px 24px 16px;
     }
     .mobile-menu.open { display: flex; }
     .mobile-menu a {
       font-family: 'Barlow Condensed', sans-serif;
-      font-size: 1.1rem; font-weight: 600; letter-spacing: .06em; text-transform: uppercase;
+      font-size: 1.05rem; font-weight: 600; letter-spacing: .05em; text-transform: uppercase;
       color: var(--muted); text-decoration: none;
-      padding: 11px 0; border-bottom: 1px solid var(--line);
+      padding: 11px 0; border-bottom: 1px solid var(--border);
       transition: color .2s;
     }
     .mobile-menu a:last-child { border: none; }
-    .mobile-menu a:hover, .mobile-menu a.back { color: var(--red); }
+    .mobile-menu a:hover { color: var(--red); }
 
-    /* ════════════════════════════════════════
-       HERO — MLP event hero style
-    ════════════════════════════════════════ */
+    /* ════════════════════════════════════════════
+       HERO — photo + diagonal red accent
+    ════════════════════════════════════════════ */
     #hero {
       position: relative;
       min-height: 100svh;
-      background: var(--bg);
       overflow: hidden;
-      display: flex; flex-direction: column; justify-content: flex-end;
-      padding: 60px 0 0;
+      display: flex; flex-direction: column;
+      padding-top: 60px;
     }
 
-    /* Court grid bg */
-    .hero-bg {
+    /* Full-bleed photo background */
+    .hero-photo {
       position: absolute; inset: 0;
       background:
-        linear-gradient(rgba(228,37,46,.035) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(228,37,46,.035) 1px, transparent 1px);
-      background-size: 56px 56px;
+        url('https://images.unsplash.com/photo-1554068865-24cecd4e34b8?auto=format&fit=crop&w=1920&q=80')
+        center/cover no-repeat;
+      /* fallback: court-inspired gradient */
+      background-color: #1a3a20;
     }
-    .hero-bg::before {
+    .hero-photo::after {
       content: '';
-      position: absolute; left: 50%; top: 0; bottom: 0; width: 1px;
-      background: linear-gradient(to bottom, transparent, rgba(228,37,46,.1) 30%, rgba(228,37,46,.1) 70%, transparent);
-      transform: translateX(-50%);
-    }
-    .hero-bg::after {
-      content: '';
-      position: absolute; left: 0; right: 0; top: 45%; height: 1px;
-      background: linear-gradient(90deg, transparent, rgba(228,37,46,.1) 20%, rgba(228,37,46,.1) 80%, transparent);
-    }
-
-    /* Animated pickleball balls */
-    .hero-balls { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
-    .pb-ball {
-      position: absolute; border-radius: 50%;
-      border: 1.5px solid rgba(255,255,255,.06);
-      animation: pbDrift linear infinite;
-    }
-    .pb-ball::before {
-      content: ''; position: absolute; inset: 18%; border-radius: 50%;
-      background:
-        radial-gradient(circle 5% at 30% 25%, rgba(255,255,255,.1) 0%, transparent 100%),
-        radial-gradient(circle 5% at 70% 25%, rgba(255,255,255,.1) 0%, transparent 100%),
-        radial-gradient(circle 5% at 20% 55%, rgba(255,255,255,.1) 0%, transparent 100%),
-        radial-gradient(circle 5% at 80% 55%, rgba(255,255,255,.1) 0%, transparent 100%),
-        radial-gradient(circle 5% at 50% 80%, rgba(255,255,255,.1) 0%, transparent 100%),
-        radial-gradient(circle 5% at 50% 18%, rgba(255,255,255,.1) 0%, transparent 100%);
-    }
-    @keyframes pbDrift {
-      0%   { transform: translate(0,0) rotate(0deg); opacity: 0; }
-      5%   { opacity: 1; }
-      95%  { opacity: 1; }
-      100% { transform: translate(var(--dx),var(--dy)) rotate(var(--dr)); opacity: 0; }
-    }
-    .pb-1 { width:170px;height:170px;top:8%;left:3%;  --dx:90px; --dy:140px;--dr:180deg; animation-duration:23s;animation-delay:-4s; }
-    .pb-2 { width:110px;height:110px;top:60%;left:74%;--dx:-70px;--dy:-90px;--dr:-240deg;animation-duration:19s;animation-delay:-9s; }
-    .pb-3 { width:210px;height:210px;top:25%;left:46%;--dx:-110px;--dy:90px;--dr:300deg; animation-duration:29s;animation-delay:-14s;opacity:.5;}
-    .pb-4 { width:80px; height:80px; top:74%;left:17%;--dx:130px;--dy:-70px;--dr:-180deg;animation-duration:16s;animation-delay:-7s; }
-    .pb-5 { width:140px;height:140px;top:3%;left:76%;--dx:-90px;--dy:110px;--dr:220deg; animation-duration:25s;animation-delay:-2s; }
-    .pb-6 { width:60px; height:60px; top:50%;left:5%; --dx:50px; --dy:-80px;--dr:-120deg;animation-duration:13s;animation-delay:-11s;}
-
-    /* Red radial glow */
-    .hero-glow {
-      position: absolute; top: -10%; left: 50%; transform: translateX(-50%);
-      width: 900px; height: 600px; pointer-events: none;
-      background: radial-gradient(ellipse at center, rgba(228,37,46,.18) 0%, transparent 65%);
-      filter: blur(70px);
-      animation: glowPulse 7s ease-in-out infinite;
-    }
-    @keyframes glowPulse {
-      0%,100% { opacity: .65; transform: translateX(-50%) scale(1); }
-      50%      { opacity: 1;   transform: translateX(-50%) scale(1.07); }
+      position: absolute; inset: 0;
+      background: linear-gradient(
+        105deg,
+        rgba(255,255,255,.97) 0%,
+        rgba(255,255,255,.94) 38%,
+        rgba(255,255,255,.6)  55%,
+        rgba(0,0,0,.1) 100%
+      );
     }
 
-    /* Bottom vignette */
-    .hero-vignette {
-      position: absolute; bottom: 0; left: 0; right: 0; height: 260px;
-      background: linear-gradient(to bottom, transparent, var(--bg));
+    /* Diagonal red bar behind title */
+    .hero-red-bar {
+      position: absolute;
+      top: 0; left: 0;
+      width: 8px; height: 100%;
+      background: var(--red);
+      z-index: 2;
+    }
+
+    /* Court line decoration (top-right) */
+    .hero-court-lines {
+      position: absolute;
+      top: 60px; right: 0; bottom: 0;
+      width: 55%;
+      pointer-events: none; z-index: 1;
+    }
+    .hero-court-lines svg {
+      width: 100%; height: 100%;
+      opacity: .22;
+    }
+
+    /* Floating pickleball decorations */
+    .hero-balls-deco {
+      position: absolute; inset: 0;
       pointer-events: none; z-index: 2;
+      overflow: hidden;
     }
+    .pb-deco {
+      position: absolute;
+      animation: floatBall linear infinite;
+    }
+    @keyframes floatBall {
+      0%   { transform: translate(0,0) rotate(0deg); }
+      50%  { transform: translate(var(--mx), var(--my)) rotate(180deg); }
+      100% { transform: translate(0,0) rotate(360deg); }
+    }
+    .pb-deco-1 { right: 8%;  top: 15%; width: 120px; --mx:12px; --my:18px; animation-duration:14s; }
+    .pb-deco-2 { right: 28%; top: 50%; width: 80px;  --mx:-10px;--my:-14px;animation-duration:11s;animation-delay:-5s; }
+    .pb-deco-3 { right: 12%; top: 72%; width: 60px;  --mx:8px;  --my:-10px;animation-duration:9s; animation-delay:-3s; }
 
     /* Hero content */
     .hero-content {
       position: relative; z-index: 3;
-      padding: 0 24px 64px;
+      flex: 1;
+      display: flex; flex-direction: column; justify-content: center;
+      padding: 64px 24px 48px 40px;
       max-width: 1160px; margin: 0 auto; width: 100%;
     }
+    @media (min-width: 860px) { .hero-content { padding-left: 56px; } }
 
     .hero-eyebrow {
       display: inline-flex; align-items: center; gap: 10px;
       margin-bottom: 24px;
     }
-    .hero-eyebrow-bar {
-      width: 32px; height: 3px; background: var(--red);
+    .hero-eyebrow-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--red); flex-shrink: 0;
     }
     .hero-eyebrow span {
       font-family: 'Space Mono', monospace;
       font-size: .68rem; letter-spacing: .2em; text-transform: uppercase;
-      color: var(--red);
+      color: var(--red); font-weight: 700;
     }
 
     .hero-title {
       font-family: 'Barlow Condensed', sans-serif;
-      font-size: clamp(4.5rem, 13vw, 11rem);
+      font-size: clamp(4.5rem, 12vw, 10rem);
       font-weight: 900; text-transform: uppercase;
-      letter-spacing: -.01em; line-height: .92;
-      color: var(--text);
-      margin-bottom: 28px;
+      letter-spacing: -.01em; line-height: .9;
+      color: var(--dark);
+      margin-bottom: 12px;
+      max-width: 720px;
     }
     .hero-title .accent { color: var(--red); }
+    .hero-title .stroke {
+      -webkit-text-stroke: 2px var(--dark);
+      color: transparent;
+    }
 
-    .hero-bottom {
-      display: flex; align-items: flex-end; justify-content: space-between;
-      gap: 40px; flex-wrap: wrap;
+    .hero-sub {
+      font-size: 1.05rem; font-weight: 300; color: var(--muted);
+      max-width: 420px; line-height: 1.65; margin-bottom: 40px;
     }
-    .hero-desc {
-      font-size: 1rem; font-weight: 300; color: var(--muted);
-      max-width: 380px; line-height: 1.65;
-    }
+
     .hero-actions {
-      display: flex; gap: 12px; flex-wrap: wrap; flex-shrink: 0;
+      display: flex; gap: 12px; flex-wrap: wrap;
     }
     .btn-primary {
       font-family: 'Barlow Condensed', sans-serif;
       font-size: .95rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
       background: var(--red); color: #fff;
-      padding: 14px 36px; text-decoration: none;
-      transition: background .2s, transform .2s;
+      padding: 15px 38px; text-decoration: none;
+      transition: background .2s, transform .15s;
       display: inline-block;
     }
     .btn-primary:hover { background: var(--red-dark); transform: translateY(-1px); }
     .btn-outline {
       font-family: 'Barlow Condensed', sans-serif;
       font-size: .95rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
-      background: transparent; color: var(--text);
-      border: 1px solid var(--line-red); padding: 13px 36px;
-      text-decoration: none; transition: border-color .2s, color .2s;
+      background: transparent; color: var(--dark);
+      border: 2px solid var(--dark); padding: 13px 38px;
+      text-decoration: none; transition: background .2s, color .2s;
       display: inline-block;
     }
-    .btn-outline:hover { border-color: var(--red); color: var(--red); }
+    .btn-outline:hover { background: var(--dark); color: #fff; }
 
-    /* Hero stats strip (MLP-inspired) */
+    /* Stats strip — red background MLP style */
     .hero-stats {
+      background: var(--red);
       position: relative; z-index: 3;
-      border-top: 1px solid var(--line);
-      background: rgba(10,10,12,.6);
-      backdrop-filter: blur(12px);
     }
     .hero-stats-inner {
       max-width: 1160px; margin: 0 auto;
       display: flex; flex-wrap: wrap;
     }
     .hero-stat {
-      flex: 1 1 120px;
-      padding: 20px 28px;
-      border-right: 1px solid var(--line);
-      display: flex; flex-direction: column; gap: 4px;
+      flex: 1 1 100px; padding: 20px 28px;
+      border-right: 1px solid rgba(255,255,255,.2);
     }
     .hero-stat:last-child { border-right: none; }
     .hero-stat-num {
       font-family: 'Barlow Condensed', sans-serif;
-      font-size: 2.2rem; font-weight: 800; letter-spacing: .01em;
-      color: var(--text); line-height: 1;
+      font-size: 2rem; font-weight: 900; color: #fff; line-height: 1;
     }
     .hero-stat-label {
       font-family: 'Space Mono', monospace;
-      font-size: .6rem; letter-spacing: .14em; text-transform: uppercase;
-      color: var(--muted);
+      font-size: .58rem; letter-spacing: .14em; text-transform: uppercase;
+      color: rgba(255,255,255,.7); margin-top: 3px;
     }
 
-    /* ════════════════════════════════════════
-       FEATURE CARDS — MLP 3-up row
-    ════════════════════════════════════════ */
-    .feature-row {
-      background: var(--bg2);
-      padding: 56px 0;
+    /* ════════════════════════════════════════════
+       FEATURE 3-UP — photo cards
+    ════════════════════════════════════════════ */
+    .feature-section {
+      padding: 72px 0;
+      background: var(--light);
     }
     .feature-grid {
-      display: grid; gap: 2px;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      display: grid; gap: 20px;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
     }
     .feature-card {
-      background: var(--surface);
-      padding: 36px 32px;
-      display: flex; flex-direction: column; gap: 16px;
+      background: #fff;
+      border: 1px solid var(--border);
+      overflow: hidden;
       text-decoration: none; color: inherit;
-      border-top: 3px solid var(--muted2);
-      transition: border-color .2s;
+      transition: transform .22s, box-shadow .22s;
+      display: flex; flex-direction: column;
     }
-    .feature-card:hover { border-top-color: var(--red); }
-    .feature-card-label {
+    .feature-card:hover { transform: translateY(-4px); box-shadow: 0 12px 40px rgba(0,0,0,.1); }
+
+    .feature-card-img {
+      height: 200px; overflow: hidden;
+      background: var(--light2);
+      position: relative;
+    }
+    .feature-card-img img {
+      width: 100%; height: 100%; object-fit: cover;
+      transition: transform .4s;
+    }
+    .feature-card:hover .feature-card-img img { transform: scale(1.04); }
+
+    /* Fallback sport-color backgrounds when no image */
+    .fc-img-1 { background: linear-gradient(135deg, #1a3a20 0%, #2d6a3f 100%); }
+    .fc-img-2 { background: linear-gradient(135deg, #1a1f3a 0%, #2d3a6a 100%); }
+    .fc-img-3 { background: linear-gradient(135deg, #3a1a1a 0%, #6a2d2d 100%); }
+
+    .feature-card-img-fallback {
+      position: absolute; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    .feature-card-body {
+      padding: 28px 28px 24px; flex: 1;
+      display: flex; flex-direction: column; gap: 10px;
+    }
+    .feature-card-tag {
       font-family: 'Space Mono', monospace;
-      font-size: .62rem; letter-spacing: .16em; text-transform: uppercase;
-      color: var(--red);
+      font-size: .6rem; letter-spacing: .16em; text-transform: uppercase;
+      color: var(--red); font-weight: 700;
     }
     .feature-card h3 {
       font-family: 'Barlow Condensed', sans-serif;
-      font-size: 1.7rem; font-weight: 800; letter-spacing: .04em; text-transform: uppercase;
-      color: var(--text); line-height: 1;
+      font-size: 1.5rem; font-weight: 800; letter-spacing: .03em; text-transform: uppercase;
+      color: var(--dark); line-height: 1;
     }
-    .feature-card p {
-      font-size: .88rem; font-weight: 300; color: var(--muted);
-      line-height: 1.6; flex: 1;
-    }
-    .feature-card-link {
+    .feature-card p { font-size: .88rem; font-weight: 300; color: var(--muted); line-height: 1.6; flex: 1; }
+    .feature-card-cta {
+      margin-top: 8px;
       font-family: 'Barlow Condensed', sans-serif;
-      font-size: .88rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
-      color: var(--red); display: flex; align-items: center; gap: 8px;
+      font-size: .88rem; font-weight: 700; letter-spacing: .07em; text-transform: uppercase;
+      color: var(--red); display: flex; align-items: center; gap: 6px;
     }
-    .feature-card-link::after { content: '→'; }
+    .feature-card-cta::after { content: '→'; transition: transform .2s; }
+    .feature-card:hover .feature-card-cta::after { transform: translateX(4px); }
 
-    /* ════════════════════════════════════════
+    /* ════════════════════════════════════════════
        CÓMO FUNCIONA
-    ════════════════════════════════════════ */
-    .how-section { padding: 88px 0; background: var(--bg); }
+    ════════════════════════════════════════════ */
+    .how-section {
+      padding: 88px 0;
+      background: #fff;
+    }
+    .how-section .section-head { margin-bottom: 56px; }
 
     .how-grid {
-      display: grid; gap: 1px;
+      display: grid; gap: 32px;
       grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-      border: 1px solid var(--line);
     }
     .how-card {
-      background: var(--bg2); padding: 40px 32px;
-      border-left: 3px solid transparent;
-      transition: border-color .2s, background .2s;
+      position: relative; padding: 36px 28px 28px;
+      border: 1px solid var(--border);
+      background: #fff;
+      transition: border-color .22s, box-shadow .22s;
     }
-    .how-card:hover { border-left-color: var(--red); background: var(--bg3); }
-    .how-num {
+    .how-card:hover { border-color: var(--red); box-shadow: 0 8px 32px rgba(228,37,46,.08); }
+    .how-card::before {
+      content: attr(data-num);
       font-family: 'Barlow Condensed', sans-serif;
-      font-size: 4rem; font-weight: 900; color: var(--muted2);
-      line-height: 1; margin-bottom: 16px;
+      font-size: 5rem; font-weight: 900; color: var(--red-light);
+      position: absolute; top: 12px; right: 16px;
+      line-height: 1; pointer-events: none;
     }
     .how-card h3 {
       font-family: 'Barlow Condensed', sans-serif;
-      font-size: 1.4rem; font-weight: 800; letter-spacing: .04em; text-transform: uppercase;
-      color: var(--text); margin-bottom: 10px;
+      font-size: 1.35rem; font-weight: 800; letter-spacing: .03em; text-transform: uppercase;
+      color: var(--dark); margin-bottom: 10px;
     }
     .how-card p { font-size: .9rem; font-weight: 300; color: var(--muted); line-height: 1.65; }
+    .how-card-icon { font-size: 2rem; margin-bottom: 14px; }
 
-    /* ════════════════════════════════════════
-       HORARIOS — MLP schedule list style
-    ════════════════════════════════════════ */
-    .schedule-section { padding: 88px 0; background: var(--bg2); }
+    /* ════════════════════════════════════════════
+       HORARIOS — schedule list
+    ════════════════════════════════════════════ */
+    .schedule-section { padding: 88px 0; background: var(--light); }
 
-    .schedule-list { border: 1px solid var(--line); }
+    .schedule-list { border: 1px solid var(--border); background: #fff; overflow: hidden; }
     .schedule-header {
       display: grid;
-      grid-template-columns: 180px 1fr 140px 140px;
+      grid-template-columns: 180px 1fr 140px 100px;
       padding: 12px 24px;
-      border-bottom: 1px solid var(--line);
-      background: var(--surface);
+      background: var(--dark); gap: 0;
     }
     .schedule-header span {
       font-family: 'Space Mono', monospace;
-      font-size: .62rem; letter-spacing: .14em; text-transform: uppercase;
-      color: var(--muted);
+      font-size: .6rem; letter-spacing: .14em; text-transform: uppercase;
+      color: rgba(255,255,255,.5);
     }
     .schedule-row {
       display: grid;
-      grid-template-columns: 180px 1fr 140px 140px;
-      padding: 22px 24px;
-      border-bottom: 1px solid var(--line);
+      grid-template-columns: 180px 1fr 140px 100px;
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--border);
       align-items: center;
-      transition: background .2s;
+      transition: background .15s;
     }
     .schedule-row:last-child { border-bottom: none; }
-    .schedule-row:hover { background: var(--surface); }
+    .schedule-row:hover { background: var(--light); }
     .schedule-time {
       font-family: 'Space Mono', monospace;
-      font-size: .75rem; color: var(--red); letter-spacing: .06em;
+      font-size: .72rem; color: var(--red); letter-spacing: .04em; font-weight: 700;
     }
     .schedule-cat {
       font-family: 'Barlow Condensed', sans-serif;
-      font-size: 1.4rem; font-weight: 800; letter-spacing: .04em; text-transform: uppercase;
-      color: var(--text);
+      font-size: 1.5rem; font-weight: 800; letter-spacing: .03em; text-transform: uppercase;
+      color: var(--dark);
     }
     .schedule-level {
       font-family: 'Space Mono', monospace;
-      font-size: .68rem; color: var(--muted); letter-spacing: .06em;
+      font-size: .68rem; color: var(--muted);
     }
     .schedule-badge {
       font-family: 'Barlow Condensed', sans-serif;
-      font-size: .78rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
-      color: var(--text); background: var(--surface2);
+      font-size: .78rem; font-weight: 700; letter-spacing: .07em; text-transform: uppercase;
+      background: var(--court-light); color: var(--court);
       padding: 4px 12px; display: inline-block;
-      border: 1px solid var(--line);
+      border: 1px solid #c4dcc6;
     }
 
     .price-bar {
       display: flex; align-items: center; gap: 24px; flex-wrap: wrap;
-      background: var(--surface); border: 1px solid var(--line); border-top: none;
-      padding: 20px 24px;
+      background: var(--dark); padding: 20px 24px;
+      border: 1px solid var(--border); border-top: none;
     }
     .price-bar-num {
       font-family: 'Barlow Condensed', sans-serif;
-      font-size: 2rem; font-weight: 900; color: var(--yellow);
+      font-size: 2.4rem; font-weight: 900; color: var(--yellow);
     }
-    .price-bar p { font-size: .86rem; font-weight: 300; color: var(--muted); line-height: 1.55; }
+    .price-bar p { font-size: .86rem; font-weight: 300; color: rgba(255,255,255,.7); line-height: 1.55; }
 
-    /* ════════════════════════════════════════
-       STANDINGS — MLP standings table
-    ════════════════════════════════════════ */
-    .standings-section { padding: 88px 0; background: var(--bg); }
+    /* ════════════════════════════════════════════
+       STANDINGS
+    ════════════════════════════════════════════ */
+    .standings-section { padding: 88px 0; background: #fff; }
 
     .standings-tabs {
-      display: flex; border-bottom: 1px solid var(--line);
+      display: flex; border-bottom: 2px solid var(--border);
       margin-bottom: 0;
     }
     .s-tab {
       font-family: 'Barlow Condensed', sans-serif;
-      font-size: .95rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+      font-size: 1rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
       color: var(--muted); background: none; border: none;
       padding: 12px 24px; cursor: pointer;
-      border-bottom: 3px solid transparent; margin-bottom: -1px;
+      border-bottom: 3px solid transparent; margin-bottom: -2px;
       transition: color .2s, border-color .2s;
     }
-    .s-tab:hover { color: var(--text); }
-    .s-tab.active { color: var(--text); border-bottom-color: var(--red); }
+    .s-tab:hover { color: var(--dark); }
+    .s-tab.active { color: var(--red); border-bottom-color: var(--red); }
 
-    .standings-table-wrap { overflow-x: auto; }
-
+    .standings-table-wrap { overflow-x: auto; border: 1px solid var(--border); border-top: none; }
     .standings-table { width: 100%; border-collapse: collapse; }
-
-    .standings-table thead tr {
-      background: var(--surface);
-      border-bottom: 1px solid var(--line);
-    }
+    .standings-table thead tr { background: var(--light); border-bottom: 1px solid var(--border); }
     .standings-table th {
       font-family: 'Space Mono', monospace;
       font-size: .6rem; letter-spacing: .16em; text-transform: uppercase;
@@ -490,68 +485,58 @@
       text-align: left; font-weight: 400; white-space: nowrap;
     }
     .standings-table th:not(:nth-child(2)) { text-align: center; }
-
     .standings-table td {
-      padding: 16px 20px; font-size: .92rem; font-weight: 400;
-      color: var(--text); border-bottom: 1px solid var(--line);
+      padding: 15px 20px; font-size: .92rem; color: var(--text);
+      border-bottom: 1px solid var(--border);
     }
     .standings-table td:not(:nth-child(2)) { text-align: center; }
-    .standings-table tr:hover td { background: var(--surface); }
+    .standings-table tr:hover td { background: var(--light); }
     .standings-table tr:last-child td { border-bottom: none; }
 
-    .td-rank {
-      font-family: 'Barlow Condensed', sans-serif;
-      font-size: 1.1rem; font-weight: 800;
-      color: var(--muted); width: 48px;
-    }
-    .td-name {
-      font-family: 'Barlow Condensed', sans-serif;
-      font-size: 1.15rem; font-weight: 700; letter-spacing: .03em;
-      text-transform: uppercase;
-    }
-    .td-pct {
-      font-family: 'Barlow Condensed', sans-serif;
-      font-size: 1.1rem; font-weight: 800; color: var(--red);
-    }
-    .td-mono { font-family: 'Space Mono', monospace; font-size: .78rem; color: var(--muted); }
+    .td-rank { font-family: 'Barlow Condensed', sans-serif; font-size: 1.1rem; font-weight: 800; color: var(--muted); width: 44px; }
+    .td-name { font-family: 'Barlow Condensed', sans-serif; font-size: 1.15rem; font-weight: 700; letter-spacing: .02em; text-transform: uppercase; }
+    .td-pct { font-family: 'Barlow Condensed', sans-serif; font-size: 1.1rem; font-weight: 800; color: var(--red); }
+    .td-mono { font-family: 'Space Mono', monospace; font-size: .75rem; color: var(--muted); }
 
-    /* Top-1 row */
-    .row-top1 td { background: rgba(228,37,46,.06); }
+    .row-top1 td { background: var(--red-light); }
     .row-top1 .td-rank { color: var(--red); }
-    .row-top1 .td-name { color: var(--text); }
+    .row-top1 .td-name { color: var(--dark); }
 
     .standings-empty {
-      text-align: center; padding: 72px 24px;
-      border: 1px solid var(--line); border-top: none;
+      padding: 64px 24px; text-align: center;
+      border: 1px solid var(--border); border-top: none;
     }
+    .standings-empty svg { margin: 0 auto 20px; display: block; opacity: .2; }
     .standings-empty p {
       font-family: 'Barlow Condensed', sans-serif;
-      font-size: 1.1rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
-      color: var(--muted);
+      font-size: 1.1rem; font-weight: 700; letter-spacing: .05em;
+      text-transform: uppercase; color: var(--muted);
     }
-    .standings-empty p + p { font-family: 'Space Mono', monospace; font-size: .65rem; margin-top: 8px; letter-spacing: .12em; }
+    .standings-empty p + p {
+      font-family: 'Space Mono', monospace;
+      font-size: .62rem; margin-top: 8px; letter-spacing: .1em; text-transform: uppercase;
+    }
 
-    /* ════════════════════════════════════════
-       CALENDARIO — MLP match cards style
-    ════════════════════════════════════════ */
-    .calendar-section { padding: 88px 0; background: var(--bg2); }
+    /* ════════════════════════════════════════════
+       CALENDARIO
+    ════════════════════════════════════════════ */
+    .calendar-section { padding: 88px 0; background: var(--light); }
 
     .calendar-grid {
-      display: grid; gap: 1px;
-      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-      border: 1px solid var(--line);
+      display: grid; gap: 12px;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
     }
-
     .cal-card {
-      background: var(--bg3); padding: 24px 20px;
-      border-top: 3px solid var(--muted2);
-      position: relative;
+      background: #fff; border: 1px solid var(--border);
+      padding: 22px 18px; position: relative;
+      transition: border-color .2s, box-shadow .2s;
     }
-    .cal-card.jugada    { border-top-color: var(--muted2); }
-    .cal-card.proxima   { border-top-color: var(--red); background: rgba(228,37,46,.06); }
-    .cal-card.cancelada { border-top-color: #555; opacity: .5; }
-    .cal-card.pendiente { border-top-color: var(--muted2); }
-    .cal-card.gran-final { border-top-color: var(--yellow); background: var(--yellow-glow); }
+    .cal-card:hover { border-color: var(--red); box-shadow: 0 4px 20px rgba(228,37,46,.08); }
+
+    .cal-card.proxima   { border-top: 3px solid var(--red); }
+    .cal-card.jugada    { border-top: 3px solid #aaa; background: var(--light); }
+    .cal-card.cancelada { border-top: 3px solid #ccc; opacity: .5; }
+    .cal-card.gran-final { border-top: 3px solid var(--yellow); background: #fffde8; }
 
     .cal-num {
       font-family: 'Space Mono', monospace;
@@ -561,89 +546,137 @@
     .cal-date {
       font-family: 'Barlow Condensed', sans-serif;
       font-size: 1.6rem; font-weight: 900; text-transform: uppercase;
-      color: var(--text); margin-bottom: 8px; line-height: 1;
+      color: var(--dark); line-height: 1; margin-bottom: 8px;
     }
-    .cal-card.gran-final .cal-date { color: var(--yellow); }
+    .gran-final .cal-date { color: #8a6800; }
     .cal-status {
       font-family: 'Barlow Condensed', sans-serif;
-      font-size: .78rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+      font-size: .82rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
     }
-    .jugada    .cal-status { color: var(--muted); }
-    .proxima   .cal-status { color: var(--red); }
-    .cancelada .cal-status { color: #777; }
-    .pendiente .cal-status { color: var(--muted2); }
-    .gran-final .cal-status { color: var(--yellow); }
-    .cal-note { font-size: .78rem; color: var(--muted); margin-top: 6px; line-height: 1.45; }
+    .jugada .cal-status    { color: var(--muted); }
+    .proxima .cal-status   { color: var(--red); }
+    .cancelada .cal-status { color: #aaa; }
+    .pendiente .cal-status { color: var(--border); }
+    .gran-final .cal-status { color: #a07800; }
+    .cal-note { font-size: .76rem; color: var(--muted); margin-top: 6px; line-height: 1.4; }
 
-    /* ════════════════════════════════════════
+    /* ════════════════════════════════════════════
        POLÍTICA
-    ════════════════════════════════════════ */
-    .policy-section { padding: 88px 0; background: var(--bg); }
+    ════════════════════════════════════════════ */
+    .policy-section { padding: 88px 0; background: #fff; }
 
     .policy-grid {
-      display: grid; gap: 1px;
+      display: grid; gap: 20px;
       grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      border: 1px solid var(--line);
     }
     .policy-card {
-      background: var(--bg2); padding: 36px 32px;
-      border-left: 3px solid var(--muted2);
+      padding: 32px 28px;
+      border: 1px solid var(--border);
+      background: #fff;
+      border-top: 4px solid var(--border);
+      transition: box-shadow .2s;
     }
-    .policy-card.ok   { border-left-color: #1e7a2e; }
-    .policy-card.warn { border-left-color: #c47a00; }
-    .policy-card.bad  { border-left-color: var(--red); }
-    .policy-icon { font-size: 1.6rem; margin-bottom: 16px; }
+    .policy-card:hover { box-shadow: 0 6px 24px rgba(0,0,0,.07); }
+    .policy-card.ok   { border-top-color: #1e7a2e; }
+    .policy-card.warn { border-top-color: #c47a00; }
+    .policy-card.bad  { border-top-color: var(--red); }
+    .policy-icon { font-size: 1.8rem; margin-bottom: 16px; }
     .policy-card h3 {
       font-family: 'Barlow Condensed', sans-serif;
-      font-size: 1.3rem; font-weight: 800; letter-spacing: .04em; text-transform: uppercase;
-      color: var(--text); margin-bottom: 10px;
+      font-size: 1.25rem; font-weight: 800; letter-spacing: .03em; text-transform: uppercase;
+      color: var(--dark); margin-bottom: 10px;
     }
     .policy-card p { font-size: .88rem; font-weight: 300; color: var(--muted); line-height: 1.65; }
 
-    /* ════════════════════════════════════════
-       FINAL CTA — MLP event promo style
-    ════════════════════════════════════════ */
+    /* ════════════════════════════════════════════
+       PHOTO STRIP — action shots row
+    ════════════════════════════════════════════ */
+    .photo-strip {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      height: 280px; overflow: hidden;
+    }
+    .photo-strip-item {
+      position: relative; overflow: hidden;
+    }
+    .photo-strip-item img {
+      width: 100%; height: 100%; object-fit: cover;
+      transition: transform .5s;
+    }
+    .photo-strip-item:hover img { transform: scale(1.06); }
+    .photo-strip-item-overlay {
+      position: absolute; inset: 0;
+      background: linear-gradient(to top, rgba(0,0,0,.5) 0%, transparent 60%);
+      display: flex; align-items: flex-end; padding: 20px;
+    }
+    .photo-strip-item-label {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: .9rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+      color: #fff;
+    }
+    /* Fallback colors */
+    .ps-1 { background: linear-gradient(135deg, #1a3a20, #3a7a40); }
+    .ps-2 { background: linear-gradient(135deg, #3a1a20, var(--red-dark)); }
+    .ps-3 { background: linear-gradient(135deg, #1a203a, #2d3a6a); }
+
+    @media (max-width: 600px) {
+      .photo-strip { grid-template-columns: 1fr; height: auto; }
+      .photo-strip-item { height: 200px; }
+    }
+
+    /* ════════════════════════════════════════════
+       FINAL CTA
+    ════════════════════════════════════════════ */
     .cta-section {
-      background: var(--red);
-      padding: 96px 24px;
+      background: var(--red); padding: 100px 24px;
       text-align: center; position: relative; overflow: hidden;
     }
     .cta-section::before {
       content: ''; position: absolute; inset: 0;
       background:
-        linear-gradient(rgba(0,0,0,.08) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(0,0,0,.08) 1px, transparent 1px);
-      background-size: 44px 44px;
+        linear-gradient(rgba(0,0,0,.06) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,0,0,.06) 1px, transparent 1px);
+      background-size: 40px 40px;
     }
-    .cta-section .label { color: rgba(255,255,255,.6); position: relative; display: block; margin-bottom: 16px; }
+    /* Large decorative pickleball in CTA */
+    .cta-ball {
+      position: absolute; right: -80px; top: 50%;
+      transform: translateY(-50%);
+      width: 360px; height: 360px; opacity: .1;
+    }
+    .cta-label {
+      font-family: 'Space Mono', monospace;
+      font-size: .65rem; letter-spacing: .2em; text-transform: uppercase;
+      color: rgba(255,255,255,.6);
+      display: block; margin-bottom: 16px; position: relative;
+    }
     .cta-section h2 {
       font-family: 'Barlow Condensed', sans-serif;
-      font-size: clamp(3rem, 7vw, 6rem);
-      font-weight: 900; text-transform: uppercase; letter-spacing: .01em;
+      font-size: clamp(3rem, 7vw, 6rem); font-weight: 900;
+      text-transform: uppercase; letter-spacing: .01em;
       color: #fff; line-height: .92; margin-bottom: 20px; position: relative;
     }
     .cta-section p {
-      font-size: .95rem; font-weight: 300; color: rgba(255,255,255,.75);
+      font-size: .95rem; font-weight: 300; color: rgba(255,255,255,.78);
       max-width: 460px; margin: 0 auto 44px; line-height: 1.7; position: relative;
     }
     .btn-cta {
-      display: inline-block;
-      background: #fff; color: var(--red);
+      display: inline-block; background: #fff; color: var(--red);
       font-family: 'Barlow Condensed', sans-serif;
       font-size: 1rem; font-weight: 900; letter-spacing: .1em; text-transform: uppercase;
       padding: 18px 56px; text-decoration: none;
-      transition: background .2s, transform .2s; position: relative;
+      transition: background .2s, transform .15s; position: relative;
     }
     .btn-cta:hover { background: #f0f0f0; transform: translateY(-2px); }
 
-    /* ════════════════════════════════════════
-       FOOTER — MLP footer style
-    ════════════════════════════════════════ */
+    /* ════════════════════════════════════════════
+       FOOTER
+    ════════════════════════════════════════════ */
     footer {
-      background: #000;
-      border-top: 3px solid var(--red);
-      padding: 56px 24px 32px;
-      color: var(--muted);
+      background: var(--dark2);
+      border-top: 4px solid var(--red);
+      padding: 60px 24px 36px;
+      color: rgba(255,255,255,.5);
     }
     .footer-inner {
       max-width: 1160px; margin: 0 auto;
@@ -652,56 +685,45 @@
     }
     .footer-brand h3 {
       font-family: 'Barlow Condensed', sans-serif;
-      font-size: 1.3rem; font-weight: 900; letter-spacing: .06em; text-transform: uppercase;
-      color: var(--text); margin-bottom: 12px;
+      font-size: 1.3rem; font-weight: 900; letter-spacing: .05em; text-transform: uppercase;
+      color: #fff; margin-bottom: 12px;
     }
     .footer-brand p { font-size: .86rem; line-height: 1.65; font-weight: 300; }
     .footer-col h4 {
       font-family: 'Barlow Condensed', sans-serif;
-      font-size: .88rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase;
-      color: var(--text); margin-bottom: 16px;
+      font-size: .9rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase;
+      color: #fff; margin-bottom: 16px;
     }
     .footer-col ul { list-style: none; display: flex; flex-direction: column; gap: 10px; }
-    .footer-col ul li a {
-      font-size: .86rem; color: var(--muted); text-decoration: none;
-      font-weight: 300; transition: color .2s;
-    }
-    .footer-col ul li a:hover { color: var(--text); }
+    .footer-col ul li a { font-size: .86rem; color: rgba(255,255,255,.4); text-decoration: none; font-weight: 300; transition: color .2s; }
+    .footer-col ul li a:hover { color: #fff; }
     .social-row { display: flex; gap: 8px; margin-top: 20px; }
-    .social-icon {
-      width: 34px; height: 34px;
-      background: rgba(255,255,255,.07);
-      display: flex; align-items: center; justify-content: center;
-      text-decoration: none; font-size: .9rem;
-      transition: background .2s;
-    }
-    .social-icon:hover { background: rgba(228,37,46,.3); }
+    .social-icon { width: 36px; height: 36px; border: 1px solid rgba(255,255,255,.15); display: flex; align-items: center; justify-content: center; text-decoration: none; font-size: .9rem; transition: background .2s, border-color .2s; }
+    .social-icon:hover { background: var(--red); border-color: var(--red); }
     .footer-bottom {
       max-width: 1160px; margin: 36px auto 0;
-      padding-top: 20px; border-top: 1px solid rgba(255,255,255,.07);
+      padding-top: 20px; border-top: 1px solid rgba(255,255,255,.08);
       display: flex; align-items: center; justify-content: space-between;
       flex-wrap: wrap; gap: 10px;
       font-family: 'Space Mono', monospace;
       font-size: .62rem; letter-spacing: .08em; text-transform: uppercase;
     }
 
-    /* ════════════════════════════════════════
+    /* ════════════════════════════════════════════
        RESPONSIVE
-    ════════════════════════════════════════ */
+    ════════════════════════════════════════════ */
     @media (max-width: 860px) {
       .schedule-header,
       .schedule-row { grid-template-columns: 140px 1fr 100px; }
-      .schedule-row > *:last-child { display: none; }
-      .schedule-header > *:last-child { display: none; }
+      .schedule-row > *:last-child, .schedule-header > *:last-child { display: none; }
       .footer-inner { grid-template-columns: 1fr 1fr; }
     }
     @media (max-width: 560px) {
-      .schedule-header,
-      .schedule-row { grid-template-columns: 1fr 1fr; }
-      .schedule-row > *:nth-child(3),
-      .schedule-header > *:nth-child(3) { display: none; }
-      .hero-title { font-size: clamp(3.5rem, 20vw, 6rem); }
+      .hero-court-lines { display: none; }
+      .schedule-header, .schedule-row { grid-template-columns: 1fr 1fr; }
+      .schedule-row > *:nth-child(3), .schedule-header > *:nth-child(3) { display: none; }
       .footer-inner { grid-template-columns: 1fr; }
+      .hero-title { font-size: clamp(3.5rem, 18vw, 6rem); }
     }
   </style>
 </head>
@@ -717,7 +739,6 @@
       <div class="nav-brand-divider"></div>
       <span class="nav-brand-name">Ladder League</span>
     </a>
-
     <ul class="nav-links">
       <li><a href="#formato">Formato</a></li>
       <li><a href="#horarios">Horarios</a></li>
@@ -725,7 +746,6 @@
       <li><a href="#calendario">Calendario</a></li>
       <li><a href="https://antigua-pickleball.com">← Antigua PB</a></li>
     </ul>
-
     <div class="nav-actions">
       <a class="nav-btn" href="https://forms.gle/7VHLy9qM9CfYbdWx9" target="_blank" rel="noopener">Inscríbete</a>
       <button class="hamburger" id="hamburger" aria-label="Menú">
@@ -733,13 +753,12 @@
       </button>
     </div>
   </div>
-
   <div class="mobile-menu" id="mobile-menu">
     <a href="#formato">Formato</a>
     <a href="#horarios">Horarios</a>
     <a href="#standings">Ranking</a>
     <a href="#calendario">Calendario</a>
-    <a href="https://antigua-pickleball.com" class="back">← Antigua Pickleball</a>
+    <a href="https://antigua-pickleball.com">← Antigua Pickleball</a>
   </div>
 </header>
 
@@ -747,42 +766,137 @@
      HERO
 ══════════════════════════════════════ -->
 <section id="hero">
-  <div class="hero-bg"></div>
-  <div class="hero-balls">
-    <div class="pb-ball pb-1"></div>
-    <div class="pb-ball pb-2"></div>
-    <div class="pb-ball pb-3"></div>
-    <div class="pb-ball pb-4"></div>
-    <div class="pb-ball pb-5"></div>
-    <div class="pb-ball pb-6"></div>
-  </div>
-  <div class="hero-glow"></div>
-  <div class="hero-vignette"></div>
 
+  <!-- Background photo — replace URL with your own pickleball photo -->
+  <div class="hero-photo"></div>
+
+  <!-- Red left bar -->
+  <div class="hero-red-bar"></div>
+
+  <!-- Court line SVG decoration -->
+  <div class="hero-court-lines">
+    <svg viewBox="0 0 600 800" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
+      <!-- Outer court boundary -->
+      <rect x="40" y="40" width="520" height="720" stroke="#e4252e" stroke-width="3" fill="none" opacity=".6"/>
+      <!-- Center line -->
+      <line x1="40" y1="400" x2="560" y2="400" stroke="#e4252e" stroke-width="2" opacity=".5"/>
+      <!-- Kitchen lines (7 feet from net) -->
+      <line x1="40" y1="340" x2="560" y2="340" stroke="#e4252e" stroke-width="1.5" opacity=".4"/>
+      <line x1="40" y1="460" x2="560" y2="460" stroke="#e4252e" stroke-width="1.5" opacity=".4"/>
+      <!-- Center service lines -->
+      <line x1="300" y1="340" x2="300" y2="460" stroke="#e4252e" stroke-width="1.5" opacity=".4"/>
+      <!-- Net -->
+      <line x1="40" y1="400" x2="560" y2="400" stroke="#e4252e" stroke-width="5" opacity=".7"/>
+      <!-- Pickleball ball decorations -->
+      <circle cx="480" cy="120" r="35" stroke="#e4252e" stroke-width="2" fill="none" opacity=".5"/>
+      <circle cx="480" cy="120" r="5" fill="#e4252e" opacity=".3"/>
+      <circle cx="464" cy="108" r="4" fill="#e4252e" opacity=".3"/>
+      <circle cx="496" cy="108" r="4" fill="#e4252e" opacity=".3"/>
+      <circle cx="460" cy="124" r="4" fill="#e4252e" opacity=".3"/>
+      <circle cx="500" cy="124" r="4" fill="#e4252e" opacity=".3"/>
+      <circle cx="468" cy="136" r="4" fill="#e4252e" opacity=".3"/>
+      <circle cx="492" cy="136" r="4" fill="#e4252e" opacity=".3"/>
+
+      <!-- Second ball -->
+      <circle cx="100" cy="650" r="25" stroke="#e4252e" stroke-width="1.5" fill="none" opacity=".35"/>
+      <circle cx="100" cy="650" r="3.5" fill="#e4252e" opacity=".25"/>
+      <circle cx="88" cy="642" r="3" fill="#e4252e" opacity=".25"/>
+      <circle cx="112" cy="642" r="3" fill="#e4252e" opacity=".25"/>
+      <circle cx="86" cy="656" r="3" fill="#e4252e" opacity=".25"/>
+      <circle cx="114" cy="656" r="3" fill="#e4252e" opacity=".25"/>
+
+      <!-- Paddle silhouette -->
+      <g transform="translate(500,580) rotate(-30)" opacity=".25">
+        <!-- handle -->
+        <rect x="-6" y="50" width="12" height="55" rx="6" fill="#e4252e"/>
+        <!-- grip wrap lines -->
+        <line x1="-6" y1="60" x2="6" y2="60" stroke="rgba(228,37,46,.5)" stroke-width="1"/>
+        <line x1="-6" y1="70" x2="6" y2="70" stroke="rgba(228,37,46,.5)" stroke-width="1"/>
+        <line x1="-6" y1="80" x2="6" y2="80" stroke="rgba(228,37,46,.5)" stroke-width="1"/>
+        <!-- paddle face -->
+        <ellipse cx="0" cy="10" rx="30" ry="45" fill="#e4252e"/>
+        <!-- holes on face -->
+        <circle cx="0"  cy="-10" r="4" fill="rgba(255,255,255,.4)"/>
+        <circle cx="-14" cy="0" r="4" fill="rgba(255,255,255,.4)"/>
+        <circle cx="14" cy="0"  r="4" fill="rgba(255,255,255,.4)"/>
+        <circle cx="-8" cy="20" r="4" fill="rgba(255,255,255,.4)"/>
+        <circle cx="8"  cy="20" r="4" fill="rgba(255,255,255,.4)"/>
+        <circle cx="0"  cy="32" r="4" fill="rgba(255,255,255,.4)"/>
+      </g>
+    </svg>
+  </div>
+
+  <!-- Floating pickleball SVGs -->
+  <div class="hero-balls-deco">
+    <!-- Ball 1 -->
+    <div class="pb-deco pb-deco-1">
+      <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="50" cy="50" r="47" stroke="#e4252e" stroke-width="2" fill="rgba(228,37,46,.05)"/>
+        <circle cx="50" cy="50" r="6" fill="#e4252e" opacity=".5"/>
+        <circle cx="34" cy="36" r="5" fill="#e4252e" opacity=".5"/>
+        <circle cx="66" cy="36" r="5" fill="#e4252e" opacity=".5"/>
+        <circle cx="28" cy="54" r="5" fill="#e4252e" opacity=".5"/>
+        <circle cx="72" cy="54" r="5" fill="#e4252e" opacity=".5"/>
+        <circle cx="34" cy="66" r="5" fill="#e4252e" opacity=".5"/>
+        <circle cx="66" cy="66" r="5" fill="#e4252e" opacity=".5"/>
+        <circle cx="50" cy="28" r="5" fill="#e4252e" opacity=".5"/>
+        <circle cx="50" cy="72" r="5" fill="#e4252e" opacity=".5"/>
+        <circle cx="40" cy="22" r="4" fill="#e4252e" opacity=".35"/>
+        <circle cx="60" cy="22" r="4" fill="#e4252e" opacity=".35"/>
+        <circle cx="20" cy="42" r="4" fill="#e4252e" opacity=".35"/>
+        <circle cx="80" cy="42" r="4" fill="#e4252e" opacity=".35"/>
+      </svg>
+    </div>
+    <!-- Ball 2 -->
+    <div class="pb-deco pb-deco-2">
+      <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="50" cy="50" r="47" stroke="#e4252e" stroke-width="2" fill="rgba(228,37,46,.06)"/>
+        <circle cx="50" cy="50" r="6" fill="#e4252e" opacity=".4"/>
+        <circle cx="34" cy="36" r="5" fill="#e4252e" opacity=".4"/>
+        <circle cx="66" cy="36" r="5" fill="#e4252e" opacity=".4"/>
+        <circle cx="28" cy="54" r="5" fill="#e4252e" opacity=".4"/>
+        <circle cx="72" cy="54" r="5" fill="#e4252e" opacity=".4"/>
+        <circle cx="34" cy="66" r="5" fill="#e4252e" opacity=".4"/>
+        <circle cx="66" cy="66" r="5" fill="#e4252e" opacity=".4"/>
+      </svg>
+    </div>
+    <!-- Ball 3 -->
+    <div class="pb-deco pb-deco-3">
+      <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="50" cy="50" r="47" stroke="#e4252e" stroke-width="2" fill="rgba(228,37,46,.05)"/>
+        <circle cx="50" cy="50" r="5" fill="#e4252e" opacity=".4"/>
+        <circle cx="35" cy="38" r="4" fill="#e4252e" opacity=".4"/>
+        <circle cx="65" cy="38" r="4" fill="#e4252e" opacity=".4"/>
+        <circle cx="30" cy="56" r="4" fill="#e4252e" opacity=".4"/>
+        <circle cx="70" cy="56" r="4" fill="#e4252e" opacity=".4"/>
+      </svg>
+    </div>
+  </div>
+
+  <!-- Hero text -->
   <div class="hero-content">
     <div class="hero-eyebrow">
-      <div class="hero-eyebrow-bar"></div>
-      <span>Temporada 1 · Julio – Agosto 2026 · La Antigua Guatemala</span>
+      <div class="hero-eyebrow-dot"></div>
+      <span>Temporada 1 · Jul – Ago 2026 · La Antigua Guatemala</span>
     </div>
 
     <h1 class="hero-title">
       ANTIGUA<br>
       <span class="accent">LADDER</span><br>
-      LEAGUE
+      <span class="stroke">LEAGUE</span>
     </h1>
 
-    <div class="hero-bottom">
-      <p class="hero-desc">
-        Competencia semanal de pickleball. Llegas solo, te asignamos grupo, subes o bajas según tus resultados cada sábado.
-      </p>
-      <div class="hero-actions">
-        <a class="btn-primary" href="https://forms.gle/7VHLy9qM9CfYbdWx9" target="_blank" rel="noopener">INSCRÍBETE</a>
-        <a class="btn-outline" href="#standings">VER RANKING</a>
-      </div>
+    <p class="hero-sub">
+      Competencia semanal de pickleball. Llegas solo, te asignamos grupo, subes o bajas según tus resultados.
+    </p>
+
+    <div class="hero-actions">
+      <a class="btn-primary" href="https://forms.gle/7VHLy9qM9CfYbdWx9" target="_blank" rel="noopener">INSCRÍBETE AHORA</a>
+      <a class="btn-outline" href="#standings">VER RANKING</a>
     </div>
   </div>
 
-  <!-- Stats strip — MLP style -->
+  <!-- Stats strip -->
   <div class="hero-stats">
     <div class="hero-stats-inner">
       <div class="hero-stat">
@@ -807,32 +921,86 @@
       </div>
     </div>
   </div>
+
 </section>
 
 <!-- ══════════════════════════════════════
-     FEATURE 3-UP CARDS
+     FEATURE CARDS — photo cards
 ══════════════════════════════════════ -->
-<section class="feature-row">
+<section class="feature-section">
   <div class="container">
     <div class="feature-grid">
+
       <a class="feature-card" href="#standings">
-        <div class="feature-card-label">En vivo</div>
-        <h3>Ver Ranking</h3>
-        <p>Consulta la tabla actualizada de la temporada. Ordenada por porcentaje de puntos ganados.</p>
-        <span class="feature-card-link">Ver standings</span>
+        <div class="feature-card-img fc-img-1">
+          <img src="https://images.unsplash.com/photo-1625992035117-9b20be3caf93?auto=format&fit=crop&w=600&q=75" alt="Ranking" loading="lazy" onerror="this.style.display='none'"/>
+          <div class="feature-card-img-fallback">
+            <!-- Pickleball SVG fallback -->
+            <svg width="80" height="80" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" opacity=".5">
+              <circle cx="50" cy="50" r="47" stroke="white" stroke-width="2"/>
+              <circle cx="50" cy="50" r="6" fill="white"/>
+              <circle cx="34" cy="36" r="5" fill="white"/>
+              <circle cx="66" cy="36" r="5" fill="white"/>
+              <circle cx="28" cy="54" r="5" fill="white"/>
+              <circle cx="72" cy="54" r="5" fill="white"/>
+              <circle cx="34" cy="66" r="5" fill="white"/>
+              <circle cx="66" cy="66" r="5" fill="white"/>
+            </svg>
+          </div>
+        </div>
+        <div class="feature-card-body">
+          <div class="feature-card-tag">En vivo</div>
+          <h3>Ver Ranking</h3>
+          <p>Tabla actualizada de la temporada. Ordenada por porcentaje de puntos ganados cada semana.</p>
+          <span class="feature-card-cta">Ver standings</span>
+        </div>
       </a>
+
       <a class="feature-card" href="https://forms.gle/7VHLy9qM9CfYbdWx9" target="_blank" rel="noopener">
-        <div class="feature-card-label">Inscripción abierta</div>
-        <h3>Únete ahora</h3>
-        <p>Cupo limitado a 10 jugadores por categoría. Reserva tu lugar con el pago anticipado.</p>
-        <span class="feature-card-link">Inscribirme</span>
+        <div class="feature-card-img fc-img-2">
+          <img src="https://images.unsplash.com/photo-1554068865-24cecd4e34b8?auto=format&fit=crop&w=600&q=75" alt="Inscripción" loading="lazy" onerror="this.style.display='none'"/>
+          <div class="feature-card-img-fallback">
+            <svg width="70" height="90" viewBox="0 0 60 80" fill="none" xmlns="http://www.w3.org/2000/svg" opacity=".5">
+              <rect x="10" y="25" width="40" height="50" rx="4" stroke="white" stroke-width="2"/>
+              <rect x="18" y="15" width="24" height="28" rx="12" stroke="white" stroke-width="2"/>
+              <line x1="20" y1="45" x2="40" y2="45" stroke="white" stroke-width="2"/>
+              <line x1="20" y1="55" x2="36" y2="55" stroke="white" stroke-width="2"/>
+            </svg>
+          </div>
+        </div>
+        <div class="feature-card-body">
+          <div class="feature-card-tag">Inscripción abierta</div>
+          <h3>Únete ahora</h3>
+          <p>Cupo limitado a 10 jugadores por categoría. Reserva tu lugar con el pago anticipado por Bim o transferencia.</p>
+          <span class="feature-card-cta">Inscribirme</span>
+        </div>
       </a>
+
       <a class="feature-card" href="#calendario">
-        <div class="feature-card-label">Próxima sesión</div>
-        <h3>4 de Julio</h3>
-        <p>Primera sesión de la Temporada 1. Girasoles Pickleball Club, sábados desde las 7am.</p>
-        <span class="feature-card-link">Ver calendario</span>
+        <div class="feature-card-img fc-img-3">
+          <img src="https://images.unsplash.com/photo-1576501757573-ea0baa5e7e96?auto=format&fit=crop&w=600&q=75" alt="Calendario" loading="lazy" onerror="this.style.display='none'"/>
+          <div class="feature-card-img-fallback">
+            <svg width="70" height="70" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg" opacity=".5">
+              <rect x="8" y="12" width="64" height="60" rx="4" stroke="white" stroke-width="2"/>
+              <line x1="8" y1="28" x2="72" y2="28" stroke="white" stroke-width="2"/>
+              <line x1="24" y1="8" x2="24" y2="20" stroke="white" stroke-width="2.5"/>
+              <line x1="56" y1="8" x2="56" y2="20" stroke="white" stroke-width="2.5"/>
+              <circle cx="28" cy="42" r="4" fill="white"/>
+              <circle cx="40" cy="42" r="4" fill="white"/>
+              <circle cx="52" cy="42" r="4" fill="white"/>
+              <circle cx="28" cy="56" r="4" fill="white"/>
+              <circle cx="40" cy="56" r="4" fill="white"/>
+            </svg>
+          </div>
+        </div>
+        <div class="feature-card-body">
+          <div class="feature-card-tag">Próxima sesión</div>
+          <h3>4 de Julio</h3>
+          <p>Primera sesión de la Temporada 1. Girasoles Pickleball Club, sábados desde las 7:00am.</p>
+          <span class="feature-card-cta">Ver calendario</span>
+        </div>
       </a>
+
     </div>
   </div>
 </section>
@@ -840,31 +1008,30 @@
 <!-- ══════════════════════════════════════
      CÓMO FUNCIONA
 ══════════════════════════════════════ -->
-<hr class="divider"/>
 <section class="how-section" id="formato">
   <div class="container">
-    <div class="reveal" style="margin-bottom:48px">
+    <div class="section-head reveal" style="margin-bottom:52px">
       <div class="label">El formato</div>
       <h2 class="section-title">Cómo funciona</h2>
     </div>
     <div class="how-grid">
-      <div class="how-card reveal">
-        <div class="how-num">01</div>
+      <div class="how-card reveal" data-num="01">
+        <div class="how-card-icon">🎯</div>
         <h3>Sin Pareja Fija</h3>
         <p>Llegas solo. Te asignamos grupo y cancha. Cada sesión juegas con distintos compañeros — el formato rota para que todos compitan contra todos.</p>
       </div>
-      <div class="how-card reveal">
-        <div class="how-num">02</div>
+      <div class="how-card reveal" data-num="02">
+        <div class="how-card-icon">📊</div>
         <h3>Ranking Semanal</h3>
         <p>Tu posición se mide por el porcentaje de puntos ganados vs. posibles. El ranking se publica cada domingo después de la sesión.</p>
       </div>
-      <div class="how-card reveal">
-        <div class="how-num">03</div>
+      <div class="how-card reveal" data-num="03">
+        <div class="how-card-icon">⬆️</div>
         <h3>Sube y Baja</h3>
         <p>El mejor jugador de cada cancha sube de grupo. El peor baja. Cada semana la escalera cambia — siempre compites a tu nivel real.</p>
       </div>
-      <div class="how-card reveal">
-        <div class="how-num">04</div>
+      <div class="how-card reveal" data-num="04">
+        <div class="how-card-icon">🏓</div>
         <h3>Cupo Limitado</h3>
         <p>Máximo 10 jugadores por categoría. Si está lleno, entra en lista de espera. Primero en inscribirse, primero en jugar.</p>
       </div>
@@ -872,10 +1039,31 @@
   </div>
 </section>
 
+<!-- Photo strip -->
+<div class="photo-strip">
+  <div class="photo-strip-item ps-1">
+    <img src="https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?auto=format&fit=crop&w=600&q=75" alt="Pickleball" loading="lazy" onerror="this.style.display='none'"/>
+    <div class="photo-strip-item-overlay">
+      <span class="photo-strip-item-label">Pickleball en Antigua</span>
+    </div>
+  </div>
+  <div class="photo-strip-item ps-2">
+    <img src="https://images.unsplash.com/photo-1558618666-fcd25c85cd64?auto=format&fit=crop&w=600&q=75" alt="Competencia" loading="lazy" onerror="this.style.display='none'"/>
+    <div class="photo-strip-item-overlay">
+      <span class="photo-strip-item-label">Compite cada sábado</span>
+    </div>
+  </div>
+  <div class="photo-strip-item ps-3">
+    <img src="https://images.unsplash.com/photo-1545622783-b3e021430fee?auto=format&fit=crop&w=600&q=75" alt="Comunidad" loading="lazy" onerror="this.style.display='none'"/>
+    <div class="photo-strip-item-overlay">
+      <span class="photo-strip-item-label">Comunidad y deporte</span>
+    </div>
+  </div>
+</div>
+
 <!-- ══════════════════════════════════════
-     HORARIOS — MLP schedule list
+     HORARIOS
 ══════════════════════════════════════ -->
-<hr class="divider"/>
 <section class="schedule-section" id="horarios">
   <div class="container">
     <div class="reveal" style="margin-bottom:48px">
@@ -919,16 +1107,14 @@
 </section>
 
 <!-- ══════════════════════════════════════
-     STANDINGS — MLP standings table
+     STANDINGS
 ══════════════════════════════════════ -->
-<hr class="divider"/>
 <section class="standings-section" id="standings">
   <div class="container">
     <div class="reveal" style="margin-bottom:36px">
       <div class="label">Temporada 1</div>
       <h2 class="section-title">Ranking</h2>
     </div>
-
     <div class="standings-tabs" role="tablist">
       <button class="s-tab active" data-cat="principiante" role="tab">Principiante</button>
       <button class="s-tab" data-cat="intermedio" role="tab">Intermedio</button>
@@ -941,7 +1127,6 @@
 <!-- ══════════════════════════════════════
      CALENDARIO
 ══════════════════════════════════════ -->
-<hr class="divider"/>
 <section class="calendar-section" id="calendario">
   <div class="container">
     <div class="reveal" style="margin-bottom:48px">
@@ -955,7 +1140,6 @@
 <!-- ══════════════════════════════════════
      POLÍTICA
 ══════════════════════════════════════ -->
-<hr class="divider"/>
 <section class="policy-section" id="politica">
   <div class="container">
     <div class="reveal" style="margin-bottom:48px">
@@ -966,29 +1150,51 @@
       <div class="policy-card ok reveal">
         <div class="policy-icon">✅</div>
         <h3>Cancela antes del viernes</h3>
-        <p>Sin penalización. Avisas con tiempo suficiente y tu posición en el ranking no se ve afectada. Tu cupo se libera para lista de espera.</p>
+        <p>Sin penalización. Avisas con tiempo suficiente y tu posición en el ranking no se ve afectada.</p>
       </div>
       <div class="policy-card warn reveal">
         <div class="policy-icon">⚠️</div>
         <h3>Cancela el mismo sábado</h3>
-        <p>Penalización de <strong style="color:var(--yellow)">–1 posición</strong> en el ranking de la semana. Solo aplica si avisas antes de la sesión.</p>
+        <p>Penalización de <strong style="color:#b45309">–1 posición</strong> en el ranking. Solo aplica si avisas antes de la sesión.</p>
       </div>
       <div class="policy-card bad reveal">
         <div class="policy-icon">🚫</div>
         <h3>No llega sin avisar</h3>
-        <p>Penalización de <strong style="color:#ff6b6b">–2 posiciones</strong> en el ranking. Los no-shows afectan al grupo entero — el formato depende de que todos lleguen.</p>
+        <p>Penalización de <strong style="color:var(--red)">–2 posiciones</strong> en el ranking. Los no-shows afectan al grupo entero.</p>
       </div>
     </div>
   </div>
 </section>
 
 <!-- ══════════════════════════════════════
-     FINAL CTA
+     CTA FINAL
 ══════════════════════════════════════ -->
 <section class="cta-section">
-  <div class="label">Temporada 1 · 8 semanas · Julio – Agosto 2026</div>
+  <!-- Decorative pickleball -->
+  <svg class="cta-ball" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="100" cy="100" r="95" stroke="white" stroke-width="4"/>
+    <circle cx="100" cy="100" r="12" fill="white"/>
+    <circle cx="68" cy="72" r="10" fill="white"/>
+    <circle cx="132" cy="72" r="10" fill="white"/>
+    <circle cx="56" cy="108" r="10" fill="white"/>
+    <circle cx="144" cy="108" r="10" fill="white"/>
+    <circle cx="68" cy="136" r="10" fill="white"/>
+    <circle cx="132" cy="136" r="10" fill="white"/>
+    <circle cx="100" cy="56" r="10" fill="white"/>
+    <circle cx="100" cy="152" r="10" fill="white"/>
+    <circle cx="80" cy="44" r="8" fill="white"/>
+    <circle cx="120" cy="44" r="8" fill="white"/>
+    <circle cx="40" cy="84" r="8" fill="white"/>
+    <circle cx="160" cy="84" r="8" fill="white"/>
+    <circle cx="40" cy="124" r="8" fill="white"/>
+    <circle cx="160" cy="124" r="8" fill="white"/>
+    <circle cx="80" cy="158" r="8" fill="white"/>
+    <circle cx="120" cy="158" r="8" fill="white"/>
+  </svg>
+
+  <span class="cta-label">Temporada 1 · 8 semanas · Julio – Agosto 2026</span>
   <h2>¿Listo para<br>subir la escalera?</h2>
-  <p>Cupo limitado a 10 jugadores por categoría. Inscríbete ahora y asegura tu lugar en la primera temporada de la Antigua Ladder League.</p>
+  <p>Cupo limitado a 10 jugadores por categoría. Inscríbete y asegura tu lugar en la primera temporada de la Antigua Ladder League.</p>
   <a class="btn-cta" href="https://forms.gle/7VHLy9qM9CfYbdWx9" target="_blank" rel="noopener">INSCRIBIRME AHORA</a>
 </section>
 
@@ -1043,16 +1249,10 @@
 <script>
 /* ════════════════════════════════════════════════════════════
    DATOS — editar aquí cada semana
-   ─────────────────────────────────────────────────────────
    1. Actualiza ptosGanados y ptosPosibles por jugador
    2. El % y orden se calculan automáticamente
-   3. Cambia semanaActual y estados en SEMANAS
+   3. Cambia estados en SEMANAS (jugada / proxima / pendiente / cancelada / gran-final)
 ════════════════════════════════════════════════════════════ */
-const TEMPORADA = {
-  nombre: 'Temporada 1',
-  semanaActual: 1,
-};
-
 const JUGADORES = {
   principiante: [
     { nombre: 'Carlos Ajú',         sesiones: 0, ptosGanados: 0, ptosPosibles: 0 },
@@ -1104,71 +1304,66 @@ const SEMANAS = [
   { num: 9, fecha: '29 Ago', estado: 'gran-final', nota: 'Gran Final'    },
 ];
 
-/* ── Render standings ── */
 function renderStandings(cat) {
-  const jugadores = [...JUGADORES[cat]].map(j => ({
-    ...j, pct: j.ptosPosibles ? j.ptosGanados / j.ptosPosibles * 100 : null,
+  const j = [...JUGADORES[cat]].map(p => ({
+    ...p, pct: p.ptosPosibles ? p.ptosGanados / p.ptosPosibles * 100 : null,
   })).sort((a, b) => {
     if (a.pct === null && b.pct === null) return 0;
     if (a.pct === null) return 1;
     if (b.pct === null) return -1;
     return b.pct - a.pct;
   });
-
   const wrap = document.getElementById('standings-body');
-
-  if (jugadores.every(j => j.pct === null)) {
+  if (j.every(p => p.pct === null)) {
     wrap.innerHTML = `<div class="standings-empty">
+      <svg width="80" height="80" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="50" cy="50" r="47" stroke="#e4252e" stroke-width="2"/>
+        <circle cx="50" cy="50" r="6" fill="#e4252e"/>
+        <circle cx="34" cy="36" r="5" fill="#e4252e"/>
+        <circle cx="66" cy="36" r="5" fill="#e4252e"/>
+        <circle cx="28" cy="54" r="5" fill="#e4252e"/>
+        <circle cx="72" cy="54" r="5" fill="#e4252e"/>
+        <circle cx="34" cy="66" r="5" fill="#e4252e"/>
+        <circle cx="66" cy="66" r="5" fill="#e4252e"/>
+        <circle cx="50" cy="28" r="5" fill="#e4252e"/>
+        <circle cx="50" cy="72" r="5" fill="#e4252e"/>
+      </svg>
       <p>La temporada aún no ha comenzado</p>
       <p>El ranking aparecerá aquí después de la primera sesión</p>
     </div>`;
     return;
   }
-
-  wrap.innerHTML = `
-    <div class="standings-table-wrap">
-      <table class="standings-table">
-        <thead>
-          <tr>
-            <th style="text-align:center">#</th>
-            <th>Jugador</th>
-            <th>Sesiones</th>
-            <th>Pts Gan.</th>
-            <th>Pts Pos.</th>
-            <th>%</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${jugadores.map((j, i) => `
-            <tr class="${i === 0 ? 'row-top1' : ''}">
-              <td class="td-rank">${i + 1}</td>
-              <td class="td-name">${j.nombre}</td>
-              <td class="td-mono">${j.sesiones}</td>
-              <td class="td-mono">${j.ptosGanados}</td>
-              <td class="td-mono">${j.ptosPosibles}</td>
-              <td class="td-pct">${j.pct !== null ? j.pct.toFixed(1) + '%' : '—'}</td>
-            </tr>`).join('')}
-        </tbody>
-      </table>
-    </div>`;
+  wrap.innerHTML = `<div class="standings-table-wrap">
+    <table class="standings-table">
+      <thead><tr>
+        <th style="text-align:center">#</th>
+        <th>Jugador</th><th>Sesiones</th><th>Pts Gan.</th><th>Pts Pos.</th><th>%</th>
+      </tr></thead>
+      <tbody>${j.map((p,i) => `
+        <tr class="${i===0?'row-top1':''}">
+          <td class="td-rank">${i+1}</td>
+          <td class="td-name">${p.nombre}</td>
+          <td class="td-mono">${p.sesiones}</td>
+          <td class="td-mono">${p.ptosGanados}</td>
+          <td class="td-mono">${p.ptosPosibles}</td>
+          <td class="td-pct">${p.pct!==null?p.pct.toFixed(1)+'%':'—'}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>
+  </div>`;
 }
 
-/* ── Render calendar ── */
 function renderCalendar() {
-  const labels = {
-    jugada: 'Jugada', proxima: 'Próxima', cancelada: 'Cancelada',
-    pendiente: 'Pendiente', 'gran-final': 'Gran Final',
-  };
+  const labels = { jugada:'Jugada', proxima:'Próxima', cancelada:'Cancelada', pendiente:'Pendiente', 'gran-final':'Gran Final' };
   document.getElementById('calendar-grid').innerHTML = SEMANAS.map(s => `
     <div class="cal-card ${s.estado}">
-      <div class="cal-num">${s.estado === 'gran-final' ? 'Final' : `Semana ${s.num}`}</div>
+      <div class="cal-num">${s.estado==='gran-final'?'Final':`Semana ${s.num}`}</div>
       <div class="cal-date">${s.fecha}</div>
-      <div class="cal-status">${labels[s.estado] || s.estado}</div>
-      ${s.nota ? `<div class="cal-note">${s.nota}</div>` : ''}
+      <div class="cal-status">${labels[s.estado]||s.estado}</div>
+      ${s.nota?`<div class="cal-note">${s.nota}</div>`:''}
     </div>`).join('');
 }
 
-/* ── Init ── */
 document.addEventListener('DOMContentLoaded', () => {
   renderStandings('principiante');
   renderCalendar();
