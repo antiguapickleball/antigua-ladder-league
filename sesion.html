@@ -353,20 +353,15 @@
         <div class="card">
           <div class="card-header"><span class="card-title">Costo de Sesión</span></div>
           <div class="card-body" style="display:flex;flex-direction:column;gap:10px">
-            <div style="display:flex;align-items:baseline;gap:10px">
-              <div style="font-family:'Barlow Condensed',sans-serif;font-size:2rem;font-weight:900;color:var(--dark)">
-                Q70
-              </div>
-              <div style="font-family:'Space Mono',monospace;font-size:.62rem;color:var(--muted);letter-spacing:.08em">
-                ≈ $9.00 USD<br>via PayPal
-              </div>
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:2.2rem;font-weight:900;color:var(--dark)">
+              $10 <span style="font-size:1.1rem;font-weight:600;color:var(--muted)">USD / sesión</span>
             </div>
-            <p style="font-size:.78rem;color:var(--muted);line-height:1.6">
-              Pago seguro con tarjeta de crédito/débito o cuenta PayPal.
-              La inscripción se confirma automáticamente al completar el pago.
+            <p style="font-size:.82rem;color:var(--muted);line-height:1.6">
+              Pago con <strong>tarjeta de crédito/débito</strong> (Visa, Mastercard) o cuenta PayPal.
+              No necesitas cuenta PayPal para pagar con tarjeta.
             </p>
             <div style="font-size:.72rem;color:var(--muted);padding:8px 10px;background:var(--light);border-left:3px solid var(--border);line-height:1.5">
-              El cobro aparece en tu estado de cuenta como <strong>ANTIGUA PICKLEBALL</strong> en USD.
+              El cargo aparece en tu estado de cuenta como <strong>ANTIGUA PICKLEBALL</strong>.
             </div>
           </div>
         </div>
@@ -381,7 +376,7 @@
 </footer>
 
 <!-- PayPal SDK (Sandbox) -->
-<script src="https://www.paypal.com/sdk/js?client-id=AbZT5b9-IofM_vNiYIhSNlNqsjTcP3ljtqVd7caQIYhs0jqTqZaEKORvgyZuRlj3DkmVnE1_b5QhjoA8&currency=USD&intent=capture&components=buttons"></script>
+<script src="https://www.paypal.com/sdk/js?client-id=AbZT5b9-IofM_vNiYIhSNlNqsjTcP3ljtqVd7caQIYhs0jqTqZaEKORvgyZuRlj3DkmVnE1_b5QhjoA8&currency=USD&intent=capture&components=buttons&enable-funding=card&disable-funding=venmo,paylater"></script>
 <!-- Firebase + Auth -->
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
@@ -506,8 +501,8 @@ function updateRegState(inscritos, user) {
 //  cuando estés listo para cobros reales.
 // ══════════════════════════════════════════════════════
 const PAYPAL_ENV    = 'sandbox';           // → cambiar a 'production' para live
-const SESSION_PRICE = '9.00';              // USD  ≈ Q70
-const SESSION_PRICE_DISPLAY = 'Q70';
+const SESSION_PRICE = '10.00';             // USD
+const SESSION_PRICE_DISPLAY = '$10 USD';
 
 // DUPR ID del usuario actual (se llena al cargar)
 let _pendingDuprId = '';
