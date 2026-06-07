@@ -410,7 +410,12 @@ const FIREBASE_CONFIG = {
   appId: "1:270487643715:web:701b74a71253ac599056f6"
 };
 if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
-const db = firebase.firestore();
+const db   = firebase.firestore();
+const auth = firebase.auth();
+
+// Sign-in anónimo para que Firestore acepte lecturas/escrituras autenticadas.
+// No reemplaza el login del usuario — solo da contexto de auth a Firebase.
+auth.signInAnonymously().catch(err => console.warn('Anonymous auth error:', err));
 
 /* ══════════════════════════════════════════════════════
    INIT
