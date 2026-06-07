@@ -649,8 +649,14 @@ function mountPayPalButtons(user) {
         order = await actions.order.capture();
       } catch (err) {
         console.error('PayPal capture error:', err);
+        const msg = err?.message || err?.name || JSON.stringify(err) || 'unknown';
+        const details = err?.details ? JSON.stringify(err.details) : '';
         document.getElementById('paypal-button-container').innerHTML =
-          `<div class="reg-msg error">✕ Error al procesar el pago con PayPal. Intenta de nuevo.</div>`;
+          `<div class="reg-msg error">
+            ✕ Error PayPal capture:<br>
+            <code style="font-size:.75rem;word-break:break-all">${msg}</code>
+            ${details ? `<br><code style="font-size:.7rem;word-break:break-all">${details}</code>` : ''}
+          </div>`;
         return;
       }
 
