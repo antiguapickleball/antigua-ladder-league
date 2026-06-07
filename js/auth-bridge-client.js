@@ -1,90 +1,90 @@
 /**
  * auth-bridge-client.js — Antigua Ladder League
  *
- * Usa un iframe oculto apuntando a antigua-pickleball.com/auth-bridge.html
- * para obtener el estado de sesión sin que el usuario tenga que iniciar sesión
- * dos veces. Si no está autenticado, redirige al login del sitio principal
- * con un ?redirect= de vuelta a esta página.
+ * Gestiona la sesión compartida con antigua-pickleball.com.
+ * Estrategia (sin iframe, sin cookies):
  *
- * Uso:
- *   <script src="js/auth-bridge-client.js"></script>
- *   El script expone window.APAuth con:
- *     APAuth.onReady(callback(user|null))  — llama callback cuando se sabe el estado
- *     APAuth.getUser()                     — devuelve el usuario actual (o null)
- *     APAuth.requireLogin()                — redirige a login si no está autenticado
+ *  1. Si la URL contiene ?ap_uid= (redirect post-login), guardar en localStorage
+ *     y limpiar los parámetros de la URL.
+ *  2. Leer sesión desde localStorage (válida 24 horas).
+ *  3. Si no hay sesión, exponer el estado "no autenticado".
+ *
+ * API pública: window.APAuth
+ *   APAuth.onReady(fn)      — fn(user | null) cuando el estado está listo
+ *   APAuth.getUser()        — usuario actual (o null)
+ *   APAuth.requireLogin()   — redirige al login si no autenticado
+ *   APAuth.signOut()        — borrar sesión local
  */
 
 (function() {
 
-  const BRIDGE_URL   = 'https://antigua-pickleball.com/auth-bridge.html';
-  const LOGIN_URL    = 'https://antigua-pickleball.com/login.html';
-  const ALLOWED_ORIGIN = 'https://antigua-pickleball.com';
-  const TIMEOUT_MS   = 6000; // máximo de espera al bridge
+  const STORAGE_KEY   = 'ap_session';
+  const SESSION_TTL   = 24 * 60 * 60 * 1000; // 24 horas en ms
+  const LOGIN_URL     = 'https://antigua-pickleball.com/login.html';
 
-  let _user     = null;
-  let _ready    = false;
-  let _callbacks = [];
+  // ─── 1. Leer params de la URL (vienen del redirect post-login) ───────────
+  let _user = null;
 
-  function _fireCallbacks() {
-    _ready = true;
-    _callbacks.forEach(fn => fn(_user));
-    _callbacks = [];
-  }
+  (function readURLParams() {
+    const params = new URLSearchParams(window.location.search);
+    if (!params.has('ap_uid')) return;
 
-  // Crear iframe oculto
-  const iframe = document.createElement('iframe');
-  iframe.src = BRIDGE_URL;
-  iframe.style.cssText = 'display:none;width:0;height:0;border:none;position:absolute;';
-  iframe.setAttribute('aria-hidden', 'true');
-  document.documentElement.appendChild(iframe);
+    const session = {
+      uid:   params.get('ap_uid'),
+      name:  params.get('ap_name')  || '',
+      email: params.get('ap_email') || '',
+      role:  params.get('ap_role')  || 'player',
+      ts:    parseInt(params.get('ap_ts') || Date.now(), 10)
+    };
 
-  // Timeout: si el bridge tarda demasiado, asumir no autenticado
-  const timer = setTimeout(() => {
-    if (!_ready) {
-      console.warn('[APAuth] Bridge timeout — asumiendo no autenticado');
-      _fireCallbacks();
-    }
-  }, TIMEOUT_MS);
+    // Guardar en localStorage
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(session)); } catch(_) {}
 
-  // Escuchar respuesta del bridge
-  window.addEventListener('message', function(e) {
-    if (e.origin !== ALLOWED_ORIGIN) return;
-    if (!e.data || e.data.type !== 'AUTH_STATE') return;
+    // Limpiar params de la URL sin recargar la página
+    const clean = new URL(window.location.href);
+    ['ap_uid', 'ap_name', 'ap_email', 'ap_role', 'ap_ts'].forEach(k => clean.searchParams.delete(k));
+    history.replaceState(null, '', clean.toString());
+  })();
 
-    clearTimeout(timer);
-    _user = e.data.loggedIn ? e.data.user : null;
-    _fireCallbacks();
-  });
+  // ─── 2. Leer sesión guardada ─────────────────────────────────────────────
+  (function readStorage() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return;
+      const s = JSON.parse(raw);
+      // Verificar que no haya expirado
+      if (Date.now() - s.ts > SESSION_TTL) {
+        localStorage.removeItem(STORAGE_KEY);
+        return;
+      }
+      _user = { uid: s.uid, displayName: s.name, email: s.email, role: s.role };
+    } catch(_) {}
+  })();
 
-  // API pública
+  // ─── 3. API pública ──────────────────────────────────────────────────────
   window.APAuth = {
 
-    /** Registrar callback que se ejecuta cuando el estado está listo */
     onReady: function(fn) {
-      if (_ready) { fn(_user); }
-      else { _callbacks.push(fn); }
+      // Estado disponible sincrónicamente (no hay async aquí)
+      fn(_user);
     },
 
-    /** Devuelve el usuario actual (null si no autenticado o aún cargando) */
     getUser: function() {
       return _user;
     },
 
-    /** Si no está autenticado, redirige al login con redirect de vuelta aquí */
     requireLogin: function() {
-      this.onReady(function(user) {
-        if (!user) {
-          const redirect = encodeURIComponent(window.location.href);
-          window.location.href = LOGIN_URL + '?redirect=' + redirect;
-        }
-      });
+      if (!_user) {
+        const redirect = encodeURIComponent(window.location.href);
+        window.location.href = LOGIN_URL + '?redirect=' + redirect;
+      }
     },
 
-    /** Re-solicitar estado al bridge (útil después de una acción) */
-    refresh: function() {
-      _ready = false;
-      _user  = null;
-      iframe.contentWindow.postMessage({ type: 'AUTH_REQUEST' }, ALLOWED_ORIGIN);
+    signOut: function() {
+      try { localStorage.removeItem(STORAGE_KEY); } catch(_) {}
+      _user = null;
+      // Opcional: redirigir a logout en antigua-pickleball.com
+      // window.location.href = 'https://antigua-pickleball.com/login.html';
     }
   };
 
