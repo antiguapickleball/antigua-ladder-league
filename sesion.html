@@ -353,18 +353,21 @@
         <div class="card">
           <div class="card-header"><span class="card-title">Costo de Sesión</span></div>
           <div class="card-body" style="display:flex;flex-direction:column;gap:10px">
-            <div style="font-family:'Barlow Condensed',sans-serif;font-size:2rem;font-weight:900;color:var(--dark)">
-              Q70 <span style="font-size:1rem;font-weight:400;color:var(--muted)">/ sesión</span>
+            <div style="display:flex;align-items:baseline;gap:10px">
+              <div style="font-family:'Barlow Condensed',sans-serif;font-size:2rem;font-weight:900;color:var(--dark)">
+                Q70
+              </div>
+              <div style="font-family:'Space Mono',monospace;font-size:.62rem;color:var(--muted);letter-spacing:.08em">
+                ≈ $9.00 USD<br>via PayPal
+              </div>
             </div>
-            <p style="font-size:.82rem;color:var(--muted);line-height:1.6">
-              Pago por transferencia bancaria o en efectivo antes de la sesión.<br>
-              Confirmar pago por WhatsApp para completar inscripción.
+            <p style="font-size:.78rem;color:var(--muted);line-height:1.6">
+              Pago seguro con tarjeta de crédito/débito o cuenta PayPal.
+              La inscripción se confirma automáticamente al completar el pago.
             </p>
-            <a href="https://wa.me/50230912707?text=Hola%2C+quiero+confirmar+pago+para+la+Ladder+League"
-               target="_blank"
-               style="font-family:'Barlow Condensed',sans-serif;font-size:.88rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;background:#25D366;color:#fff;padding:10px 18px;text-decoration:none;text-align:center;display:block;transition:opacity .2s">
-              Confirmar pago por WhatsApp
-            </a>
+            <div style="font-size:.72rem;color:var(--muted);padding:8px 10px;background:var(--light);border-left:3px solid var(--border);line-height:1.5">
+              El cobro aparece en tu estado de cuenta como <strong>ANTIGUA PICKLEBALL</strong> en USD.
+            </div>
           </div>
         </div>
       </div>
@@ -377,7 +380,9 @@
   <a href="index.html">Ladder League</a> · <a href="https://antigua-pickleball.com">Antigua Pickleball</a> · Temporada 1 · 2026
 </footer>
 
-<!-- Firebase + Auth + Registro -->
+<!-- PayPal SDK (Sandbox) -->
+<script src="https://www.paypal.com/sdk/js?client-id=AbZT5b9-IofM_vNiYIhSNlNqsjTcP3ljtqVd7caQIYhs0jqTqZaEKORvgyZuRlj3DkmVnE1_b5QhjoA8&currency=USD&intent=capture&components=buttons"></script>
+<!-- Firebase + Auth -->
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
@@ -495,69 +500,17 @@ function updateRegState(inscritos, user) {
   renderRegContainer(user, inscritos);
 }
 
-function renderRegContainer(user, inscritos) {
-  const container = document.getElementById('reg-container');
-  const isCancelled = sesion.estado === 'cancelada';
-  const isPlayed    = sesion.estado === 'jugada';
+// ══════════════════════════════════════════════════════
+//  CONFIGURACIÓN DE PAGO
+//  Cambiar PAYPAL_ENV a 'production' y CLIENT_ID al Live
+//  cuando estés listo para cobros reales.
+// ══════════════════════════════════════════════════════
+const PAYPAL_ENV    = 'sandbox';           // → cambiar a 'production' para live
+const SESSION_PRICE = '9.00';              // USD  ≈ Q70
+const SESSION_PRICE_DISPLAY = 'Q70';
 
-  if (isCancelled) {
-    container.innerHTML = `<div class="reg-msg info">Esta sesión fue cancelada y no está disponible para registro.</div>`;
-    return;
-  }
-  if (isPlayed) {
-    container.innerHTML = `<div class="reg-msg info">Esta sesión ya se jugó. El registro está cerrado.</div>`;
-    return;
-  }
-
-  if (!user) {
-    container.innerHTML = `
-      <div class="login-prompt">
-        <p>Para inscribirte necesitas iniciar sesión con tu cuenta de Antigua Pickleball. También debes tener tu DUPR ID registrado.</p>
-        <a href="https://antigua-pickleball.com/login.html?redirect=${encodeURIComponent(window.location.href)}" class="btn-login-red">Ingresar a mi cuenta</a>
-      </div>`;
-    return;
-  }
-
-  const yaInscrito = inscritos.find(p => p.uid === user.uid);
-
-  if (yaInscrito) {
-    container.innerHTML = `
-      <div class="reg-box">
-        <div class="reg-msg success">✓ Estás inscrito en esta sesión.</div>
-        <div style="font-size:.82rem;color:var(--muted)">DUPR ID: <strong>${yaInscrito.duprId || '—'}</strong></div>
-        <button class="btn-unregister" id="btn-cancel-reg">Cancelar inscripción</button>
-      </div>`;
-    document.getElementById('btn-cancel-reg').addEventListener('click', () => cancelRegistration(user));
-    return;
-  }
-
-  // No inscrito → mostrar formulario
-  container.innerHTML = `
-    <div class="reg-box">
-      <div class="reg-status-line" id="reg-status"></div>
-      <div class="dupr-form">
-        <label class="dupr-label" for="dupr-input">Tu DUPR ID</label>
-        <input class="dupr-input" id="dupr-input" type="text" placeholder="Ej: 12345678"
-          maxlength="12" autocomplete="off" spellcheck="false"/>
-        <p class="dupr-hint">
-          Tu DUPR ID es el número de 8 dígitos de tu perfil en
-          <a href="https://dupr.com" target="_blank" rel="noopener">dupr.com</a>.
-          Es obligatorio para participar en la Ladder League.
-        </p>
-      </div>
-      <button class="btn-register" id="btn-reg">Inscribirme en esta sesión</button>
-      <p style="font-size:.75rem;color:var(--muted);text-align:center;line-height:1.5">
-        La inscripción confirma tu lugar. Recuerda confirmar el pago por WhatsApp.
-      </p>
-    </div>`;
-
-  // Pre-llenar DUPR ID si el usuario ya lo usó antes
-  loadUserDuprId(user.uid).then(duprId => {
-    if (duprId) document.getElementById('dupr-input').value = duprId;
-  });
-
-  document.getElementById('btn-reg').addEventListener('click', () => registerUser(user));
-}
+// DUPR ID del usuario actual (se llena al cargar)
+let _pendingDuprId = '';
 
 async function loadUserDuprId(uid) {
   try {
@@ -566,53 +519,210 @@ async function loadUserDuprId(uid) {
   } catch (_) { return ''; }
 }
 
-async function registerUser(user) {
-  const btn      = document.getElementById('btn-reg');
-  const duprInput= document.getElementById('dupr-input');
-  const status   = document.getElementById('reg-status');
-  const duprId   = (duprInput?.value || '').trim();
+function renderRegContainer(user, inscritos) {
+  const container   = document.getElementById('reg-container');
+  const isCancelled = sesion.estado === 'cancelada';
+  const isPlayed    = sesion.estado === 'jugada';
 
-  if (!duprId || duprId.length < 6) {
-    status.className   = 'reg-status-line err';
-    status.textContent = '✕ Ingresa un DUPR ID válido (mínimo 6 caracteres)';
-    duprInput?.focus();
+  if (isCancelled) {
+    container.innerHTML = `<div class="reg-msg info">Esta sesión fue cancelada.</div>`;
+    return;
+  }
+  if (isPlayed) {
+    container.innerHTML = `<div class="reg-msg info">Esta sesión ya se jugó. Registro cerrado.</div>`;
+    return;
+  }
+  if (!user) {
+    container.innerHTML = `
+      <div class="login-prompt">
+        <p>Para inscribirte necesitas iniciar sesión con tu cuenta de Antigua Pickleball y tener tu DUPR ID.</p>
+        <a href="https://antigua-pickleball.com/login.html?redirect=${encodeURIComponent(window.location.href)}"
+           class="btn-login-red">Ingresar a mi cuenta</a>
+      </div>`;
     return;
   }
 
-  btn.disabled      = true;
-  btn.textContent   = 'Inscribiendo…';
-  status.textContent = '';
-
-  try {
-    const nombre = user.displayName || user.email.split('@')[0];
-    const docRef = db.collection(COLLECTION).doc(DOC_ID);
-
-    // Guardar DUPR ID en el perfil del usuario para futuras sesiones
-    db.collection('users').doc(user.uid).set({ duprId }, { merge: true }).catch(() => {});
-
-    await docRef.set({
-      sesionNum: NUM,
-      inscritos: firebase.firestore.FieldValue.arrayUnion({
-        uid:          user.uid,
-        nombre:       nombre,
-        email:        user.email || '',
-        duprId:       duprId,
-        registeredAt: firebase.firestore.Timestamp.now(),
-      })
-    }, { merge: true });
-
-    // onSnapshot actualizará la UI automáticamente
-
-  } catch (err) {
-    btn.disabled    = false;
-    btn.textContent = 'Inscribirme en esta sesión';
-    const status2 = document.getElementById('reg-status');
-    if (status2) {
-      status2.className   = 'reg-status-line err';
-      status2.textContent = '✕ Error al inscribirse. Intenta de nuevo.';
-    }
-    console.error(err);
+  const yaInscrito = inscritos.find(p => p.uid === user.uid);
+  if (yaInscrito) {
+    const orderId = yaInscrito.paypalOrderId || '—';
+    container.innerHTML = `
+      <div class="reg-box">
+        <div class="reg-msg success">✓ Inscrito y pago confirmado.</div>
+        <div style="display:flex;flex-direction:column;gap:6px;font-size:.8rem;color:var(--muted)">
+          <span>DUPR ID: <strong style="color:var(--dark)">${yaInscrito.duprId || '—'}</strong></span>
+          <span>Pago: <strong style="color:var(--court)">${SESSION_PRICE_DISPLAY} ✓</strong></span>
+          <span style="font-family:'Space Mono',monospace;font-size:.65rem">PayPal: ${orderId.slice(0,18)}…</span>
+        </div>
+        <button class="btn-unregister" id="btn-cancel-reg">Cancelar inscripción</button>
+      </div>`;
+    document.getElementById('btn-cancel-reg').addEventListener('click', () => cancelRegistration(user));
+    return;
   }
+
+  // ── Formulario: DUPR ID + botón PayPal ──
+  container.innerHTML = `
+    <div class="reg-box">
+      <div class="dupr-form">
+        <label class="dupr-label" for="dupr-input">Tu DUPR ID</label>
+        <input class="dupr-input" id="dupr-input" type="text" placeholder="Ej: 12345678"
+          maxlength="14" autocomplete="off" spellcheck="false"/>
+        <p class="dupr-hint">
+          Número de tu perfil en <a href="https://dupr.com" target="_blank">dupr.com</a>.
+          Obligatorio para participar.
+        </p>
+      </div>
+
+      <div id="dupr-error" class="reg-status-line err" style="display:none">
+        ✕ Ingresa un DUPR ID válido antes de pagar.
+      </div>
+
+      <!-- Contenedor del botón PayPal — se monta con JS -->
+      <div id="paypal-button-container" style="min-height:50px"></div>
+
+      <div style="display:flex;align-items:center;gap:8px;justify-content:center;margin-top:4px">
+        <img src="https://www.paypalobjects.com/webstatic/mktg/Logo/pp-logo-100px.png"
+             alt="PayPal" height="18" style="opacity:.5"/>
+        <span style="font-size:.72rem;color:var(--muted)">
+          Pago seguro · Tarjeta o cuenta PayPal
+        </span>
+      </div>
+    </div>`;
+
+  // Pre-llenar DUPR ID guardado
+  loadUserDuprId(user.uid).then(saved => {
+    const input = document.getElementById('dupr-input');
+    if (input && saved) { input.value = saved; _pendingDuprId = saved; }
+  });
+
+  document.getElementById('dupr-input').addEventListener('input', e => {
+    _pendingDuprId = e.target.value.trim();
+    document.getElementById('dupr-error').style.display = 'none';
+  });
+
+  // Montar botones PayPal
+  mountPayPalButtons(user);
+}
+
+function mountPayPalButtons(user) {
+  paypal.Buttons({
+    style: {
+      layout: 'vertical',
+      color:  'black',
+      shape:  'rect',
+      label:  'pay',
+      height: 44,
+    },
+
+    // ── Paso 1: crear orden en PayPal ──
+    createOrder: (data, actions) => {
+      // Validar DUPR ID antes de abrir el popup de PayPal
+      const duprId = (document.getElementById('dupr-input')?.value || '').trim();
+      if (!duprId || duprId.length < 6) {
+        document.getElementById('dupr-error').style.display = 'block';
+        return Promise.reject(new Error('DUPR ID requerido'));
+      }
+      _pendingDuprId = duprId;
+
+      const sessionLabel = sesion.estado === 'gran-final'
+        ? 'Gran Final'
+        : `Semana ${NUM}`;
+
+      return actions.order.create({
+        purchase_units: [{
+          description:    `Antigua Ladder League · ${sessionLabel} · ${sesion.fecha}`,
+          soft_descriptor: 'ANTIGUA PB LADDER',
+          amount: {
+            currency_code: 'USD',
+            value:         SESSION_PRICE,
+          },
+          custom_id: `ladder_t1_s${NUM}_${user.uid}`,
+        }],
+        application_context: {
+          brand_name:          'Antigua Pickleball',
+          shipping_preference: 'NO_SHIPPING',
+          user_action:         'PAY_NOW',
+        },
+      });
+    },
+
+    // ── Paso 2: pago aprobado → capturar y registrar ──
+    onApprove: async (data, actions) => {
+      // Mostrar estado de procesando
+      document.getElementById('paypal-button-container').innerHTML =
+        `<div class="reg-msg info" style="text-align:center">⏳ Confirmando pago…</div>`;
+
+      try {
+        const order  = await actions.order.capture();
+        const orderId= order.id;
+        const status = order.status; // 'COMPLETED'
+
+        if (status !== 'COMPLETED') throw new Error('Pago no completado: ' + status);
+
+        await saveRegistration(user, _pendingDuprId, orderId, order);
+
+      } catch (err) {
+        console.error('PayPal capture error:', err);
+        document.getElementById('paypal-button-container').innerHTML =
+          `<div class="reg-msg error">
+            ✕ Error al confirmar el pago. Si se realizó el cobro, contacta por
+            <a href="https://wa.me/50230912707" style="color:var(--red)">WhatsApp</a>.
+          </div>`;
+      }
+    },
+
+    onError: (err) => {
+      console.error('PayPal error:', err);
+      // Solo mostrar error si no es un DUPR ID faltante (que ya se muestra arriba)
+      if (!err.message?.includes('DUPR')) {
+        const container = document.getElementById('paypal-button-container');
+        if (container) container.innerHTML =
+          `<div class="reg-msg error">✕ Error con PayPal. Intenta de nuevo.</div>`;
+      }
+    },
+
+    onCancel: () => {
+      // El usuario cerró el popup — no hacer nada
+    },
+
+  }).render('#paypal-button-container');
+}
+
+async function saveRegistration(user, duprId, paypalOrderId, orderData) {
+  const nombre = user.displayName || user.email.split('@')[0];
+  const docRef = db.collection(COLLECTION).doc(DOC_ID);
+
+  // Guardar DUPR ID en perfil del usuario para próximas sesiones
+  db.collection('users').doc(user.uid).set({ duprId }, { merge: true }).catch(() => {});
+
+  await docRef.set({
+    sesionNum: NUM,
+    inscritos: firebase.firestore.FieldValue.arrayUnion({
+      uid:            user.uid,
+      nombre:         nombre,
+      email:          user.email || '',
+      duprId:         duprId,
+      paypalOrderId:  paypalOrderId,
+      paidUSD:        SESSION_PRICE,
+      registeredAt:   firebase.firestore.Timestamp.now(),
+    }),
+  }, { merge: true });
+
+  // Guardar también el pago en una colección de auditoría
+  db.collection('ladder_payments').add({
+    uid:           user.uid,
+    nombre:        nombre,
+    email:         user.email || '',
+    sesionNum:     NUM,
+    docId:         DOC_ID,
+    paypalOrderId: paypalOrderId,
+    amount:        SESSION_PRICE,
+    currency:      'USD',
+    displayAmount: SESSION_PRICE_DISPLAY,
+    paidAt:        firebase.firestore.Timestamp.now(),
+    env:           PAYPAL_ENV,
+  }).catch(() => {});
+
+  // onSnapshot actualizará la lista de inscritos y el estado del botón automáticamente
 }
 
 async function cancelRegistration(user) {
