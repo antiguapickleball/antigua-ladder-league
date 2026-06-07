@@ -651,21 +651,35 @@ function mountPayPalButtons(user) {
       document.getElementById('paypal-button-container').innerHTML =
         `<div class="reg-msg info" style="text-align:center">⏳ Confirmando pago…</div>`;
 
+      let order;
       try {
-        const order  = await actions.order.capture();
-        const orderId= order.id;
-        const status = order.status; // 'COMPLETED'
-
-        if (status !== 'COMPLETED') throw new Error('Pago no completado: ' + status);
-
-        await saveRegistration(user, _pendingDuprId, orderId, order);
-
+        order = await actions.order.capture();
       } catch (err) {
         console.error('PayPal capture error:', err);
         document.getElementById('paypal-button-container').innerHTML =
+          `<div class="reg-msg error">✕ Error al procesar el pago con PayPal. Intenta de nuevo.</div>`;
+        return;
+      }
+
+      const orderId = order.id;
+      const status  = order.status;
+      console.log('PayPal order captured:', orderId, status);
+
+      if (status !== 'COMPLETED') {
+        document.getElementById('paypal-button-container').innerHTML =
+          `<div class="reg-msg error">✕ Pago no completado (estado: ${status}). Intenta de nuevo.</div>`;
+        return;
+      }
+
+      try {
+        await saveRegistration(user, _pendingDuprId, orderId, order);
+      } catch (err) {
+        console.error('Firestore save error:', err);
+        // Pago OK pero no se pudo guardar en Firestore
+        document.getElementById('paypal-button-container').innerHTML =
           `<div class="reg-msg error">
-            ✕ Error al confirmar el pago. Si se realizó el cobro, contacta por
-            <a href="https://wa.me/50230912707" style="color:var(--red)">WhatsApp</a>.
+            ✕ Pago recibido (ID: <strong>${orderId.slice(0,12)}…</strong>) pero hubo un error al confirmar tu inscripción.
+            Envía este ID por <a href="https://wa.me/50230912707?text=Ladder+pago+OK+orden+${orderId}" style="color:var(--red)">WhatsApp</a> para confirmarte manualmente.
           </div>`;
       }
     },
