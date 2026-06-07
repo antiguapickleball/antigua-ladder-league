@@ -494,10 +494,16 @@ function renderInscritos(inscritos, currentUser) {
 
 // ── Estado del formulario de registro ──
 let _inscritos = [];
+let _firebaseAuthReady = false;
 
 function updateRegState(inscritos, user) {
   _inscritos = inscritos;
-  renderRegContainer(user, inscritos);
+  // Solo mostrar formulario de registro si Firebase auth está listo
+  // (para evitar que escrituras sean rechazadas y revertidas)
+  if (_firebaseAuthReady) {
+    renderRegContainer(user, inscritos);
+  }
+  // Si no está listo aún, el timeout o onAuthStateChanged lo activará
 }
 
 // ══════════════════════════════════════════════════════
@@ -787,17 +793,39 @@ function renderNavChip(user) {
 }
 
 // ── Punto de entrada ──
-// Esperar a que Firebase anonymous auth confirme ANTES de cargar Firestore.
-// Sin esto, las escrituras llegan antes de que request.auth esté listo
-// y Firestore las revierte (aparecen y desaparecen — optimistic write revert).
-auth.onAuthStateChanged(function(firebaseUser) {
-  if (!firebaseUser) return; // aún no autenticado, esperar
-  // Firebase auth anónimo confirmado → ahora es seguro hacer ops de Firestore
-  APAuth.onReady(function(apUser) {
-    renderNavChip(apUser);
-    loadInscritos(apUser);
-  });
+// Separar lectura (pública, no requiere auth) de escritura (requiere auth anónimo).
+
+APAuth.onReady(function(apUser) {
+  renderNavChip(apUser);
+
+  // Cargar lista de inscritos inmediatamente — lectura es pública
+  loadInscritos(apUser);
 });
+
+// Esperar auth anónimo confirmado para habilitar el formulario de registro.
+// Si Anonymous Auth no está habilitado en Firebase Console, esto no dispara.
+auth.onAuthStateChanged(function(firebaseUser) {
+  if (firebaseUser) {
+    _firebaseAuthReady = true;
+    // Si el formulario ya se renderizó pero estaba esperando auth, re-renderizar
+    const container = document.getElementById('reg-container');
+    if (container && container.innerHTML.includes('Verificando')) {
+      APAuth.onReady(function(apUser) { renderRegContainer(apUser, _inscritos); });
+    }
+  }
+});
+
+// Timeout de seguridad: si auth anónimo no llega en 5s, igual mostrar el formulario
+setTimeout(function() {
+  if (!_firebaseAuthReady) {
+    console.warn('Anonymous auth timeout — showing form anyway');
+    _firebaseAuthReady = true;
+    const container = document.getElementById('reg-container');
+    if (container && container.innerHTML.includes('Verificando')) {
+      APAuth.onReady(function(apUser) { renderRegContainer(apUser, _inscritos); });
+    }
+  }
+}, 5000);
 </script>
 </body>
 </html>
