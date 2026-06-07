@@ -1,0 +1,930 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Mi Perfil · Antigua Ladder League</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,400;0,600;0,700;0,800;0,900;1,700&family=Barlow:wght@300;400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Barlow', sans-serif;
+      background: #f7f7f5;
+      color: #111113;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    :root {
+      --red:        #e4252e;
+      --red-dark:   #b81d24;
+      --red-light:  #fdecea;
+      --yellow:     #f5c800;
+      --dark:       #111113;
+      --text:       #1c1c1e;
+      --muted:      #6b6b74;
+      --light:      #f7f7f5;
+      --border:     #e2e2de;
+      --court:      #4a7a50;
+      --court-light:#e8f3ea;
+    }
+
+    .container { max-width: 1000px; margin: 0 auto; padding: 0 24px; }
+
+    .label {
+      font-family: 'Space Mono', monospace;
+      font-size: .65rem; font-weight: 700;
+      letter-spacing: .18em; text-transform: uppercase;
+      color: var(--red);
+      display: flex; align-items: center; gap: 10px;
+    }
+    .label::before { content: ''; display: block; width: 24px; height: 3px; background: var(--red); flex-shrink: 0; }
+
+    /* ── NAV ── */
+    #nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      background: rgba(255,255,255,.96);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      box-shadow: 0 1px 12px rgba(0,0,0,.07);
+    }
+    .nav-inner {
+      display: flex; align-items: center; justify-content: space-between;
+      max-width: 1160px; margin: 0 auto;
+      padding: 0 24px; height: 60px;
+    }
+    .nav-brand {
+      display: flex; align-items: center; gap: 12px;
+      text-decoration: none; flex-shrink: 0;
+    }
+    .nav-brand img { height: 28px; width: auto; }
+    .nav-brand-divider { width: 1px; height: 18px; background: var(--border); }
+    .nav-brand-name {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 1.05rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase;
+      color: var(--red);
+    }
+    .nav-links {
+      display: none; align-items: center; gap: 0; list-style: none;
+    }
+    @media (min-width: 860px) { .nav-links { display: flex; } }
+    .nav-links a {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: .9rem; font-weight: 600; letter-spacing: .05em; text-transform: uppercase;
+      color: var(--muted); text-decoration: none;
+      padding: 6px 14px; transition: color .2s;
+    }
+    .nav-links a:hover { color: var(--dark); }
+    .nav-actions { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+    .nav-btn {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: .88rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+      background: var(--red); color: #fff;
+      padding: 9px 22px; text-decoration: none;
+      transition: background .2s; white-space: nowrap;
+    }
+    .nav-btn:hover { background: var(--red-dark); }
+    .nav-user {
+      display: flex; align-items: center; gap: 8px;
+      background: #fff4f4; color: var(--red);
+      border: 1.5px solid #fac5c7;
+      padding: 5px 13px 5px 5px;
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: .88rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
+      text-decoration: none; white-space: nowrap; transition: background .2s;
+    }
+    .nav-user:hover { background: #ffe8e8; }
+    .nav-user-avatar {
+      width: 26px; height: 26px; background: var(--red); color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-size: .72rem; font-weight: 900; flex-shrink: 0;
+    }
+    .hamburger {
+      display: flex; flex-direction: column; gap: 5px;
+      background: none; border: 1px solid var(--border);
+      padding: 9px 11px; cursor: pointer;
+    }
+    .hamburger span { display: block; width: 18px; height: 1.5px; background: var(--dark); }
+    @media (min-width: 860px) { .hamburger { display: none; } }
+    .mobile-menu {
+      display: none; flex-direction: column;
+      background: #fff; border-top: 1px solid var(--border);
+      padding: 8px 24px 16px;
+    }
+    .mobile-menu.open { display: flex; }
+    .mobile-menu a {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 1.05rem; font-weight: 600; letter-spacing: .05em; text-transform: uppercase;
+      color: var(--muted); text-decoration: none;
+      padding: 11px 0; border-bottom: 1px solid var(--border);
+      transition: color .2s;
+    }
+    .mobile-menu a:last-child { border: none; }
+    .mobile-menu a:hover { color: var(--red); }
+
+    /* ── PAGE LAYOUT ── */
+    .page-wrap { padding-top: 80px; min-height: 100vh; }
+
+    /* ── PROFILE HEADER ── */
+    .profile-header {
+      background: var(--dark);
+      padding: 48px 0 0;
+      position: relative; overflow: hidden;
+    }
+    .profile-header::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: repeating-linear-gradient(
+        -45deg,
+        transparent, transparent 40px,
+        rgba(255,255,255,.018) 40px, rgba(255,255,255,.018) 41px
+      );
+    }
+    .profile-header-inner {
+      position: relative; z-index: 1;
+    }
+    .profile-hero {
+      display: flex; align-items: flex-end; gap: 28px;
+      padding: 0 0 28px;
+      flex-wrap: wrap;
+    }
+    .profile-avatar-wrap { position: relative; }
+    .profile-avatar {
+      width: 88px; height: 88px;
+      background: var(--red);
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 2.4rem; font-weight: 900; color: #fff;
+      flex-shrink: 0;
+      border: 3px solid rgba(255,255,255,.15);
+    }
+    .profile-info { flex: 1; min-width: 0; }
+    .profile-name {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: clamp(1.8rem, 4vw, 2.8rem);
+      font-weight: 900; text-transform: uppercase; letter-spacing: .02em;
+      color: #fff; line-height: 1; margin-bottom: 8px;
+    }
+    .profile-meta {
+      display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    }
+    .profile-cat {
+      font-family: 'Space Mono', monospace;
+      font-size: .65rem; font-weight: 700; letter-spacing: .14em; text-transform: uppercase;
+      padding: 4px 12px;
+      border: 1.5px solid;
+    }
+    .profile-cat.principiante { color: var(--court); border-color: var(--court); background: rgba(74,122,80,.15); }
+    .profile-cat.intermedio   { color: var(--yellow); border-color: var(--yellow); background: rgba(245,200,0,.12); }
+    .profile-cat.open         { color: #fff; border-color: #fff; background: rgba(255,255,255,.1); }
+    .profile-email {
+      font-size: .82rem; color: rgba(255,255,255,.45);
+    }
+    .profile-actions {
+      display: flex; gap: 10px; margin-left: auto; align-self: flex-end; padding-bottom: 28px;
+    }
+    .btn-signout {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: .82rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+      background: transparent; color: rgba(255,255,255,.5);
+      border: 1px solid rgba(255,255,255,.2);
+      padding: 8px 16px; cursor: pointer;
+      transition: color .2s, border-color .2s;
+    }
+    .btn-signout:hover { color: #fff; border-color: rgba(255,255,255,.5); }
+    .btn-ap-profile {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: .82rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+      background: transparent; color: rgba(255,255,255,.7);
+      border: 1px solid rgba(255,255,255,.3);
+      padding: 8px 16px; text-decoration: none;
+      transition: color .2s, border-color .2s;
+    }
+    .btn-ap-profile:hover { color: #fff; border-color: rgba(255,255,255,.6); }
+
+    /* Tabs bajo el header */
+    .profile-tabs {
+      display: flex; gap: 0;
+      border-top: 1px solid rgba(255,255,255,.1);
+      background: rgba(0,0,0,.2);
+    }
+    .profile-tab {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: .85rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+      color: rgba(255,255,255,.45); text-decoration: none;
+      padding: 13px 22px; border-bottom: 3px solid transparent;
+      transition: color .2s, border-color .2s; cursor: pointer; background: none; border-left: none; border-right: none; border-top: none;
+    }
+    .profile-tab:hover { color: rgba(255,255,255,.8); }
+    .profile-tab.active { color: #fff; border-bottom-color: var(--red); }
+
+    /* ── CONTENT PANELS ── */
+    .profile-body { padding: 36px 0 80px; }
+    .panel { display: none; }
+    .panel.active { display: block; }
+
+    /* ── STATS GRID ── */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1px; background: var(--border);
+      border: 1px solid var(--border);
+      margin-bottom: 28px;
+    }
+    @media (max-width: 600px) { .stats-grid { grid-template-columns: repeat(2, 1fr); } }
+    .stat-card {
+      background: #fff; padding: 22px 20px;
+      display: flex; flex-direction: column; gap: 4px;
+    }
+    .stat-card-label {
+      font-family: 'Space Mono', monospace;
+      font-size: .6rem; font-weight: 700; letter-spacing: .16em; text-transform: uppercase;
+      color: var(--muted);
+    }
+    .stat-card-value {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 2.4rem; font-weight: 900; color: var(--dark); line-height: 1;
+    }
+    .stat-card-value.red { color: var(--red); }
+    .stat-card-sub {
+      font-size: .78rem; color: var(--muted); margin-top: 2px;
+    }
+
+    /* ── RANKING CARD ── */
+    .ranking-card {
+      background: #fff; border: 1px solid var(--border); padding: 24px;
+      margin-bottom: 28px;
+      display: flex; align-items: center; gap: 24px; flex-wrap: wrap;
+    }
+    .ranking-pos-wrap { text-align: center; flex-shrink: 0; }
+    .ranking-pos-num {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 4rem; font-weight: 900; color: var(--red); line-height: 1;
+    }
+    .ranking-pos-label {
+      font-family: 'Space Mono', monospace;
+      font-size: .6rem; letter-spacing: .14em; text-transform: uppercase;
+      color: var(--muted);
+    }
+    .ranking-bar-wrap { flex: 1; min-width: 200px; }
+    .ranking-bar-title {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 1rem; font-weight: 800; text-transform: uppercase; letter-spacing: .04em;
+      color: var(--dark); margin-bottom: 10px;
+    }
+    .ranking-bar-track {
+      height: 10px; background: var(--border); position: relative;
+    }
+    .ranking-bar-fill {
+      position: absolute; top: 0; left: 0; bottom: 0;
+      background: var(--red); transition: width .8s ease;
+    }
+    .ranking-bar-labels {
+      display: flex; justify-content: space-between;
+      font-size: .73rem; color: var(--muted); margin-top: 6px;
+      font-family: 'Space Mono', monospace;
+    }
+    .ranking-peers { flex: 2; min-width: 260px; }
+    .peer-row {
+      display: flex; align-items: center; gap: 10px;
+      padding: 7px 0; border-bottom: 1px solid var(--border);
+    }
+    .peer-row:last-child { border: none; }
+    .peer-pos {
+      font-family: 'Space Mono', monospace;
+      font-size: .72rem; color: var(--muted); width: 20px; flex-shrink: 0;
+    }
+    .peer-name { font-size: .88rem; font-weight: 600; flex: 1; }
+    .peer-name.me { color: var(--red); font-weight: 800; }
+    .peer-pct {
+      font-family: 'Space Mono', monospace;
+      font-size: .82rem; color: var(--muted);
+    }
+
+    /* ── SESIONES TABLE ── */
+    .sessions-card {
+      background: #fff; border: 1px solid var(--border); margin-bottom: 28px;
+    }
+    .sessions-card-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 18px 22px; border-bottom: 1px solid var(--border);
+    }
+    .sessions-card-title {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 1rem; font-weight: 800; text-transform: uppercase; letter-spacing: .06em;
+      color: var(--dark);
+    }
+    .session-row {
+      display: grid;
+      grid-template-columns: 90px 1fr 80px 80px 100px;
+      align-items: center;
+      padding: 14px 22px; border-bottom: 1px solid var(--border);
+      gap: 12px;
+    }
+    .session-row:last-child { border: none; }
+    @media (max-width: 640px) {
+      .session-row { grid-template-columns: 70px 1fr 60px; }
+      .session-pts-gan, .session-pts-pos { display: none; }
+    }
+    .session-num {
+      font-family: 'Space Mono', monospace;
+      font-size: .7rem; letter-spacing: .1em; text-transform: uppercase;
+      color: var(--muted);
+    }
+    .session-fecha { font-size: .88rem; font-weight: 600; }
+    .session-pts-gan, .session-pts-pos {
+      font-family: 'Space Mono', monospace;
+      font-size: .8rem; text-align: center; color: var(--muted);
+    }
+    .session-pts-gan.has-pts { color: var(--court); font-weight: 700; }
+    .session-badge {
+      font-family: 'Space Mono', monospace;
+      font-size: .6rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+      padding: 4px 10px; border: 1.5px solid;
+      text-align: center;
+    }
+    .session-badge.jugada    { color: var(--court); border-color: var(--court); background: var(--court-light); }
+    .session-badge.proxima   { color: var(--red); border-color: var(--red); background: var(--red-light); }
+    .session-badge.pendiente { color: var(--muted); border-color: var(--border); background: #fff; }
+    .session-badge.cancelada { color: var(--muted); border-color: var(--border); background: #f5f5f3; text-decoration: line-through; }
+    .session-badge.gran-final{ color: #7c3aed; border-color: #a78bfa; background: #f5f3ff; }
+
+    /* ── PROXIMA SESION HIGHLIGHT ── */
+    .next-session-card {
+      background: var(--dark); color: #fff;
+      padding: 24px 26px; margin-bottom: 28px;
+      display: flex; align-items: center; justify-content: space-between; gap: 20px;
+      flex-wrap: wrap; position: relative; overflow: hidden;
+    }
+    .next-session-card::before {
+      content: ''; position: absolute; right: -20px; top: -20px;
+      width: 120px; height: 120px;
+      border: 20px solid rgba(228,37,46,.25); border-radius: 50%;
+    }
+    .next-session-info { position: relative; z-index: 1; }
+    .next-session-label {
+      font-family: 'Space Mono', monospace;
+      font-size: .6rem; letter-spacing: .2em; text-transform: uppercase;
+      color: var(--red); margin-bottom: 6px;
+    }
+    .next-session-title {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 1.5rem; font-weight: 900; text-transform: uppercase;
+      color: #fff; letter-spacing: .04em;
+    }
+    .next-session-sub { font-size: .85rem; color: rgba(255,255,255,.55); margin-top: 4px; }
+    .next-session-date {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 2.2rem; font-weight: 900; color: var(--red);
+      text-transform: uppercase; text-align: right;
+      position: relative; z-index: 1;
+    }
+
+    /* ── REGLAMENTO TAB ── */
+    .rules-card {
+      background: #fff; border: 1px solid var(--border); padding: 28px 26px;
+      margin-bottom: 20px;
+    }
+    .rules-card h3 {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 1.05rem; font-weight: 800; text-transform: uppercase;
+      letter-spacing: .06em; color: var(--dark); margin-bottom: 14px;
+      padding-bottom: 10px; border-bottom: 2px solid var(--red);
+      display: inline-block;
+    }
+    .rules-list { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+    .rules-list li {
+      font-size: .92rem; color: var(--text); line-height: 1.6;
+      display: flex; gap: 12px; align-items: flex-start;
+    }
+    .rules-list li::before {
+      content: '—'; color: var(--red); font-weight: 700; flex-shrink: 0;
+    }
+
+    /* ── EMPTY / LOGIN STATE ── */
+    .not-logged {
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; text-align: center;
+      padding: 100px 24px;
+      gap: 20px;
+    }
+    .not-logged-icon {
+      width: 80px; height: 80px; background: var(--red-light);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 2rem;
+    }
+    .not-logged h2 {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 1.8rem; font-weight: 900; text-transform: uppercase;
+      color: var(--dark);
+    }
+    .not-logged p { font-size: .95rem; color: var(--muted); max-width: 360px; line-height: 1.6; }
+    .btn-login-main {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: .95rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase;
+      background: var(--red); color: #fff;
+      padding: 14px 36px; text-decoration: none;
+      transition: background .2s;
+    }
+    .btn-login-main:hover { background: var(--red-dark); }
+
+    /* ── FOOTER ── */
+    footer {
+      background: #111; color: rgba(255,255,255,.45);
+      padding: 32px 24px; text-align: center;
+      font-size: .8rem;
+    }
+    footer a { color: rgba(255,255,255,.45); text-decoration: none; }
+    footer a:hover { color: #fff; }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<header id="nav">
+  <div class="nav-inner">
+    <a href="index.html" class="nav-brand">
+      <img src="logo.png" alt="Antigua Pickleball" height="28"/>
+      <div class="nav-brand-divider"></div>
+      <span class="nav-brand-name">Ladder League</span>
+    </a>
+    <ul class="nav-links">
+      <li><a href="index.html#formato">Formato</a></li>
+      <li><a href="index.html#standings">Ranking</a></li>
+      <li><a href="index.html#calendario">Calendario</a></li>
+      <li><a href="https://antigua-pickleball.com">← Antigua PB</a></li>
+    </ul>
+    <div class="nav-actions">
+      <div id="nav-auth-slot"></div>
+      <a class="nav-btn" href="https://forms.gle/7VHLy9qM9CfYbdWx9" target="_blank" rel="noopener">Inscríbete</a>
+      <button class="hamburger" id="hamburger" aria-label="Menú">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </div>
+  <div class="mobile-menu" id="mobile-menu">
+    <a href="index.html#formato">Formato</a>
+    <a href="index.html#standings">Ranking</a>
+    <a href="index.html#calendario">Calendario</a>
+    <a href="https://antigua-pickleball.com">← Antigua Pickleball</a>
+  </div>
+</header>
+
+<div class="page-wrap">
+
+  <!-- ══ ESTADO: NO AUTENTICADO ══ -->
+  <div id="state-guest" style="display:none">
+    <div class="not-logged">
+      <div class="not-logged-icon">🔒</div>
+      <h2>Inicia sesión para ver tu perfil</h2>
+      <p>Necesitas una cuenta de Antigua Pickleball para acceder a tus estadísticas de la Ladder League.</p>
+      <a id="btn-login-guest" href="#" class="btn-login-main">Ingresar a mi cuenta</a>
+    </div>
+  </div>
+
+  <!-- ══ ESTADO: AUTENTICADO ══ -->
+  <div id="state-logged" style="display:none">
+
+    <!-- PROFILE HEADER -->
+    <div class="profile-header">
+      <div class="container">
+        <div class="profile-header-inner">
+          <div class="profile-hero">
+            <div class="profile-avatar-wrap">
+              <div class="profile-avatar" id="profile-avatar">?</div>
+            </div>
+            <div class="profile-info">
+              <div class="profile-name" id="profile-name">—</div>
+              <div class="profile-meta">
+                <span class="profile-cat" id="profile-cat-badge">—</span>
+                <span class="profile-email" id="profile-email">—</span>
+              </div>
+            </div>
+            <div class="profile-actions">
+              <a href="https://antigua-pickleball.com/perfil.html" class="btn-ap-profile">Perfil AP ↗</a>
+              <button class="btn-signout" id="btn-signout">Cerrar sesión</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- TABS -->
+      <div class="container">
+        <div class="profile-tabs">
+          <button class="profile-tab active" data-tab="resumen">Resumen</button>
+          <button class="profile-tab" data-tab="sesiones">Mis Sesiones</button>
+          <button class="profile-tab" data-tab="ranking">Ranking</button>
+          <button class="profile-tab" data-tab="reglamento">Reglamento</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- PANELS -->
+    <div class="profile-body">
+      <div class="container">
+
+        <!-- ── TAB: RESUMEN ── -->
+        <div class="panel active" id="tab-resumen">
+
+          <!-- Próxima sesión -->
+          <div class="next-session-card" id="next-session-card" style="display:none">
+            <div class="next-session-info">
+              <div class="next-session-label">Tu próxima sesión</div>
+              <div class="next-session-title" id="next-session-title">—</div>
+              <div class="next-session-sub" id="next-session-sub">Viernes 7:00 pm · Club Antigua Pickleball</div>
+            </div>
+            <div class="next-session-date" id="next-session-date">—</div>
+          </div>
+
+          <!-- Stats -->
+          <div class="stats-grid" id="stats-grid">
+            <div class="stat-card">
+              <div class="stat-card-label">Posición</div>
+              <div class="stat-card-value red" id="stat-pos">—</div>
+              <div class="stat-card-sub" id="stat-pos-sub">en tu categoría</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-card-label">Sesiones Jugadas</div>
+              <div class="stat-card-value" id="stat-sesiones">0</div>
+              <div class="stat-card-sub" id="stat-sesiones-sub">de 8 posibles</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-card-label">Puntos Ganados</div>
+              <div class="stat-card-value" id="stat-ptos">0</div>
+              <div class="stat-card-sub" id="stat-ptos-sub">de 0 posibles</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-card-label">Rendimiento</div>
+              <div class="stat-card-value red" id="stat-pct">—</div>
+              <div class="stat-card-sub">win rate</div>
+            </div>
+          </div>
+
+          <!-- Barra de progreso temporada -->
+          <div class="sessions-card">
+            <div class="sessions-card-header">
+              <span class="sessions-card-title">Progreso de Temporada</span>
+              <span style="font-family:'Space Mono',monospace;font-size:.7rem;color:var(--muted)" id="season-pct-label">0 / 9 semanas</span>
+            </div>
+            <div style="padding:22px;">
+              <div style="height:8px;background:var(--border);position:relative;margin-bottom:10px;">
+                <div id="season-bar" style="position:absolute;top:0;left:0;bottom:0;background:var(--red);transition:width .8s ease;width:0%"></div>
+              </div>
+              <div style="display:flex;justify-content:space-between;font-size:.72rem;color:var(--muted);font-family:'Space Mono',monospace;">
+                <span>Jul 4</span><span>Ago 29 · Gran Final</span>
+              </div>
+            </div>
+          </div>
+
+        </div><!-- /tab-resumen -->
+
+        <!-- ── TAB: SESIONES ── -->
+        <div class="panel" id="tab-sesiones">
+          <div class="sessions-card">
+            <div class="sessions-card-header">
+              <span class="sessions-card-title">Historial de Sesiones</span>
+            </div>
+            <div style="display:grid;grid-template-columns:90px 1fr 80px 80px 100px;padding:10px 22px 10px;border-bottom:2px solid var(--border);gap:12px;">
+              <span style="font-family:'Space Mono',monospace;font-size:.6rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)">Semana</span>
+              <span style="font-family:'Space Mono',monospace;font-size:.6rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)">Fecha</span>
+              <span style="font-family:'Space Mono',monospace;font-size:.6rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);text-align:center">Pts G.</span>
+              <span style="font-family:'Space Mono',monospace;font-size:.6rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);text-align:center">Pts P.</span>
+              <span style="font-family:'Space Mono',monospace;font-size:.6rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);text-align:center">Estado</span>
+            </div>
+            <div id="sessions-list"></div>
+          </div>
+        </div><!-- /tab-sesiones -->
+
+        <!-- ── TAB: RANKING ── -->
+        <div class="panel" id="tab-ranking">
+          <div class="ranking-card" id="ranking-card">
+            <div class="ranking-pos-wrap">
+              <div class="ranking-pos-num" id="rank-pos-num">—</div>
+              <div class="ranking-pos-label">posición</div>
+            </div>
+            <div class="ranking-bar-wrap">
+              <div class="ranking-bar-title" id="rank-cat-name">Tu categoría</div>
+              <div class="ranking-bar-track">
+                <div class="ranking-bar-fill" id="rank-bar-fill" style="width:0%"></div>
+              </div>
+              <div class="ranking-bar-labels">
+                <span id="rank-pct-label">0%</span>
+                <span>Rendimiento</span>
+              </div>
+            </div>
+            <div class="ranking-peers" id="ranking-peers"></div>
+          </div>
+        </div><!-- /tab-ranking -->
+
+        <!-- ── TAB: REGLAMENTO ── -->
+        <div class="panel" id="tab-reglamento">
+          <div class="rules-card">
+            <h3>Formato de Juego</h3>
+            <ul class="rules-list">
+              <li>Cada sesión semanal dura 90 minutos con rotación de parejas y rivales.</li>
+              <li>Se juegan partidos a 11 puntos (win by 2). El formato garantiza mínimo 4 partidos por jugador por sesión.</li>
+              <li>Los puntos ganados en cada partido suman a tu marcador acumulado de la temporada.</li>
+              <li>El ranking se calcula como: (Puntos Ganados / Puntos Posibles) × 100%.</li>
+            </ul>
+          </div>
+          <div class="rules-card">
+            <h3>Ascenso y Descenso</h3>
+            <ul class="rules-list">
+              <li>Los 2 jugadores con mejor rendimiento en Principiante al final de la temporada ascienden a Intermedio.</li>
+              <li>Los 2 jugadores con mejor rendimiento en Intermedio ascienden a Open.</li>
+              <li>Los 2 jugadores con menor rendimiento en Intermedio y Open descienden de categoría.</li>
+              <li>Los cambios de categoría aplican a partir de la Temporada 2.</li>
+            </ul>
+          </div>
+          <div class="rules-card">
+            <h3>Asistencia y Cancelaciones</h3>
+            <ul class="rules-list">
+              <li>La inscripción garantiza tu lugar en todas las sesiones de la temporada.</li>
+              <li>Si no puedes asistir a una sesión, notificar con al menos 48 horas de anticipación por WhatsApp.</li>
+              <li>Las sesiones canceladas por la organización no se cobran ni afectan el ranking.</li>
+              <li>Las inasistencias sin aviso en más de 2 sesiones pueden resultar en exclusión del torneo.</li>
+            </ul>
+          </div>
+          <div class="rules-card">
+            <h3>Gran Final</h3>
+            <ul class="rules-list">
+              <li>La Semana 9 (29 Agosto) es la Gran Final con formato especial de torneo.</li>
+              <li>Los 4 mejores de cada categoría clasifican al bracket eliminatorio.</li>
+              <li>Se entregan premios a los campeones de cada categoría.</li>
+            </ul>
+          </div>
+        </div><!-- /tab-reglamento -->
+
+      </div><!-- /container -->
+    </div><!-- /profile-body -->
+
+  </div><!-- /state-logged -->
+
+</div><!-- /page-wrap -->
+
+<footer>
+  <p>
+    <a href="index.html">Ladder League</a> ·
+    <a href="https://antigua-pickleball.com">Antigua Pickleball</a> ·
+    Temporada 1 · 2026
+  </p>
+</footer>
+
+<!-- SCRIPTS -->
+<script src="js/auth-bridge-client.js"></script>
+<script>
+/* ════════════════════════════════════════════════════════════
+   DATOS — mismo que index.html, editar aquí también cada semana
+════════════════════════════════════════════════════════════ */
+const JUGADORES = {
+  principiante: [
+    { nombre: 'Carlos Ajú',         sesiones: 0, ptosGanados: 0, ptosPosibles: 0 },
+    { nombre: 'María Chávez',       sesiones: 0, ptosGanados: 0, ptosPosibles: 0 },
+    { nombre: 'Diego Recinos',      sesiones: 0, ptosGanados: 0, ptosPosibles: 0 },
+    { nombre: 'Luisa Pac',          sesiones: 0, ptosGanados: 0, ptosPosibles: 0 },
+    { nombre: 'Ernesto Saquimux',   sesiones: 0, ptosGanados: 0, ptosPosibles: 0 },
+    { nombre: 'Andrea Batz',        sesiones: 0, ptosGanados: 0, ptosPosibles: 0 },
+    { nombre: 'Roberto Chiroy',     sesiones: 0, ptosGanados: 0, ptosPosibles: 0 },
+    { nombre: 'Sofía Caal',         sesiones: 0, ptosGanados: 0, ptosPosibles: 0 },
+    { nombre: 'Julio Tzul',         sesiones: 0, ptosGanados: 0, ptosPosibles: 0 },
+    { nombre: 'Patricia Xocoy',     sesiones: 0, ptosGanados: 0, ptosPosibles: 0 },
+  ],
+  intermedio: [
+    { nombre: 'Fernando Ajanel',    sesiones: 0, ptosGanados: 0, ptosPosibles: 0 },
+    { nombre: 'Valeria Cuxum',      sesiones: 0, ptosGanados: 0, ptosPosibles: 0 },
+    { nombre: 'Héctor Matzul',      sesiones: 0, ptosGanados: 0, ptosPosibles: 0 },
+    { nombre: 'Isabel Sacol',       sesiones: 0, ptosGanados: 0, ptosPosibles: 0 },
+    { nombre: 'Marco Tzoc',         sesiones: 0, ptosGanados: 0, ptosPosibles: 0 },
+    { nombre: 'Diana Ajú',          sesiones: 0, ptosGanados: 0, ptosPosibles: 0 },
+    { nombre: 'Alejandro Boj',      sesiones: 0, ptosGanados: 0, ptosPosibles: 0 },
+    { nombre: 'Claudia Coyoy',      sesiones: 0, ptosGanados: 0, ptosPosibles: 0 },
+    { nombre: 'René Quiché',        sesiones: 0, ptosGanados: 0, ptosPosibles: 0 },
+    { nombre: 'Natalia Xiquín',     sesiones: 0, ptosGanados: 0, ptosPosibles: 0 },
+  ],
+  open: [
+    { nombre: 'Rodrigo Crisóstomo', sesiones: 0, ptosGanados: 0, ptosPosibles: 0 },
+    { nombre: 'Paula Sincal',       sesiones: 0, ptosGanados: 0, ptosPosibles: 0 },
+    { nombre: 'Osvaldo Tzep',       sesiones: 0, ptosGanados: 0, ptosPosibles: 0 },
+    { nombre: 'Camila Muc',         sesiones: 0, ptosGanados: 0, ptosPosibles: 0 },
+    { nombre: 'Gabriel Ajpop',      sesiones: 0, ptosGanados: 0, ptosPosibles: 0 },
+    { nombre: 'Mariana Cotuc',      sesiones: 0, ptosGanados: 0, ptosPosibles: 0 },
+    { nombre: 'Álvaro Sic',         sesiones: 0, ptosGanados: 0, ptosPosibles: 0 },
+    { nombre: 'Elena Choc',         sesiones: 0, ptosGanados: 0, ptosPosibles: 0 },
+    { nombre: 'Tomás Ixcoy',        sesiones: 0, ptosGanados: 0, ptosPosibles: 0 },
+    { nombre: 'Rebeca Yool',        sesiones: 0, ptosGanados: 0, ptosPosibles: 0 },
+  ],
+};
+
+const SEMANAS = [
+  { num: 1, fecha: '4 Jul',  estado: 'proxima'                           },
+  { num: 2, fecha: '11 Jul', estado: 'cancelada', nota: 'Torneo en Santuario' },
+  { num: 3, fecha: '18 Jul', estado: 'pendiente'                         },
+  { num: 4, fecha: '25 Jul', estado: 'pendiente'                         },
+  { num: 5, fecha: '1 Ago',  estado: 'pendiente'                         },
+  { num: 6, fecha: '8 Ago',  estado: 'pendiente'                         },
+  { num: 7, fecha: '15 Ago', estado: 'pendiente'                         },
+  { num: 8, fecha: '22 Ago', estado: 'pendiente'                         },
+  { num: 9, fecha: '29 Ago', estado: 'gran-final', nota: 'Gran Final'    },
+];
+
+// ── Mapeo nombre → categoría (para encontrar al usuario) ──
+function findPlayer(displayName) {
+  if (!displayName) return null;
+  const nameNorm = displayName.trim().toLowerCase();
+  for (const cat of ['principiante', 'intermedio', 'open']) {
+    const idx = JUGADORES[cat].findIndex(p =>
+      p.nombre.toLowerCase() === nameNorm ||
+      p.nombre.toLowerCase().includes(nameNorm.split(' ')[0].toLowerCase())
+    );
+    if (idx !== -1) return { cat, idx, player: JUGADORES[cat][idx] };
+  }
+  return null;
+}
+
+// ── Render principal ──
+function renderProfile(user) {
+  const found   = findPlayer(user.displayName);
+  const player  = found ? found.player : null;
+  const cat     = found ? found.cat    : null;
+  const catIdx  = found ? found.idx    : -1;
+
+  // Avatar e info
+  const name     = user.displayName || user.email.split('@')[0];
+  const initials = name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0,2);
+  document.getElementById('profile-avatar').textContent = initials;
+  document.getElementById('profile-name').textContent   = name;
+  document.getElementById('profile-email').textContent  = user.email || '';
+
+  // Badge categoría
+  const catBadge = document.getElementById('profile-cat-badge');
+  const catLabels = { principiante: 'Principiante', intermedio: 'Intermedio', open: 'Open' };
+  if (cat) {
+    catBadge.textContent = catLabels[cat];
+    catBadge.className   = 'profile-cat ' + cat;
+  } else {
+    catBadge.textContent = 'Sin categoría asignada';
+    catBadge.className   = 'profile-cat principiante';
+  }
+
+  // Stats
+  const sesiones    = player ? player.sesiones    : 0;
+  const ptosGanados = player ? player.ptosGanados : 0;
+  const ptosPosibles= player ? player.ptosPosibles: 0;
+  const pct = ptosPosibles ? (ptosGanados / ptosPosibles * 100) : null;
+
+  // Ranking: calcular posición en categoría
+  let pos = '—', totalCat = 0;
+  if (cat) {
+    const sorted = [...JUGADORES[cat]].map((p,i) => ({
+      ...p, idx: i,
+      pct: p.ptosPosibles ? p.ptosGanados / p.ptosPosibles * 100 : null
+    })).sort((a,b) => {
+      if (a.pct===null && b.pct===null) return 0;
+      if (a.pct===null) return 1; if (b.pct===null) return -1;
+      return b.pct - a.pct;
+    });
+    totalCat = sorted.length;
+    const myRank = sorted.findIndex(p => p.idx === catIdx);
+    pos = myRank >= 0 ? myRank + 1 : '—';
+    renderRankingTab(sorted, catIdx, cat, catLabels[cat], pct);
+  }
+
+  // Resumen stats
+  document.getElementById('stat-pos').textContent      = pos;
+  document.getElementById('stat-pos-sub').textContent  = `de ${totalCat} en ${cat ? catLabels[cat] : 'tu categoría'}`;
+  document.getElementById('stat-sesiones').textContent = sesiones;
+  document.getElementById('stat-ptos').textContent     = ptosGanados;
+  document.getElementById('stat-ptos-sub').textContent = `de ${ptosPosibles} posibles`;
+  document.getElementById('stat-pct').textContent      = pct !== null ? pct.toFixed(1) + '%' : '—';
+
+  // Próxima sesión
+  const proxima = SEMANAS.find(s => s.estado === 'proxima' || s.estado === 'gran-final');
+  if (proxima) {
+    document.getElementById('next-session-card').style.display = 'flex';
+    const isGF = proxima.estado === 'gran-final';
+    document.getElementById('next-session-title').textContent = isGF ? 'Gran Final' : `Semana ${proxima.num}`;
+    document.getElementById('next-session-sub').textContent   = isGF
+      ? 'Formato eliminatorio · Club Antigua Pickleball'
+      : 'Viernes 7:00 pm · Club Antigua Pickleball';
+    document.getElementById('next-session-date').textContent  = proxima.fecha;
+  }
+
+  // Progreso temporada
+  const jugadas = SEMANAS.filter(s => s.estado === 'jugada').length;
+  const total   = SEMANAS.length;
+  document.getElementById('season-bar').style.width       = (jugadas / total * 100) + '%';
+  document.getElementById('season-pct-label').textContent = `${jugadas} / ${total} semanas`;
+
+  // Tab sesiones
+  renderSessionsTab(player);
+
+  // Nav auth chip
+  renderNavChip(user);
+}
+
+function renderSessionsTab(player) {
+  const labels = {
+    jugada:'Jugada', proxima:'Próxima', cancelada:'Cancelada',
+    pendiente:'Pendiente', 'gran-final':'Gran Final'
+  };
+  document.getElementById('sessions-list').innerHTML = SEMANAS.map(s => {
+    const isPlayed = s.estado === 'jugada';
+    // Per-sesión stats: actualmente global; cuando haya desglose por sesión, usar s.ptosGanados etc.
+    const pg = isPlayed && player ? '—' : '—';
+    const pp = isPlayed && player ? '—' : '—';
+    return `<div class="session-row">
+      <span class="session-num">${s.estado==='gran-final'?'Final':`Sem. ${s.num}`}</span>
+      <span class="session-fecha">${s.fecha}${s.nota ? ' · <em style="color:var(--muted);font-style:normal">'+s.nota+'</em>' : ''}</span>
+      <span class="session-pts-gan ${isPlayed?'has-pts':''}">${pg}</span>
+      <span class="session-pts-pos">${pp}</span>
+      <span class="session-badge ${s.estado}">${labels[s.estado]}</span>
+    </div>`;
+  }).join('');
+}
+
+function renderRankingTab(sorted, myIdx, cat, catLabel, myPct) {
+  document.getElementById('rank-pos-num').textContent = sorted.findIndex(p => p.idx === myIdx) + 1 || '—';
+  document.getElementById('rank-cat-name').textContent = catLabel;
+  document.getElementById('rank-bar-fill').style.width = myPct !== null ? myPct.toFixed(1) + '%' : '0%';
+  document.getElementById('rank-pct-label').textContent = myPct !== null ? myPct.toFixed(1) + '%' : '—';
+
+  // Mostrar jugadores alrededor del usuario
+  const myRankIdx = sorted.findIndex(p => p.idx === myIdx);
+  const from = Math.max(0, myRankIdx - 2);
+  const to   = Math.min(sorted.length, myRankIdx + 3);
+  const slice = sorted.slice(from, to);
+
+  document.getElementById('ranking-peers').innerHTML = slice.map((p, i) => {
+    const absPos = from + i + 1;
+    const isMe   = p.idx === myIdx;
+    const pctStr = p.pct !== null ? p.pct.toFixed(1) + '%' : '—';
+    return `<div class="peer-row">
+      <span class="peer-pos">${absPos}</span>
+      <span class="peer-name ${isMe?'me':''}">${isMe ? '▶ ' : ''}${p.nombre}</span>
+      <span class="peer-pct">${pctStr}</span>
+    </div>`;
+  }).join('');
+}
+
+function renderNavChip(user) {
+  const slot    = document.getElementById('nav-auth-slot');
+  const mobMenu = document.getElementById('mobile-menu');
+  if (!slot) return;
+  const name     = user.displayName || user.email.split('@')[0];
+  const first    = name.split(' ')[0];
+  const initials = name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+  slot.innerHTML = `
+    <a class="nav-user" href="perfil.html">
+      <span class="nav-user-avatar">${initials}</span>${first}
+    </a>`;
+  if (mobMenu && !document.getElementById('mob-auth-btn')) {
+    const a = document.createElement('a');
+    a.id = 'mob-auth-btn'; a.href = 'perfil.html';
+    a.style.cssText = 'color:var(--red);font-weight:800;border-bottom:2px solid #fac5c7';
+    a.textContent = '👤 ' + first;
+    mobMenu.insertBefore(a, mobMenu.firstChild);
+  }
+}
+
+// ── Tabs ──
+document.querySelectorAll('.profile-tab').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.profile-tab').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+  });
+});
+
+// ── Hamburger ──
+document.getElementById('hamburger').addEventListener('click', () => {
+  document.getElementById('mobile-menu').classList.toggle('open');
+});
+
+// ── Cerrar sesión ──
+document.getElementById('btn-signout').addEventListener('click', () => {
+  APAuth.signOut();
+  window.location.href = 'index.html';
+});
+
+// ── Init: verificar sesión ──
+APAuth.onReady(function(user) {
+  if (user) {
+    document.getElementById('state-logged').style.display = 'block';
+    renderProfile(user);
+  } else {
+    document.getElementById('state-guest').style.display = 'block';
+    const loginURL = 'https://antigua-pickleball.com/login.html?redirect=' + encodeURIComponent(window.location.href);
+    document.getElementById('btn-login-guest').href = loginURL;
+    renderNavChip && document.getElementById('nav-auth-slot') && (() => {
+      const loginURL2 = 'https://antigua-pickleball.com/login.html?redirect=' + encodeURIComponent(window.location.href);
+      document.getElementById('nav-auth-slot').innerHTML =
+        `<a href="${loginURL2}" style="font-family:'Barlow Condensed',sans-serif;font-size:.85rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);text-decoration:none;padding:7px 14px;border:1px solid var(--border);white-space:nowrap">Ingresar</a>`;
+    })();
+  }
+});
+</script>
+</body>
+</html>
