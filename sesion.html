@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Sesión · Antigua Ladder League</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,400;0,600;0,700;0,800;0,900;1,700&family=Barlow:wght@300;400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Barlow', sans-serif;
+      background: #f7f7f5; color: #111113;
+      -webkit-font-smoothing: antialiased;
+    }
+    :root {
+      --red: #e4252e; --red-dark: #b81d24; --red-light: #fdecea;
+      --yellow: #f5c800; --dark: #111113; --text: #1c1c1e;
+      --muted: #6b6b74; --light: #f7f7f5; --border: #e2e2de;
+      --court: #4a7a50; --court-light: #e8f3ea;
+    }
+    .container { max-width: 860px; margin: 0 auto; padding: 0 24px; }
+
+    /* NAV */
+    #nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      background: rgba(255,255,255,.96); backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-inner {
+      display: flex; align-items: center; justify-content: space-between;
+      max-width: 1160px; margin: 0 auto; padding: 0 24px; height: 60px;
+    }
+    .nav-brand { display: flex; align-items: center; gap: 12px; text-decoration: none; }
+    .nav-brand img { height: 28px; }
+    .nav-brand-divider { width: 1px; height: 18px; background: var(--border); }
+    .nav-brand-name {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 1.05rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase;
+      color: var(--red);
+    }
+    .nav-actions { display: flex; align-items: center; gap: 10px; }
+    .nav-back {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: .85rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+      color: var(--muted); text-decoration: none; padding: 7px 14px;
+      border: 1px solid var(--border); transition: color .2s;
+    }
+    .nav-back:hover { color: var(--dark); }
+    .nav-user {
+      display: flex; align-items: center; gap: 8px;
+      background: #fff4f4; color: var(--red); border: 1.5px solid #fac5c7;
+      padding: 5px 13px 5px 5px;
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: .88rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
+      text-decoration: none; white-space: nowrap; transition: background .2s;
+    }
+    .nav-user:hover { background: #ffe8e8; }
+    .nav-user-avatar {
+      width: 26px; height: 26px; background: var(--red); color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-size: .72rem; font-weight: 900;
+    }
+
+    /* PAGE */
+    .page-wrap { padding-top: 80px; padding-bottom: 80px; }
+
+    /* SESSION HERO */
+    .session-hero {
+      background: var(--dark); padding: 40px 0 32px;
+      position: relative; overflow: hidden; margin-bottom: 32px;
+    }
+    .session-hero::before {
+      content: ''; position: absolute; inset: 0;
+      background: repeating-linear-gradient(
+        -45deg, transparent, transparent 40px,
+        rgba(255,255,255,.015) 40px, rgba(255,255,255,.015) 41px
+      );
+    }
+    .session-hero-inner { position: relative; z-index: 1; }
+    .session-hero-label {
+      font-family: 'Space Mono', monospace;
+      font-size: .6rem; font-weight: 700; letter-spacing: .2em; text-transform: uppercase;
+      color: var(--red); margin-bottom: 10px;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .session-hero-label::before { content: ''; display: block; width: 24px; height: 3px; background: var(--red); }
+    .session-hero-title {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: clamp(2.2rem, 5vw, 3.4rem); font-weight: 900;
+      text-transform: uppercase; letter-spacing: .02em;
+      color: #fff; line-height: 1; margin-bottom: 16px;
+    }
+    .session-hero-meta {
+      display: flex; gap: 24px; flex-wrap: wrap;
+    }
+    .session-meta-item {
+      display: flex; flex-direction: column; gap: 2px;
+    }
+    .session-meta-label {
+      font-family: 'Space Mono', monospace;
+      font-size: .55rem; letter-spacing: .14em; text-transform: uppercase;
+      color: rgba(255,255,255,.35);
+    }
+    .session-meta-value {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 1rem; font-weight: 700; color: #fff; letter-spacing: .03em;
+    }
+    .session-estado-badge {
+      display: inline-block;
+      font-family: 'Space Mono', monospace;
+      font-size: .6rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase;
+      padding: 5px 12px; border: 1.5px solid; align-self: flex-start;
+      margin-top: 20px;
+    }
+    .session-estado-badge.proxima   { color: var(--red); border-color: var(--red); background: rgba(228,37,46,.1); }
+    .session-estado-badge.pendiente { color: rgba(255,255,255,.5); border-color: rgba(255,255,255,.3); }
+    .session-estado-badge.jugada    { color: #86efac; border-color: #86efac; background: rgba(134,239,172,.1); }
+    .session-estado-badge.gran-final{ color: var(--yellow); border-color: var(--yellow); background: rgba(245,200,0,.1); }
+
+    /* GRID */
+    .session-grid {
+      display: grid; grid-template-columns: 1fr 340px; gap: 20px; align-items: start;
+    }
+    @media (max-width: 700px) { .session-grid { grid-template-columns: 1fr; } }
+
+    /* CARD */
+    .card {
+      background: #fff; border: 1px solid var(--border); margin-bottom: 20px;
+    }
+    .card-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 22px; border-bottom: 1px solid var(--border);
+    }
+    .card-title {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 1rem; font-weight: 800; text-transform: uppercase; letter-spacing: .06em;
+      color: var(--dark);
+    }
+    .card-body { padding: 22px; }
+
+    /* REGISTRO BOX */
+    .reg-box { display: flex; flex-direction: column; gap: 16px; }
+    .reg-status-line {
+      font-family: 'Space Mono', monospace;
+      font-size: .68rem; letter-spacing: .1em; text-transform: uppercase;
+    }
+    .reg-status-line.ok { color: var(--court); }
+    .reg-status-line.warn { color: #b45309; }
+    .reg-status-line.err  { color: var(--red); }
+
+    .dupr-form { display: flex; flex-direction: column; gap: 10px; }
+    .dupr-label {
+      font-family: 'Space Mono', monospace;
+      font-size: .6rem; letter-spacing: .14em; text-transform: uppercase;
+      color: var(--muted);
+    }
+    .dupr-input {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 1.1rem; font-weight: 700; letter-spacing: .06em;
+      border: 2px solid var(--border); padding: 10px 14px;
+      outline: none; transition: border-color .2s;
+      background: #fff;
+    }
+    .dupr-input:focus { border-color: var(--red); }
+    .dupr-hint { font-size: .78rem; color: var(--muted); line-height: 1.5; }
+    .dupr-hint a { color: var(--red); text-decoration: none; }
+
+    .btn-register {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 1rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase;
+      background: var(--red); color: #fff; border: none; cursor: pointer;
+      padding: 14px 24px; transition: background .2s; width: 100%;
+    }
+    .btn-register:hover:not(:disabled) { background: var(--red-dark); }
+    .btn-register:disabled { background: var(--border); color: var(--muted); cursor: not-allowed; }
+
+    .btn-unregister {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: .85rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+      background: transparent; color: var(--muted); border: 1px solid var(--border);
+      cursor: pointer; padding: 10px 16px; transition: color .2s, border-color .2s; width: 100%;
+    }
+    .btn-unregister:hover { color: var(--red); border-color: var(--red); }
+
+    .reg-msg {
+      font-size: .85rem; line-height: 1.5; padding: 12px 14px; border-left: 3px solid;
+    }
+    .reg-msg.success { border-color: var(--court); background: var(--court-light); color: #1a4a28; }
+    .reg-msg.error   { border-color: var(--red);   background: var(--red-light);   color: #7a1119; }
+    .reg-msg.info    { border-color: var(--border); background: var(--light);       color: var(--muted); }
+
+    /* INSCRITOS LIST */
+    .inscritos-empty {
+      text-align: center; padding: 32px 20px;
+      font-size: .9rem; color: var(--muted); line-height: 1.6;
+    }
+    .inscrito-row {
+      display: flex; align-items: center; gap: 14px;
+      padding: 12px 22px; border-bottom: 1px solid var(--border);
+    }
+    .inscrito-row:last-child { border: none; }
+    .inscrito-num {
+      font-family: 'Space Mono', monospace;
+      font-size: .7rem; color: var(--muted); width: 22px; flex-shrink: 0;
+    }
+    .inscrito-avatar {
+      width: 32px; height: 32px; background: var(--red); color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: .8rem; font-weight: 900; flex-shrink: 0;
+    }
+    .inscrito-name { font-size: .9rem; font-weight: 600; flex: 1; }
+    .inscrito-name.me { color: var(--red); }
+    .inscrito-dupr {
+      font-family: 'Space Mono', monospace;
+      font-size: .68rem; color: var(--muted); background: var(--light);
+      padding: 3px 8px; letter-spacing: .06em;
+    }
+    .inscrito-date { font-size: .72rem; color: var(--muted); white-space: nowrap; }
+
+    /* FORMATO */
+    .formato-list { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+    .formato-list li {
+      font-size: .88rem; color: var(--text); line-height: 1.6;
+      display: flex; gap: 12px;
+    }
+    .formato-list li::before { content: '→'; color: var(--red); font-weight: 700; flex-shrink: 0; }
+
+    /* LOGIN PROMPT */
+    .login-prompt {
+      background: var(--light); border: 1px solid var(--border);
+      padding: 22px; display: flex; flex-direction: column; gap: 14px; text-align: center;
+    }
+    .login-prompt p { font-size: .9rem; color: var(--muted); line-height: 1.6; }
+    .btn-login-red {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: .95rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase;
+      background: var(--red); color: #fff; padding: 12px 28px; text-decoration: none;
+      transition: background .2s; display: inline-block;
+    }
+    .btn-login-red:hover { background: var(--red-dark); }
+
+    /* LOADING SPINNER */
+    .loading-dots { color: var(--muted); font-size: .85rem; font-family: 'Space Mono', monospace; }
+
+    /* FOOTER */
+    footer {
+      background: #111; color: rgba(255,255,255,.4);
+      padding: 28px 24px; text-align: center; font-size: .8rem;
+    }
+    footer a { color: rgba(255,255,255,.4); text-decoration: none; }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<header id="nav">
+  <div class="nav-inner">
+    <a href="index.html" class="nav-brand">
+      <img src="logo.png" alt="Antigua Pickleball"/>
+      <div class="nav-brand-divider"></div>
+      <span class="nav-brand-name">Ladder League</span>
+    </a>
+    <div class="nav-actions">
+      <div id="nav-auth-slot"></div>
+      <a href="index.html#calendario" class="nav-back">← Calendario</a>
+    </div>
+  </div>
+</header>
+
+<div class="page-wrap">
+
+  <!-- SESSION HERO -->
+  <div class="session-hero">
+    <div class="container">
+      <div class="session-hero-inner">
+        <div class="session-hero-label" id="hero-label">Temporada 1 · Antigua Ladder League</div>
+        <div class="session-hero-title" id="hero-title">Cargando…</div>
+        <div class="session-hero-meta">
+          <div class="session-meta-item">
+            <span class="session-meta-label">Fecha</span>
+            <span class="session-meta-value" id="hero-fecha">—</span>
+          </div>
+          <div class="session-meta-item">
+            <span class="session-meta-label">Hora</span>
+            <span class="session-meta-value">Viernes 7:00 pm</span>
+          </div>
+          <div class="session-meta-item">
+            <span class="session-meta-label">Lugar</span>
+            <span class="session-meta-value">Club Antigua Pickleball</span>
+          </div>
+          <div class="session-meta-item">
+            <span class="session-meta-label">Formato</span>
+            <span class="session-meta-value">Round Robin · 90 min</span>
+          </div>
+        </div>
+        <div class="session-estado-badge" id="hero-badge">—</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="session-grid">
+
+      <!-- COLUMNA PRINCIPAL: inscritos -->
+      <div>
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Jugadores Inscritos</span>
+            <span id="inscritos-count" style="font-family:'Space Mono',monospace;font-size:.7rem;color:var(--muted)">cargando…</span>
+          </div>
+          <div id="inscritos-list">
+            <div class="inscritos-empty">
+              <div class="loading-dots">Cargando…</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Formato de sesión -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Formato de Sesión</span>
+          </div>
+          <div class="card-body">
+            <ul class="formato-list">
+              <li>Duración de 90 minutos con rotación automática de parejas y rivales.</li>
+              <li>Partidos a 11 puntos (win by 2). Mínimo 4 partidos garantizados por jugador.</li>
+              <li>Todos juegan contra jugadores de nivel similar — el sistema de rotación balancea la competencia.</li>
+              <li>Los puntos ganados suman a tu marcador acumulado de la temporada.</li>
+              <li>Traer tu propia pala. Pelotas proporcionadas por la organización.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- COLUMNA LATERAL: registro -->
+      <div>
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Registro</span>
+          </div>
+          <div class="card-body">
+            <div id="reg-container">
+              <div class="loading-dots">Verificando sesión…</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Info de costo -->
+        <div class="card">
+          <div class="card-header"><span class="card-title">Costo de Sesión</span></div>
+          <div class="card-body" style="display:flex;flex-direction:column;gap:10px">
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:2rem;font-weight:900;color:var(--dark)">
+              Q70 <span style="font-size:1rem;font-weight:400;color:var(--muted)">/ sesión</span>
+            </div>
+            <p style="font-size:.82rem;color:var(--muted);line-height:1.6">
+              Pago por transferencia bancaria o en efectivo antes de la sesión.<br>
+              Confirmar pago por WhatsApp para completar inscripción.
+            </p>
+            <a href="https://wa.me/50230912707?text=Hola%2C+quiero+confirmar+pago+para+la+Ladder+League"
+               target="_blank"
+               style="font-family:'Barlow Condensed',sans-serif;font-size:.88rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;background:#25D366;color:#fff;padding:10px 18px;text-decoration:none;text-align:center;display:block;transition:opacity .2s">
+              Confirmar pago por WhatsApp
+            </a>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<footer>
+  <a href="index.html">Ladder League</a> · <a href="https://antigua-pickleball.com">Antigua Pickleball</a> · Temporada 1 · 2026
+</footer>
+
+<!-- Firebase + Auth + Registro -->
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+<script src="js/auth-bridge-client.js"></script>
+<script>
+/* ══════════════════════════════════════════════════════
+   DATOS DE SESIONES — mismo que index.html
+══════════════════════════════════════════════════════ */
+const SEMANAS = [
+  { num: 1, fecha: '4 Jul',  estado: 'proxima'                               },
+  { num: 2, fecha: '11 Jul', estado: 'cancelada', nota: 'Torneo en Santuario' },
+  { num: 3, fecha: '18 Jul', estado: 'pendiente'                              },
+  { num: 4, fecha: '25 Jul', estado: 'pendiente'                              },
+  { num: 5, fecha: '1 Ago',  estado: 'pendiente'                              },
+  { num: 6, fecha: '8 Ago',  estado: 'pendiente'                              },
+  { num: 7, fecha: '15 Ago', estado: 'pendiente'                              },
+  { num: 8, fecha: '22 Ago', estado: 'pendiente'                              },
+  { num: 9, fecha: '29 Ago', estado: 'gran-final', nota: 'Gran Final'         },
+];
+
+/* ══════════════════════════════════════════════════════
+   FIREBASE
+══════════════════════════════════════════════════════ */
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyBBmUQR8AGdosXSGNK3galyBmFjkn6jOuM",
+  authDomain: "antigua-pickleball.firebaseapp.com",
+  projectId: "antigua-pickleball",
+  storageBucket: "antigua-pickleball.firebasestorage.app",
+  messagingSenderId: "270487643715",
+  appId: "1:270487643715:web:701b74a71253ac599056f6"
+};
+if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
+const db = firebase.firestore();
+
+/* ══════════════════════════════════════════════════════
+   INIT
+══════════════════════════════════════════════════════ */
+const params = new URLSearchParams(window.location.search);
+const NUM    = parseInt(params.get('n') || '1', 10);
+const sesion = SEMANAS.find(s => s.num === NUM);
+
+// Si no existe la sesión, redirigir
+if (!sesion) { window.location.href = 'index.html#calendario'; }
+
+const DOC_ID      = `t1_sesion_${NUM}`;
+const COLLECTION  = 'ladder_registrations';
+const estadoLabels = {
+  proxima:'Próxima', pendiente:'Pendiente', jugada:'Jugada',
+  cancelada:'Cancelada', 'gran-final':'Gran Final'
+};
+
+// ── Render hero ──
+const isGF = sesion.estado === 'gran-final';
+document.title = `${isGF ? 'Gran Final' : 'Semana ' + NUM} · Antigua Ladder League`;
+document.getElementById('hero-title').textContent = isGF ? 'Gran Final' : `Semana ${NUM}`;
+document.getElementById('hero-fecha').textContent = sesion.fecha;
+const badge = document.getElementById('hero-badge');
+badge.textContent = estadoLabels[sesion.estado] || sesion.estado;
+badge.className   = 'session-estado-badge ' + sesion.estado;
+if (sesion.nota && !isGF) {
+  document.getElementById('hero-label').textContent += ` · ${sesion.nota}`;
+}
+
+// ── Cargar inscritos en tiempo real ──
+let unsubscribeInscritos = null;
+function loadInscritos(currentUser) {
+  if (unsubscribeInscritos) unsubscribeInscritos();
+  unsubscribeInscritos = db.collection(COLLECTION).doc(DOC_ID)
+    .onSnapshot(snap => {
+      const data      = snap.exists ? snap.data() : {};
+      const inscritos = data.inscritos || [];
+      renderInscritos(inscritos, currentUser);
+      // Actualizar estado del botón de registro
+      updateRegState(inscritos, currentUser);
+    }, err => {
+      console.error('Error cargando inscritos:', err);
+      document.getElementById('inscritos-list').innerHTML =
+        `<div class="inscritos-empty">Error cargando datos. <a href="" style="color:var(--red)">Recargar</a></div>`;
+    });
+}
+
+function renderInscritos(inscritos, currentUser) {
+  const count = inscritos.length;
+  document.getElementById('inscritos-count').textContent = `${count} inscrito${count !== 1 ? 's' : ''}`;
+
+  if (!count) {
+    document.getElementById('inscritos-list').innerHTML =
+      `<div class="inscritos-empty">Nadie inscrito aún.<br>¡Sé el primero!</div>`;
+    return;
+  }
+
+  document.getElementById('inscritos-list').innerHTML = inscritos
+    .sort((a, b) => (a.registeredAt?.seconds || 0) - (b.registeredAt?.seconds || 0))
+    .map((p, i) => {
+      const isMe     = currentUser && p.uid === currentUser.uid;
+      const initials = (p.nombre || '?').split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+      const fechaStr = p.registeredAt
+        ? new Date(p.registeredAt.seconds * 1000).toLocaleDateString('es-GT', { month: 'short', day: 'numeric' })
+        : '';
+      return `<div class="inscrito-row">
+        <span class="inscrito-num">${i + 1}</span>
+        <div class="inscrito-avatar" style="${isMe ? '' : 'background:#aaa'}">${initials}</div>
+        <span class="inscrito-name ${isMe ? 'me' : ''}">${isMe ? '▶ ' : ''}${p.nombre}</span>
+        ${p.duprId ? `<span class="inscrito-dupr">${p.duprId}</span>` : ''}
+        <span class="inscrito-date">${fechaStr}</span>
+      </div>`;
+    }).join('');
+}
+
+// ── Estado del formulario de registro ──
+let _inscritos = [];
+
+function updateRegState(inscritos, user) {
+  _inscritos = inscritos;
+  renderRegContainer(user, inscritos);
+}
+
+function renderRegContainer(user, inscritos) {
+  const container = document.getElementById('reg-container');
+  const isCancelled = sesion.estado === 'cancelada';
+  const isPlayed    = sesion.estado === 'jugada';
+
+  if (isCancelled) {
+    container.innerHTML = `<div class="reg-msg info">Esta sesión fue cancelada y no está disponible para registro.</div>`;
+    return;
+  }
+  if (isPlayed) {
+    container.innerHTML = `<div class="reg-msg info">Esta sesión ya se jugó. El registro está cerrado.</div>`;
+    return;
+  }
+
+  if (!user) {
+    container.innerHTML = `
+      <div class="login-prompt">
+        <p>Para inscribirte necesitas iniciar sesión con tu cuenta de Antigua Pickleball. También debes tener tu DUPR ID registrado.</p>
+        <a href="https://antigua-pickleball.com/login.html?redirect=${encodeURIComponent(window.location.href)}" class="btn-login-red">Ingresar a mi cuenta</a>
+      </div>`;
+    return;
+  }
+
+  const yaInscrito = inscritos.find(p => p.uid === user.uid);
+
+  if (yaInscrito) {
+    container.innerHTML = `
+      <div class="reg-box">
+        <div class="reg-msg success">✓ Estás inscrito en esta sesión.</div>
+        <div style="font-size:.82rem;color:var(--muted)">DUPR ID: <strong>${yaInscrito.duprId || '—'}</strong></div>
+        <button class="btn-unregister" id="btn-cancel-reg">Cancelar inscripción</button>
+      </div>`;
+    document.getElementById('btn-cancel-reg').addEventListener('click', () => cancelRegistration(user));
+    return;
+  }
+
+  // No inscrito → mostrar formulario
+  container.innerHTML = `
+    <div class="reg-box">
+      <div class="reg-status-line" id="reg-status"></div>
+      <div class="dupr-form">
+        <label class="dupr-label" for="dupr-input">Tu DUPR ID</label>
+        <input class="dupr-input" id="dupr-input" type="text" placeholder="Ej: 12345678"
+          maxlength="12" autocomplete="off" spellcheck="false"/>
+        <p class="dupr-hint">
+          Tu DUPR ID es el número de 8 dígitos de tu perfil en
+          <a href="https://dupr.com" target="_blank" rel="noopener">dupr.com</a>.
+          Es obligatorio para participar en la Ladder League.
+        </p>
+      </div>
+      <button class="btn-register" id="btn-reg">Inscribirme en esta sesión</button>
+      <p style="font-size:.75rem;color:var(--muted);text-align:center;line-height:1.5">
+        La inscripción confirma tu lugar. Recuerda confirmar el pago por WhatsApp.
+      </p>
+    </div>`;
+
+  // Pre-llenar DUPR ID si el usuario ya lo usó antes
+  loadUserDuprId(user.uid).then(duprId => {
+    if (duprId) document.getElementById('dupr-input').value = duprId;
+  });
+
+  document.getElementById('btn-reg').addEventListener('click', () => registerUser(user));
+}
+
+async function loadUserDuprId(uid) {
+  try {
+    const doc = await db.collection('users').doc(uid).get();
+    return doc.exists ? (doc.data().duprId || '') : '';
+  } catch (_) { return ''; }
+}
+
+async function registerUser(user) {
+  const btn      = document.getElementById('btn-reg');
+  const duprInput= document.getElementById('dupr-input');
+  const status   = document.getElementById('reg-status');
+  const duprId   = (duprInput?.value || '').trim();
+
+  if (!duprId || duprId.length < 6) {
+    status.className   = 'reg-status-line err';
+    status.textContent = '✕ Ingresa un DUPR ID válido (mínimo 6 caracteres)';
+    duprInput?.focus();
+    return;
+  }
+
+  btn.disabled      = true;
+  btn.textContent   = 'Inscribiendo…';
+  status.textContent = '';
+
+  try {
+    const nombre = user.displayName || user.email.split('@')[0];
+    const docRef = db.collection(COLLECTION).doc(DOC_ID);
+
+    // Guardar DUPR ID en el perfil del usuario para futuras sesiones
+    db.collection('users').doc(user.uid).set({ duprId }, { merge: true }).catch(() => {});
+
+    await docRef.set({
+      sesionNum: NUM,
+      inscritos: firebase.firestore.FieldValue.arrayUnion({
+        uid:          user.uid,
+        nombre:       nombre,
+        email:        user.email || '',
+        duprId:       duprId,
+        registeredAt: firebase.firestore.Timestamp.now(),
+      })
+    }, { merge: true });
+
+    // onSnapshot actualizará la UI automáticamente
+
+  } catch (err) {
+    btn.disabled    = false;
+    btn.textContent = 'Inscribirme en esta sesión';
+    const status2 = document.getElementById('reg-status');
+    if (status2) {
+      status2.className   = 'reg-status-line err';
+      status2.textContent = '✕ Error al inscribirse. Intenta de nuevo.';
+    }
+    console.error(err);
+  }
+}
+
+async function cancelRegistration(user) {
+  const btn = document.getElementById('btn-cancel-reg');
+  if (!confirm('¿Confirmas que deseas cancelar tu inscripción en esta sesión?')) return;
+  btn.disabled    = true;
+  btn.textContent = 'Cancelando…';
+
+  try {
+    const docRef  = db.collection(COLLECTION).doc(DOC_ID);
+    const snap    = await docRef.get();
+    if (!snap.exists) return;
+    const current = snap.data().inscritos || [];
+    const updated = current.filter(p => p.uid !== user.uid);
+    await docRef.update({ inscritos: updated });
+    // onSnapshot actualizará la UI
+  } catch (err) {
+    btn.disabled    = false;
+    btn.textContent = 'Cancelar inscripción';
+    alert('Error al cancelar. Intenta de nuevo.');
+    console.error(err);
+  }
+}
+
+// ── Nav chip ──
+function renderNavChip(user) {
+  const slot = document.getElementById('nav-auth-slot');
+  if (!slot) return;
+  if (user) {
+    const name     = user.displayName || user.email.split('@')[0];
+    const first    = name.split(' ')[0];
+    const initials = name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+    slot.innerHTML = `<a class="nav-user" href="perfil.html"><span class="nav-user-avatar">${initials}</span>${first}</a>`;
+  } else {
+    const loginURL = `https://antigua-pickleball.com/login.html?redirect=${encodeURIComponent(window.location.href)}`;
+    slot.innerHTML = `<a href="${loginURL}" class="nav-back">Ingresar</a>`;
+  }
+}
+
+// ── Punto de entrada ──
+APAuth.onReady(function(user) {
+  renderNavChip(user);
+  loadInscritos(user);
+});
+</script>
+</body>
+</html>

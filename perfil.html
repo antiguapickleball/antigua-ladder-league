@@ -352,36 +352,67 @@
     .session-badge.cancelada { color: var(--muted); border-color: var(--border); background: #f5f5f3; text-decoration: line-through; }
     .session-badge.gran-final{ color: #7c3aed; border-color: #a78bfa; background: #f5f3ff; }
 
-    /* ── PROXIMA SESION HIGHLIGHT ── */
-    .next-session-card {
-      background: var(--dark); color: #fff;
-      padding: 24px 26px; margin-bottom: 28px;
-      display: flex; align-items: center; justify-content: space-between; gap: 20px;
-      flex-wrap: wrap; position: relative; overflow: hidden;
-    }
-    .next-session-card::before {
-      content: ''; position: absolute; right: -20px; top: -20px;
-      width: 120px; height: 120px;
-      border: 20px solid rgba(228,37,46,.25); border-radius: 50%;
-    }
-    .next-session-info { position: relative; z-index: 1; }
-    .next-session-label {
+    /* ── PROXIMAS SESIONES ── */
+    .upcoming-label {
       font-family: 'Space Mono', monospace;
-      font-size: .6rem; letter-spacing: .2em; text-transform: uppercase;
-      color: var(--red); margin-bottom: 6px;
+      font-size: .6rem; font-weight: 700; letter-spacing: .18em; text-transform: uppercase;
+      color: var(--red); display: flex; align-items: center; gap: 10px;
+      margin-bottom: 14px;
     }
-    .next-session-title {
+    .upcoming-label::before { content: ''; display: block; width: 24px; height: 3px; background: var(--red); }
+    .upcoming-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 14px; margin-bottom: 28px;
+    }
+    @media (max-width: 640px) { .upcoming-grid { grid-template-columns: 1fr; } }
+    .upcoming-card {
+      background: #fff; border: 1px solid var(--border);
+      padding: 18px 18px 16px; display: flex; flex-direction: column; gap: 10px;
+      position: relative; overflow: hidden;
+    }
+    .upcoming-card.proxima  { border-top: 3px solid var(--red); }
+    .upcoming-card.pendiente{ border-top: 3px solid var(--border); }
+    .upcoming-card.gran-final{ border-top: 3px solid var(--yellow); background: #fffde8; }
+    .upcoming-card-top {
+      display: flex; justify-content: space-between; align-items: flex-start;
+    }
+    .upcoming-card-num {
+      font-family: 'Space Mono', monospace;
+      font-size: .6rem; letter-spacing: .12em; text-transform: uppercase; color: var(--muted);
+    }
+    .upcoming-card-fecha {
       font-family: 'Barlow Condensed', sans-serif;
-      font-size: 1.5rem; font-weight: 900; text-transform: uppercase;
-      color: #fff; letter-spacing: .04em;
+      font-size: 1.4rem; font-weight: 900; color: var(--dark); text-transform: uppercase;
+      line-height: 1;
     }
-    .next-session-sub { font-size: .85rem; color: rgba(255,255,255,.55); margin-top: 4px; }
-    .next-session-date {
+    .upcoming-card-sub {
+      font-size: .78rem; color: var(--muted); line-height: 1.4;
+    }
+    .upcoming-card-badge {
+      font-family: 'Space Mono', monospace;
+      font-size: .58rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+      padding: 3px 8px; border: 1.5px solid;
+      align-self: flex-start;
+    }
+    .upcoming-card-badge.proxima   { color: var(--red); border-color: var(--red); background: var(--red-light); }
+    .upcoming-card-badge.pendiente { color: var(--muted); border-color: var(--border); }
+    .upcoming-card-badge.gran-final{ color: #7c3aed; border-color: #a78bfa; background: #f5f3ff; }
+    .btn-inscribirse {
       font-family: 'Barlow Condensed', sans-serif;
-      font-size: 2.2rem; font-weight: 900; color: var(--red);
-      text-transform: uppercase; text-align: right;
-      position: relative; z-index: 1;
+      font-size: .82rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase;
+      background: var(--red); color: #fff;
+      padding: 9px 16px; text-decoration: none; text-align: center;
+      transition: background .2s; border: none; cursor: pointer; display: block;
     }
+    .btn-inscribirse:hover { background: var(--red-dark); }
+    .btn-ver-sesion {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: .82rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+      background: transparent; color: var(--muted);
+      padding: 9px 16px; text-decoration: none; text-align: center;
+      border: 1px solid var(--border); transition: color .2s, border-color .2s; display: block;
+    }
+    .btn-ver-sesion:hover { color: var(--dark); border-color: var(--dark); }
 
     /* ── REGLAMENTO TAB ── */
     .rules-card {
@@ -499,7 +530,6 @@
             <div class="profile-info">
               <div class="profile-name" id="profile-name">—</div>
               <div class="profile-meta">
-                <span class="profile-cat" id="profile-cat-badge">—</span>
                 <span class="profile-email" id="profile-email">—</span>
               </div>
             </div>
@@ -528,14 +558,10 @@
         <!-- ── TAB: RESUMEN ── -->
         <div class="panel active" id="tab-resumen">
 
-          <!-- Próxima sesión -->
-          <div class="next-session-card" id="next-session-card" style="display:none">
-            <div class="next-session-info">
-              <div class="next-session-label">Tu próxima sesión</div>
-              <div class="next-session-title" id="next-session-title">—</div>
-              <div class="next-session-sub" id="next-session-sub">Viernes 7:00 pm · Club Antigua Pickleball</div>
-            </div>
-            <div class="next-session-date" id="next-session-date">—</div>
+          <!-- Próximas 3 sesiones -->
+          <div class="upcoming-label">Próximas Sesiones</div>
+          <div class="upcoming-grid" id="upcoming-grid">
+            <div style="color:var(--muted);font-size:.88rem">Cargando sesiones…</div>
           </div>
 
           <!-- Stats -->
@@ -757,16 +783,7 @@ function renderProfile(user) {
   document.getElementById('profile-name').textContent   = name;
   document.getElementById('profile-email').textContent  = user.email || '';
 
-  // Badge categoría
-  const catBadge = document.getElementById('profile-cat-badge');
   const catLabels = { principiante: 'Principiante', intermedio: 'Intermedio', open: 'Open' };
-  if (cat) {
-    catBadge.textContent = catLabels[cat];
-    catBadge.className   = 'profile-cat ' + cat;
-  } else {
-    catBadge.textContent = 'Sin categoría asignada';
-    catBadge.className   = 'profile-cat principiante';
-  }
 
   // Stats
   const sesiones    = player ? player.sesiones    : 0;
@@ -799,17 +816,8 @@ function renderProfile(user) {
   document.getElementById('stat-ptos-sub').textContent = `de ${ptosPosibles} posibles`;
   document.getElementById('stat-pct').textContent      = pct !== null ? pct.toFixed(1) + '%' : '—';
 
-  // Próxima sesión
-  const proxima = SEMANAS.find(s => s.estado === 'proxima' || s.estado === 'gran-final');
-  if (proxima) {
-    document.getElementById('next-session-card').style.display = 'flex';
-    const isGF = proxima.estado === 'gran-final';
-    document.getElementById('next-session-title').textContent = isGF ? 'Gran Final' : `Semana ${proxima.num}`;
-    document.getElementById('next-session-sub').textContent   = isGF
-      ? 'Formato eliminatorio · Club Antigua Pickleball'
-      : 'Viernes 7:00 pm · Club Antigua Pickleball';
-    document.getElementById('next-session-date').textContent  = proxima.fecha;
-  }
+  // Próximas 3 sesiones
+  renderUpcoming();
 
   // Progreso temporada
   const jugadas = SEMANAS.filter(s => s.estado === 'jugada').length;
@@ -824,6 +832,35 @@ function renderProfile(user) {
   renderNavChip(user);
 }
 
+function renderUpcoming() {
+  const upcoming = SEMANAS
+    .filter(s => s.estado === 'proxima' || s.estado === 'pendiente' || s.estado === 'gran-final')
+    .slice(0, 3);
+  const badgeLabels = { proxima: 'Próxima', pendiente: 'Pendiente', 'gran-final': 'Gran Final' };
+  if (!upcoming.length) {
+    document.getElementById('upcoming-grid').innerHTML =
+      `<div style="color:var(--muted);font-size:.88rem;grid-column:1/-1">No hay sesiones próximas.</div>`;
+    return;
+  }
+  document.getElementById('upcoming-grid').innerHTML = upcoming.map(s => {
+    const isGF  = s.estado === 'gran-final';
+    const title = isGF ? 'Gran Final' : `Semana ${s.num}`;
+    const sub   = isGF ? 'Formato eliminatorio · Club Antigua Pickleball' : 'Viernes 7:00 pm · Club Antigua Pickleball';
+    const canRegister = s.estado === 'proxima' || s.estado === 'gran-final';
+    return `<div class="upcoming-card ${s.estado}">
+      <div class="upcoming-card-top">
+        <div>
+          <div class="upcoming-card-num">${isGF ? 'Sesión Final' : `Semana ${s.num} · Temporada 1`}</div>
+          <div class="upcoming-card-fecha">${s.fecha}</div>
+        </div>
+        <span class="upcoming-card-badge ${s.estado}">${badgeLabels[s.estado]}</span>
+      </div>
+      <div class="upcoming-card-sub">${sub}</div>
+      <a href="sesion.html?n=${s.num}" class="btn-inscribirse">Ver sesión &amp; registrarse →</a>
+    </div>`;
+  }).join('');
+}
+
 function renderSessionsTab(player) {
   const labels = {
     jugada:'Jugada', proxima:'Próxima', cancelada:'Cancelada',
@@ -831,15 +868,20 @@ function renderSessionsTab(player) {
   };
   document.getElementById('sessions-list').innerHTML = SEMANAS.map(s => {
     const isPlayed = s.estado === 'jugada';
-    // Per-sesión stats: actualmente global; cuando haya desglose por sesión, usar s.ptosGanados etc.
+    const isCancelled = s.estado === 'cancelada';
     const pg = isPlayed && player ? '—' : '—';
     const pp = isPlayed && player ? '—' : '—';
-    return `<div class="session-row">
-      <span class="session-num">${s.estado==='gran-final'?'Final':`Sem. ${s.num}`}</span>
+    const numLabel = s.estado === 'gran-final' ? 'Final' : `Sem. ${s.num}`;
+    const linkStart = !isCancelled ? `<a href="sesion.html?n=${s.num}" style="text-decoration:none;color:inherit;display:contents">` : '';
+    const linkEnd   = !isCancelled ? '</a>' : '';
+    return `<div class="session-row" style="${!isCancelled?'cursor:pointer':''}">
+      ${linkStart}
+      <span class="session-num">${numLabel}</span>
       <span class="session-fecha">${s.fecha}${s.nota ? ' · <em style="color:var(--muted);font-style:normal">'+s.nota+'</em>' : ''}</span>
       <span class="session-pts-gan ${isPlayed?'has-pts':''}">${pg}</span>
       <span class="session-pts-pos">${pp}</span>
       <span class="session-badge ${s.estado}">${labels[s.estado]}</span>
+      ${linkEnd}
     </div>`;
   }).join('');
 }
