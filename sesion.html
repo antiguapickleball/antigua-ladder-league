@@ -640,25 +640,22 @@ function mountPayPalButtons(user) {
 
     // ── Paso 2: pago aprobado → capturar y registrar ──
     onApprove: async (data, actions) => {
-      // Mostrar estado de procesando
-      document.getElementById('paypal-button-container').innerHTML =
-        `<div class="reg-msg info" style="text-align:center">⏳ Confirmando pago…</div>`;
-
+      // ⚠️ Capturar PRIMERO antes de tocar el DOM —
+      // si se reemplaza el contenedor antes, se destruye el iframe
+      // de PayPal y falla con "target window is closed".
       let order;
       try {
         order = await actions.order.capture();
       } catch (err) {
         console.error('PayPal capture error:', err);
-        const msg = err?.message || err?.name || JSON.stringify(err) || 'unknown';
-        const details = err?.details ? JSON.stringify(err.details) : '';
         document.getElementById('paypal-button-container').innerHTML =
-          `<div class="reg-msg error">
-            ✕ Error PayPal capture:<br>
-            <code style="font-size:.75rem;word-break:break-all">${msg}</code>
-            ${details ? `<br><code style="font-size:.7rem;word-break:break-all">${details}</code>` : ''}
-          </div>`;
+          `<div class="reg-msg error">✕ Error al procesar el pago. Intenta de nuevo.</div>`;
         return;
       }
+
+      // Solo actualizar el DOM DESPUÉS de que capture() haya terminado
+      document.getElementById('paypal-button-container').innerHTML =
+        `<div class="reg-msg info" style="text-align:center">⏳ Confirmando inscripción…</div>`;
 
       const orderId = order.id;
       const status  = order.status;
