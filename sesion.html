@@ -787,9 +787,16 @@ function renderNavChip(user) {
 }
 
 // ── Punto de entrada ──
-APAuth.onReady(function(user) {
-  renderNavChip(user);
-  loadInscritos(user);
+// Esperar a que Firebase anonymous auth confirme ANTES de cargar Firestore.
+// Sin esto, las escrituras llegan antes de que request.auth esté listo
+// y Firestore las revierte (aparecen y desaparecen — optimistic write revert).
+auth.onAuthStateChanged(function(firebaseUser) {
+  if (!firebaseUser) return; // aún no autenticado, esperar
+  // Firebase auth anónimo confirmado → ahora es seguro hacer ops de Firestore
+  APAuth.onReady(function(apUser) {
+    renderNavChip(apUser);
+    loadInscritos(apUser);
+  });
 });
 </script>
 </body>
