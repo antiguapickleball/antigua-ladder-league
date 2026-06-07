@@ -669,13 +669,27 @@ function mountPayPalButtons(user) {
 
       try {
         await saveRegistration(user, _pendingDuprId, orderId, order);
+
+        // Confirmación inmediata — no esperar el onSnapshot
+        const regBox = document.getElementById('reg-container');
+        if (regBox) regBox.innerHTML = `
+          <div class="reg-box">
+            <div class="reg-msg success">✓ ¡Inscripción confirmada!</div>
+            <div style="display:flex;flex-direction:column;gap:6px;font-size:.82rem;color:var(--muted)">
+              <span>DUPR ID: <strong style="color:var(--dark)">${_pendingDuprId || '—'}</strong></span>
+              <span>Pago: <strong style="color:var(--court)">$10 USD ✓</strong></span>
+              <span style="font-family:'Space Mono',monospace;font-size:.65rem;word-break:break-all">
+                PayPal: ${orderId}
+              </span>
+            </div>
+          </div>`;
+
       } catch (err) {
         console.error('Firestore save error:', err);
-        // Pago OK pero no se pudo guardar en Firestore
         document.getElementById('paypal-button-container').innerHTML =
           `<div class="reg-msg error">
-            ✕ Pago recibido (ID: <strong>${orderId.slice(0,12)}…</strong>) pero hubo un error al confirmar tu inscripción.
-            Envía este ID por <a href="https://wa.me/50230912707?text=Ladder+pago+OK+orden+${orderId}" style="color:var(--red)">WhatsApp</a> para confirmarte manualmente.
+            ✕ Pago recibido (ID: <strong>${orderId.slice(0,14)}…</strong>) pero hubo un error al guardar.
+            Envía este ID por <a href="https://wa.me/50230912707?text=Ladder+pago+OK+orden+${orderId}" style="color:var(--red)">WhatsApp</a>.
           </div>`;
       }
     },
