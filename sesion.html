@@ -438,9 +438,9 @@
         </div>
         <!-- Horarios por categoría -->
         <div class="session-horarios" id="hero-horarios">
-          <div class="horario-row"><span class="horario-cat principiante">Principiante</span><span class="horario-time">8:00 – 9:30 am</span></div>
-          <div class="horario-row"><span class="horario-cat intermedio">Intermedio</span><span class="horario-time">9:30 – 11:00 am</span></div>
-          <div class="horario-row"><span class="horario-cat open">Open</span><span class="horario-time">11:00 am – 12:30 pm</span></div>
+          <div class="horario-row"><span class="horario-cat principiante">Principiante</span><span class="horario-time">8:00 – 9:40 am</span></div>
+          <div class="horario-row"><span class="horario-cat intermedio">Intermedio</span><span class="horario-time">9:40 – 11:20 am</span></div>
+          <div class="horario-row"><span class="horario-cat open">Open</span><span class="horario-time">11:20 am – 1:00 pm</span></div>
         </div>
         <div class="session-estado-badge" id="hero-badge">—</div>
       </div>
@@ -544,9 +544,9 @@ const SEMANAS = [
 ];
 
 const HORARIOS = [
-  { categoria: 'principiante', label: 'Principiante', hora: '8:00 – 9:30 am'   },
-  { categoria: 'intermedio',   label: 'Intermedio',   hora: '9:30 – 11:00 am'  },
-  { categoria: 'open',         label: 'Open',         hora: '11:00 am – 12:30 pm' },
+  { categoria: 'principiante', label: 'Principiante', hora: '8:00 – 9:40 am'    },
+  { categoria: 'intermedio',   label: 'Intermedio',   hora: '9:40 – 11:20 am'   },
+  { categoria: 'open',         label: 'Open',         hora: '11:20 am – 1:00 pm' },
 ];
 
 /* ══════════════════════════════════════════════════════
@@ -674,7 +674,7 @@ async function loadUserDuprId(uid) {
 // ══════════════════════════════════════════════════════
 //  LÓGICA DE TIEMPO PARA CANCELACIONES
 // ══════════════════════════════════════════════════════
-const HORA_INICIO = { principiante:[8,0], intermedio:[9,30], open:[11,0] };
+const HORA_INICIO = { principiante:[8,0], intermedio:[9,40], open:[11,20] };
 const MES_MAP     = { Ene:0,Feb:1,Mar:2,Abr:3,May:4,Jun:5,Jul:6,Ago:7,Sep:8,Oct:9,Nov:10,Dic:11 };
 
 function getSessionStart(sesionNum, categoria) {
