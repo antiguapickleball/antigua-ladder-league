@@ -287,6 +287,67 @@
       td.email, td.fecha { display: none; }
       .summary-chip { font-size: .65rem; }
     }
+
+    /* ── FIXTURE SYSTEM ── */
+    .fixture-cat-tab {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: .78rem; font-weight: 800; letter-spacing: .07em; text-transform: uppercase;
+      padding: 5px 12px; border: 1.5px solid rgba(255,255,255,.2); background: transparent;
+      color: rgba(255,255,255,.5); cursor: pointer; transition: all .15s;
+    }
+    .fixture-cat-tab:hover { color: #fff; border-color: rgba(255,255,255,.5); }
+    .fixture-cat-tab.active { background: var(--red); color: #fff; border-color: var(--red); }
+
+    .court-block {
+      border: 1.5px solid var(--border); background: #fafaf8; padding: 14px 16px;
+    }
+    .court-block.court-a { border-color: #6ee7b7; background: #f0fdf4; }
+    .court-block.court-b { border-color: #bfdbfe; background: #eff6ff; }
+    .court-label {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: .82rem; font-weight: 900; text-transform: uppercase; letter-spacing: .08em;
+      margin-bottom: 8px; color: var(--dark);
+    }
+    .court-player { font-size: .85rem; padding: 3px 0; border-bottom: 1px solid rgba(0,0,0,.05); }
+
+    .round-section { margin-bottom: 24px; }
+    .round-title {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 1rem; font-weight: 900; text-transform: uppercase; letter-spacing: .06em;
+      color: var(--dark); margin-bottom: 12px; padding-bottom: 6px;
+      border-bottom: 2px solid var(--border);
+    }
+
+    .match-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 8px 10px; border: 1px solid var(--border); margin-bottom: 6px;
+      background: #fff; gap: 12px; flex-wrap: wrap;
+      transition: background .1s;
+    }
+    .match-row.scored { background: #f9fafb; border-color: #d1d5db; }
+    .match-players { display: flex; align-items: center; gap: 8px; flex: 1; font-size: .85rem; flex-wrap: wrap; }
+    .match-pair { font-weight: 600; }
+    .match-vs { font-family: 'Space Mono', monospace; font-size: .65rem; color: var(--muted); }
+    .match-score { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+    .score-input {
+      width: 48px; text-align: center;
+      font-family: 'Space Mono', monospace; font-size: .9rem; font-weight: 700;
+      padding: 5px 4px; border: 2px solid var(--border); outline: none;
+      transition: border-color .15s;
+    }
+    .score-input:focus { border-color: var(--red); }
+    .score-sep { font-family: 'Space Mono', monospace; font-size: .9rem; color: var(--muted); }
+
+    .standings-wrap { margin-top: 16px; }
+    .standings-table { border: 1px solid var(--border); overflow: hidden; }
+    .standings-header {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: .8rem; font-weight: 900; text-transform: uppercase; letter-spacing: .08em;
+      background: #f0f0ee; padding: 8px 12px; border-bottom: 1px solid var(--border); color: var(--dark);
+    }
+
+    .btn-penalty { background: #fff7ed; color: #c2410c; border-color: #fdba74; }
+    .btn-penalty:hover { background: #ffedd5; }
   </style>
 </head>
 <body>
@@ -405,6 +466,16 @@
         </thead>
         <tbody id="reg-tbody"></tbody>
       </table>
+    </div>
+
+    <!-- FIXTURE PANEL -->
+    <div id="fixture-panel" style="display:none;margin-top:28px;border:1.5px solid var(--border);background:#fff">
+      <div style="background:var(--dark);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+        <span style="font-family:'Barlow Condensed',sans-serif;font-size:1rem;font-weight:900;text-transform:uppercase;letter-spacing:.06em;color:#fff">🏆 Fixture</span>
+        <div id="fixture-cat-tabs" style="display:flex;gap:6px"></div>
+        <button onclick="document.getElementById('fixture-panel').style.display='none'" style="background:none;border:none;color:rgba(255,255,255,.5);cursor:pointer;font-size:1.4rem;line-height:1">×</button>
+      </div>
+      <div id="fixture-inner" style="padding:20px"></div>
     </div>
 
   </div><!-- /admin-panel -->
@@ -572,6 +643,54 @@
     <div class="modal-footer">
       <button class="btn-modal btn-cancel-modal" onclick="closeModal('modal-sessions')">Cerrar</button>
       <button class="btn-modal btn-save" id="btn-save-sessions" onclick="saveSessions()">Guardar cambios</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL PENALIZACIÓN -->
+<div class="modal-overlay" id="modal-penalty" style="display:none" onclick="if(event.target===this)closeModal('modal-penalty')">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-header">
+      <span class="modal-title" style="color:#c2410c">⚠️ Penalizar jugador</span>
+      <button class="modal-close" onclick="closeModal('modal-penalty')">×</button>
+    </div>
+    <div class="modal-body">
+      <p id="penalty-player-name" style="font-weight:700;font-size:1rem;margin-bottom:4px"></p>
+      <p style="font-size:.82rem;color:var(--muted);margin-bottom:16px;line-height:1.6">Selecciona el tipo de falta para esta sesión:</p>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <label style="display:flex;align-items:flex-start;gap:12px;padding:12px;border:1.5px solid var(--border);cursor:pointer">
+          <input type="radio" name="penalty-type" value="cancel_48" style="margin-top:2px"/>
+          <div>
+            <div style="font-weight:700;font-size:.9rem">Canceló con +48h de anticipación</div>
+            <div style="font-size:.78rem;color:var(--muted)">Reintegro completo · Sin penalización en el ladder</div>
+          </div>
+        </label>
+        <label style="display:flex;align-items:flex-start;gap:12px;padding:12px;border:1.5px solid #f59e0b;background:#fffbeb;cursor:pointer">
+          <input type="radio" name="penalty-type" value="cancel_24_48" style="margin-top:2px"/>
+          <div>
+            <div style="font-weight:700;font-size:.9rem">Canceló entre 24–48h antes</div>
+            <div style="font-size:.78rem;color:#92400e">Sin reintegro · Sin penalización en el ladder</div>
+          </div>
+        </label>
+        <label style="display:flex;align-items:flex-start;gap:12px;padding:12px;border:1.5px solid #fca5a5;background:#fef2f2;cursor:pointer">
+          <input type="radio" name="penalty-type" value="no_show_lt24" style="margin-top:2px"/>
+          <div>
+            <div style="font-weight:700;font-size:.9rem">Canceló con menos de 24h</div>
+            <div style="font-size:.78rem;color:#991b1b">Sin reintegro · Próxima sesión: Cancha B obligatorio</div>
+          </div>
+        </label>
+        <label style="display:flex;align-items:flex-start;gap:12px;padding:12px;border:1.5px solid #e879f9;background:#fdf4ff;cursor:pointer">
+          <input type="radio" name="penalty-type" value="no_show" style="margin-top:2px"/>
+          <div>
+            <div style="font-weight:700;font-size:.9rem">No avisó / No se presentó</div>
+            <div style="font-size:.78rem;color:#7e22ce">Sin reintegro · Próxima sesión: Cancha B + Lista de espera</div>
+          </div>
+        </label>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-modal btn-cancel-modal" onclick="closeModal('modal-penalty')">Cancelar</button>
+      <button class="btn-modal btn-save-red" onclick="savePenalty()">Registrar penalización</button>
     </div>
   </div>
 </div>
@@ -1083,6 +1202,7 @@ function renderTable(sesionNum) {
     <div class="summary-chip"><strong>${counts.principiante}/10</strong>Principiante</div>
     <div class="summary-chip"><strong>${counts.intermedio}/10</strong>Intermedio</div>
     <div class="summary-chip green"><strong>${counts.open}/10</strong>Open</div>
+    ${confirmed >= 4 ? `<button class="btn-action" onclick="openFixturePanel(${sesionNum})" style="margin-left:auto;padding:9px 16px;font-size:.82rem;white-space:nowrap;background:#f0fdf4;color:#065f46;border-color:#6ee7b7">🏆 Fixture</button>` : ''}
   `;
 
   // Tabla
@@ -1119,6 +1239,7 @@ function renderTable(sesionNum) {
         ${isWait ? `<button class="btn-action btn-accept" onclick="manualPromote(${sesionNum},'${p.uid}')">↑ Promover</button>` : ''}
         <button class="btn-action btn-edit"   onclick="openEdit(${sesionNum}, '${p.uid}')">Editar</button>
         <button class="btn-action btn-move"   onclick="openMove(${sesionNum}, '${p.uid}')">Mover</button>
+        ${p.status === 'confirmed' ? `<button class="btn-action btn-penalty" onclick="openPenalty(${sesionNum},'${p.uid}',${JSON.stringify(p.nombre)})">⚠️</button>` : ''}
         <button class="btn-action btn-delete" onclick="openDelete(${sesionNum}, '${p.uid}')">Borrar</button>
       </td>
     </tr>`;
@@ -1605,9 +1726,422 @@ async function saveAdd() {
 // Cerrar modales con Escape
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') {
-    ['modal-edit','modal-move','modal-delete','modal-add','modal-sessions'].forEach(closeModal);
+    ['modal-edit','modal-move','modal-delete','modal-add','modal-sessions','modal-penalty'].forEach(closeModal);
   }
 });
+
+/* ══════════════════════════════════════════════════════
+   FIXTURE SYSTEM
+══════════════════════════════════════════════════════ */
+
+// ── Utilities ──
+function _combos(arr, k) {
+  if (k === 0) return [[]];
+  if (arr.length < k) return [];
+  const [h, ...t] = arr;
+  return [..._combos(t, k-1).map(c => [h, ...c]), ..._combos(t, k)];
+}
+function _pk(a, b) { return [a, b].sort().join('||'); }
+
+// Matches per group (single round)
+function matchesForGroup(n) { return {4:3, 5:5, 6:8, 7:10}[n] || 0; }
+
+// Greedy round-robin match generator
+function genMatches(uids, total) {
+  const n = uids.length, sitters = n - 4;
+  const covered = new Set(), sitCt = {};
+  uids.forEach(u => sitCt[u] = 0);
+  const matches = [];
+  for (let i = 0; i < total; i++) {
+    let best = null, bs = -Infinity;
+    const soOptions = sitters <= 0 ? [[]] : _combos(uids, sitters);
+    for (const so of soOptions) {
+      const pl = uids.filter(u => !so.includes(u));
+      const [a,b,c,d] = pl;
+      for (const [p1,p2] of [[[a,b],[c,d]],[[a,c],[b,d]],[[a,d],[b,c]]]) {
+        const np = (!covered.has(_pk(p1[0],p1[1]))?1:0) + (!covered.has(_pk(p2[0],p2[1]))?1:0);
+        const sp = -so.reduce((s,u) => s + sitCt[u]*10, 0);
+        if (np*100 + sp > bs) { bs = np*100+sp; best = {p1, p2, so}; }
+      }
+    }
+    if (best) {
+      covered.add(_pk(best.p1[0], best.p1[1]));
+      covered.add(_pk(best.p2[0], best.p2[1]));
+      best.so.forEach(u => sitCt[u]++);
+      matches.push({ id:`m${i+1}`, pair1:best.p1, pair2:best.p2, sitout:best.so, score:null });
+    }
+  }
+  return matches;
+}
+
+// ── Generate and save fixture ──
+async function doGenerateFixture(sesionNum, categoria) {
+  const isS1 = sesionNum === 1;
+  const confirmed = (_allData[sesionNum]||[]).filter(p => p.status==='confirmed' && p.categoria===categoria);
+  if (confirmed.length < 4) { toast('Necesitas al menos 4 jugadores confirmados', true); return; }
+
+  const playerNames = {};
+  confirmed.forEach(p => playerNames[p.uid] = p.nombre);
+
+  const n = confirmed.length;
+  let fixture;
+
+  if (n >= 8) {
+    // 2 courts: top 5 by ladder ranking → Court A, rest → Court B
+    // For session 1 or when no ranking: use registration order
+    const sorted = await sortByRanking(confirmed, sesionNum);
+    const cAuids = sorted.slice(0,5).map(p => p.uid);
+    const cBuids = sorted.slice(5).map(p => p.uid);
+    const r1A = genMatches(cAuids, matchesForGroup(cAuids.length)).map((m,i) => ({...m, id:`r1_A_m${i+1}`, court:'A', round:1}));
+    const r1B = genMatches(cBuids, matchesForGroup(cBuids.length)).map((m,i) => ({...m, id:`r1_B_m${i+1}`, court:'B', round:1}));
+    fixture = {
+      format:'2courts', totalRounds:2,
+      courtA:cAuids, courtB:cBuids,
+      rounds:[{num:1, matchesA:r1A, matchesB:r1B}],
+      r2generated:false,
+    };
+  } else {
+    const uids = confirmed.map(p => p.uid);
+    const totalRounds = n <= 5 ? 2 : 1;
+    const perRound = matchesForGroup(n);
+    const r1 = genMatches(uids, perRound).map((m,i) => ({...m, id:`r1_m${i+1}`, round:1}));
+    const r2 = totalRounds === 2
+      ? genMatches(uids, perRound).map((m,i) => ({...m, id:`r2_m${i+1}`, round:2}))
+      : null;
+    fixture = {
+      format:'1court', totalRounds,
+      courtA:uids, courtB:null,
+      rounds: r2 ? [{num:1,matches:r1},{num:2,matches:r2}] : [{num:1,matches:r1}],
+    };
+  }
+
+  fixture.sesionNum    = sesionNum;
+  fixture.categoria    = categoria;
+  fixture.isSession1   = isS1;
+  fixture.playerNames  = playerNames;
+  fixture.status       = 'r1_active';
+  fixture.generatedAt  = firebase.firestore.Timestamp.now();
+
+  const docId = `t1_sesion_${sesionNum}_${categoria}`;
+  await db.collection('ladder_fixtures').doc(docId).set(fixture);
+  toast(`✓ Fixture generado · ${categoria} · Sesión ${sesionNum}`);
+  loadAndRenderFixture(sesionNum, categoria);
+}
+
+// Sort confirmed players: penalized → force B, then by ladder ranking, new players last
+async function sortByRanking(confirmed, sesionNum) {
+  if (sesionNum === 1) return confirmed; // Session 1: no ranking, use as-is
+
+  try {
+    // Load ladder scores for each player
+    const snap = await db.collection('ladder_scores').get();
+    const scores = {};
+    snap.docs.forEach(d => { scores[d.id] = d.data().avg || 0; });
+
+    // Load active penalties (force_b)
+    const penSnap = await db.collection('ladder_penalties')
+      .where('activeSesion', '==', sesionNum)
+      .where('resolved', '==', false).get().catch(() => ({ docs:[] }));
+    const forcedB = new Set(penSnap.docs.map(d => d.data().uid));
+
+    const withScore = confirmed.map(p => ({
+      ...p,
+      _score: scores[p.uid] || 0,
+      _forcedB: forcedB.has(p.uid),
+    }));
+
+    // Sort: non-penalized first by score desc, then penalized
+    withScore.sort((a, b) => {
+      if (a._forcedB !== b._forcedB) return a._forcedB ? 1 : -1;
+      return b._score - a._score;
+    });
+
+    return withScore;
+  } catch(e) {
+    console.warn('Could not load ranking, using registration order', e);
+    return confirmed;
+  }
+}
+
+// ── Fixture panel UI ──
+let _fixtureCat = 'principiante';
+
+async function openFixturePanel(sesionNum) {
+  const panel = document.getElementById('fixture-panel');
+  if (panel.style.display === 'block' && sesionNum === _currentSession) {
+    panel.style.display = 'none';
+    return;
+  }
+  panel.style.display = 'block';
+  panel.scrollIntoView({ behavior:'smooth', block:'start' });
+
+  const cats = ['principiante','intermedio','open'];
+  const defaultCat = cats.find(c =>
+    (_allData[sesionNum]||[]).filter(p=>p.status==='confirmed'&&p.categoria===c).length >= 4
+  ) || 'principiante';
+  _fixtureCat = defaultCat;
+
+  renderFixtureCatTabs(sesionNum);
+  loadAndRenderFixture(sesionNum, _fixtureCat);
+}
+
+function renderFixtureCatTabs(sesionNum) {
+  const catLabels = {principiante:'Principiante', intermedio:'Intermedio', open:'Open'};
+  document.getElementById('fixture-cat-tabs').innerHTML =
+    ['principiante','intermedio','open'].map(c => {
+      const cnt = (_allData[sesionNum]||[]).filter(p=>p.status==='confirmed'&&p.categoria===c).length;
+      return `<button class="fixture-cat-tab${c===_fixtureCat?' active':''}"
+        onclick="selectFixtureCat(${sesionNum},'${c}')">${catLabels[c]} <span style="opacity:.6;font-size:.65rem">(${cnt})</span></button>`;
+    }).join('');
+}
+
+function selectFixtureCat(sesionNum, cat) {
+  _fixtureCat = cat;
+  renderFixtureCatTabs(sesionNum);
+  loadAndRenderFixture(sesionNum, cat);
+}
+
+async function loadAndRenderFixture(sesionNum, categoria) {
+  const inner = document.getElementById('fixture-inner');
+  inner.innerHTML = '<div style="padding:16px;color:var(--muted);font-size:.82rem;font-family:\'Space Mono\',monospace">Cargando…</div>';
+
+  const snap = await db.collection('ladder_fixtures').doc(`t1_sesion_${sesionNum}_${categoria}`).get();
+  if (!snap.exists) {
+    const cnt = (_allData[sesionNum]||[]).filter(p=>p.status==='confirmed'&&p.categoria===categoria).length;
+    const catLabels = {principiante:'Principiante', intermedio:'Intermedio', open:'Open'};
+    inner.innerHTML = `<div style="padding:20px">
+      <p style="font-size:.9rem;color:var(--muted);margin-bottom:16px">
+        ${cnt >= 4
+          ? `<strong>${cnt}</strong> jugadores confirmados en <strong>${catLabels[categoria]}</strong>. Listo para generar el fixture.`
+          : `Se necesitan al menos <strong>4</strong> jugadores confirmados en ${catLabels[categoria]} (hay ${cnt}).`}
+      </p>
+      ${cnt >= 4 ? `<button class="btn-modal btn-save" onclick="doGenerateFixture(${sesionNum},'${categoria}')">⚙️ Generar Fixture</button>` : ''}
+    </div>`;
+    return;
+  }
+  const fx = snap.data();
+  inner.innerHTML = renderFixtureHTML(fx, sesionNum, categoria);
+}
+
+function renderFixtureHTML(fx, sesionNum, categoria) {
+  const pn = fx.playerNames || {};
+  const isS1 = fx.isSession1;
+  let html = '';
+
+  // Court assignment display
+  if (fx.format === '2courts') {
+    html += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px">
+      <div class="court-block court-a">
+        <div class="court-label">🏆 Cancha A</div>
+        ${(fx.courtA||[]).map((u,i)=>`<div class="court-player"><span style="color:var(--muted);font-size:.7rem;margin-right:6px">${i+1}.</span>${pn[u]||u}</div>`).join('')}
+      </div>
+      <div class="court-block court-b">
+        <div class="court-label">Cancha B</div>
+        ${(fx.courtB||[]).map((u,i)=>`<div class="court-player"><span style="color:var(--muted);font-size:.7rem;margin-right:6px">${i+1}.</span>${pn[u]||u}</div>`).join('')}
+      </div>
+    </div>`;
+  } else {
+    const uids = fx.courtA || [];
+    html += `<div style="margin-bottom:16px;font-size:.82rem;color:var(--muted)">
+      📋 <strong>${uids.length}</strong> jugadores · <strong>${fx.totalRounds}</strong> ronda${fx.totalRounds>1?'s':''} · 1 cancha
+      <span style="margin-left:12px">${uids.map(u=>`<span style="background:#f0f0ee;padding:2px 7px;margin-right:4px;font-size:.78rem">${pn[u]||u}</span>`).join('')}</span>
+    </div>`;
+  }
+
+  // Rounds
+  (fx.rounds||[]).forEach(round => {
+    html += `<div class="round-section"><div class="round-title">Ronda ${round.num}</div>`;
+
+    if (fx.format === '2courts') {
+      const allScoredA = (round.matchesA||[]).length > 0 && (round.matchesA||[]).every(m=>m.score);
+      const allScoredB = (round.matchesB||[]).length > 0 && (round.matchesB||[]).every(m=>m.score);
+      html += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+        <div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:.75rem;font-weight:900;text-transform:uppercase;letter-spacing:.1em;color:#065f46;margin-bottom:8px;background:#dcfce7;padding:4px 10px">Cancha A · ${isS1?'V:2/D:0':'V:3/D:1'}</div>
+          ${(round.matchesA||[]).map(m=>renderMatchRow(m,pn,'A',isS1,sesionNum,categoria,round.num)).join('')}
+          ${allScoredA ? renderStandingsTable(computeStandings(round.matchesA,fx.courtA,'A',isS1),pn) : ''}
+        </div>
+        <div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:.75rem;font-weight:900;text-transform:uppercase;letter-spacing:.1em;color:#1d4ed8;margin-bottom:8px;background:#dbeafe;padding:4px 10px">Cancha B · V:2/D:0</div>
+          ${(round.matchesB||[]).map(m=>renderMatchRow(m,pn,'B',isS1,sesionNum,categoria,round.num)).join('')}
+          ${allScoredB ? renderStandingsTable(computeStandings(round.matchesB,fx.courtB,'B',isS1),pn) : ''}
+        </div>
+      </div>`;
+    } else {
+      const allScored = (round.matches||[]).length > 0 && (round.matches||[]).every(m=>m.score);
+      html += `<div>${(round.matches||[]).map(m=>renderMatchRow(m,pn,null,isS1,sesionNum,categoria,round.num)).join('')}</div>`;
+      if (allScored) html += renderStandingsTable(computeStandings(round.matches,fx.courtA,null,isS1),pn);
+    }
+
+    html += `</div>`;
+  });
+
+  html += `<div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border);display:flex;gap:8px;flex-wrap:wrap">
+    <button class="btn-action btn-delete" onclick="if(confirm('¿Regenerar? Se borrarán los resultados guardados.'))doGenerateFixture(${sesionNum},'${categoria}')">↺ Regenerar fixture</button>
+  </div>`;
+  return html;
+}
+
+function renderMatchRow(m, pn, court, isS1, sesionNum, categoria, roundNum) {
+  const p1 = (m.pair1||[]).map(u=>pn[u]||u).join(' + ');
+  const p2 = (m.pair2||[]).map(u=>pn[u]||u).join(' + ');
+  const so = (m.sitout||[]).map(u=>pn[u]||u).join(', ');
+  const s  = m.score;
+  // Encode match key as a data attribute (safe for JSON)
+  const key = JSON.stringify({sesionNum,categoria,roundNum,court:court||'X',matchId:m.id});
+  const esc = key.replace(/'/g,"\\'");
+  return `<div class="match-row${s?' scored':''}">
+    <div class="match-players">
+      <span class="match-pair">${p1}</span>
+      <span class="match-vs">vs</span>
+      <span class="match-pair">${p2}</span>
+      ${so ? `<span style="font-size:.7rem;color:var(--muted);margin-left:4px">· descansa: ${so}</span>` : ''}
+    </div>
+    <div class="match-score">
+      <input class="score-input" type="number" min="0" max="15" placeholder="—"
+        id="sc1_${m.id}" value="${s?s.s1:''}"
+        onblur="trySaveScore('${esc}','${m.id}')"/>
+      <span class="score-sep">–</span>
+      <input class="score-input" type="number" min="0" max="15" placeholder="—"
+        id="sc2_${m.id}" value="${s?s.s2:''}"
+        onblur="trySaveScore('${esc}','${m.id}')"/>
+      ${s ? `<span style="color:var(--court);font-size:.8rem;margin-left:4px">✓</span>` : ''}
+    </div>
+  </div>`;
+}
+
+async function trySaveScore(keyStr, matchId) {
+  const k = JSON.parse(keyStr.replace(/\\'/g,"'"));
+  const s1 = parseInt(document.getElementById('sc1_'+matchId)?.value);
+  const s2 = parseInt(document.getElementById('sc2_'+matchId)?.value);
+  if (isNaN(s1) || isNaN(s2) || s1 < 0 || s2 < 0) return;
+  if (s1 === s2) { toast('El resultado no puede ser empate', true); return; }
+
+  const docId = `t1_sesion_${k.sesionNum}_${k.categoria}`;
+  const snap = await db.collection('ladder_fixtures').doc(docId).get();
+  if (!snap.exists) return;
+  const fx = snap.data();
+
+  let updated = false;
+  const updatedRounds = (fx.rounds||[]).map(r => {
+    if (r.num !== parseInt(k.roundNum)) return r;
+    const upd = arr => (arr||[]).map(m => {
+      if (m.id !== k.matchId) return m;
+      updated = true;
+      return {...m, score:{s1,s2}};
+    });
+    if (fx.format === '2courts') return {...r, matchesA:upd(r.matchesA), matchesB:upd(r.matchesB)};
+    return {...r, matches:upd(r.matches)};
+  });
+
+  if (!updated) return;
+  await db.collection('ladder_fixtures').doc(docId).update({rounds:updatedRounds});
+  loadAndRenderFixture(parseInt(k.sesionNum), k.categoria);
+}
+
+// ── Standings computation ──
+function computeStandings(matches, uids, court, isS1) {
+  const pts = isS1 ? {w:2,l:0} : (court==='A' ? {w:3,l:1} : {w:2,l:0});
+  const s = {};
+  (uids||[]).forEach(u => s[u] = {pj:0, pg:0, pp:0, pf:0, pc:0, pts:0});
+
+  (matches||[]).forEach(m => {
+    if (!m.score) return;
+    const {s1, s2} = m.score;
+    const win = s1 > s2 ? m.pair1 : m.pair2;
+    const los = s1 > s2 ? m.pair2 : m.pair1;
+    const wp  = Math.max(s1,s2), lp = Math.min(s1,s2);
+    [...(m.pair1||[]),...(m.pair2||[])].forEach(u => { if(s[u]) s[u].pj++; });
+    (win||[]).forEach(u => { if(s[u]){s[u].pg++;s[u].pf+=wp;s[u].pc+=lp;s[u].pts+=pts.w;} });
+    (los||[]).forEach(u => { if(s[u]){s[u].pp++;s[u].pf+=lp;s[u].pc+=wp;s[u].pts+=pts.l;} });
+  });
+
+  Object.values(s).forEach(r => {
+    r.pctPG      = r.pj > 0 ? r.pg / r.pj : 0;
+    r.pctPts     = (r.pf+r.pc) > 0 ? r.pf / (r.pf+r.pc) : 0;
+    r.ladderScore= r.pj > 0 ? r.pts / r.pj : 0;
+  });
+  return s;
+}
+
+function renderStandingsTable(stats, pn) {
+  const sorted = Object.entries(stats).sort(([,a],[,b]) => b.pctPG-a.pctPG || b.pctPts-a.pctPts);
+  return `<div class="standings-table" style="margin-top:14px">
+    <div class="standings-header">Tabla · Ronda</div>
+    <table style="width:100%;border-collapse:collapse;font-size:.78rem">
+      <thead><tr style="background:var(--dark);color:rgba(255,255,255,.7)">
+        <th style="padding:6px 10px;text-align:left">Jugador</th>
+        <th style="padding:6px 8px;text-align:center">PJ</th>
+        <th style="padding:6px 8px;text-align:center">PG</th>
+        <th style="padding:6px 8px;text-align:center">PP</th>
+        <th style="padding:6px 8px;text-align:center">Pts+</th>
+        <th style="padding:6px 8px;text-align:center">Pts−</th>
+        <th style="padding:6px 8px;text-align:center">%PG</th>
+        <th style="padding:6px 8px;text-align:center" title="Puntaje ladder (pts/pj)">⭐</th>
+      </tr></thead>
+      <tbody>${sorted.map(([u,r],i)=>`<tr style="border-bottom:1px solid var(--border);${i===0?'background:#f0fdf4;font-weight:600':''}">
+        <td style="padding:6px 10px">${pn[u]||u}</td>
+        <td style="padding:6px 8px;text-align:center;font-family:'Space Mono',monospace">${r.pj}</td>
+        <td style="padding:6px 8px;text-align:center;font-family:'Space Mono',monospace">${r.pg}</td>
+        <td style="padding:6px 8px;text-align:center;font-family:'Space Mono',monospace">${r.pp}</td>
+        <td style="padding:6px 8px;text-align:center;font-family:'Space Mono',monospace">${r.pf}</td>
+        <td style="padding:6px 8px;text-align:center;font-family:'Space Mono',monospace">${r.pc}</td>
+        <td style="padding:6px 8px;text-align:center;font-family:'Space Mono',monospace">${(r.pctPG*100).toFixed(0)}%</td>
+        <td style="padding:6px 8px;text-align:center;font-family:'Space Mono',monospace;color:var(--court);font-weight:700">${r.ladderScore.toFixed(2)}</td>
+      </tr>`).join('')}</tbody>
+    </table>
+  </div>`;
+}
+
+/* ══════════════════════════════════════════════════════
+   PENALIZACIONES
+══════════════════════════════════════════════════════ */
+let _penaltyTarget = null;
+
+function openPenalty(sesionNum, uid, nombre) {
+  _penaltyTarget = { sesionNum, uid, nombre };
+  document.getElementById('penalty-player-name').textContent = nombre;
+  document.querySelectorAll('input[name="penalty-type"]').forEach(r => r.checked = false);
+  openModal('modal-penalty');
+}
+
+async function savePenalty() {
+  if (!_penaltyTarget) return;
+  const type = document.querySelector('input[name="penalty-type"]:checked')?.value;
+  if (!type) { toast('Selecciona el tipo de penalización', true); return; }
+
+  const { sesionNum, uid, nombre } = _penaltyTarget;
+
+  // cancel_48: just log it, no ladder effect
+  const effect = {
+    cancel_48:     { forceCourtB: false, forceWaitlist: false, noRefund: false },
+    cancel_24_48:  { forceCourtB: false, forceWaitlist: false, noRefund: true  },
+    no_show_lt24:  { forceCourtB: true,  forceWaitlist: false, noRefund: true  },
+    no_show:       { forceCourtB: true,  forceWaitlist: true,  noRefund: true  },
+  }[type];
+
+  try {
+    await db.collection('ladder_penalties').add({
+      uid, nombre, sesionNum,
+      type,
+      ...effect,
+      activeSesion: sesionNum + 1,
+      resolved: false,
+      appliedAt: firebase.firestore.Timestamp.now(),
+    });
+    closeModal('modal-penalty');
+    const msg = {
+      cancel_48:    `✓ Cancelación sin penalización registrada para ${nombre}`,
+      cancel_24_48: `✓ Cancelación tardía registrada (sin reintegro) · ${nombre}`,
+      no_show_lt24: `⚠️ Penalización registrada · ${nombre} entra a Cancha B en Sesión ${sesionNum+1}`,
+      no_show:      `⚠️ Penalización registrada · ${nombre} entra a lista de espera en Sesión ${sesionNum+1}`,
+    }[type];
+    toast(msg);
+  } catch(err) {
+    console.error(err);
+    toast('✕ Error al guardar penalización', true);
+  }
+}
 </script>
 </body>
 </html>
