@@ -2217,28 +2217,53 @@ async function loadAndRenderFixture(sesionNum, categoria) {
   }
 }
 
+// Rank players in a court by R1 standings (desc: %PG then %Pts)
+function rankByCourt(uids, stats) {
+  return [...uids].sort((a, b) => {
+    const sa = stats[a] || {pctPG:0, pctPts:0};
+    const sb = stats[b] || {pctPG:0, pctPts:0};
+    return sb.pctPG - sa.pctPG || sb.pctPts - sa.pctPts;
+  });
+}
+
 async function generateRound2(sesionNum, categoria) {
   const docId = `t1_sesion_${sesionNum}_${categoria}`;
   const snap = await db.collection('ladder_fixtures').doc(docId).get().catch(e=>{toast('✕ '+e.message,true);return null;});
   if (!snap || !snap.exists) return;
   const fx = snap.data();
+  const r1 = (fx.rounds||[])[0];
 
-  // Use same court groups as R1 (admin can manually edit if needed)
-  const cAuids = fx.courtA || [];
-  const cBuids = fx.courtB || [];
+  // Rank each court by R1 performance
+  const statsA = computeStandings(r1.matchesA||[], fx.courtA, 'A', fx.isSession1);
+  const statsB = computeStandings(r1.matchesB||[], fx.courtB, 'B', fx.isSession1);
+  const rankA  = rankByCourt(fx.courtA||[], statsA);
+  const rankB  = rankByCourt(fx.courtB||[], statsB);
 
-  const r2A = genMatches(cAuids, matchesForGroup(cAuids.length)).map((m,i) => ({...m, id:`r2_A_m${i+1}`, court:'A', round:2}));
-  const r2B = genMatches(cBuids, matchesForGroup(cBuids.length)).map((m,i) => ({...m, id:`r2_B_m${i+1}`, court:'B', round:2}));
+  // Swap bottom 2 of A ↔ top 2 of B (cap at half of smaller group)
+  const swapCount = Math.min(2, Math.floor(Math.min(rankA.length, rankB.length) / 2));
 
-  const updatedRounds = [...(fx.rounds||[]), {num:2, matchesA:r2A, matchesB:r2B}];
+  const stayA  = rankA.slice(0, rankA.length - swapCount); // top of A → stay A
+  const downA  = rankA.slice(rankA.length - swapCount);    // bottom of A → go to B
+  const upB    = rankB.slice(0, swapCount);                // top of B → go to A
+  const stayB  = rankB.slice(swapCount);                   // bottom of B → stay B
+
+  const newCourtA = [...stayA, ...upB];
+  const newCourtB = [...stayB, ...downA];
+
+  const r2A = genMatches(newCourtA, matchesForGroup(newCourtA.length)).map((m,i) => ({...m, id:`r2_A_m${i+1}`, court:'A', round:2}));
+  const r2B = genMatches(newCourtB, matchesForGroup(newCourtB.length)).map((m,i) => ({...m, id:`r2_B_m${i+1}`, court:'B', round:2}));
 
   await db.collection('ladder_fixtures').doc(docId).update({
-    rounds: updatedRounds,
+    rounds:      [...(fx.rounds||[]), {num:2, matchesA:r2A, matchesB:r2B}],
+    courtA_r2:   newCourtA,
+    courtB_r2:   newCourtB,
+    promotedToA: upB,
+    relegatedToB: downA,
     r2generated: true,
-    status: 'r2_active',
+    status:      'r2_active',
   });
 
-  toast('✓ Ronda 2 generada');
+  toast('✓ Ronda 2 generada — grupos actualizados');
   loadAndRenderFixture(parseInt(sesionNum), categoria);
 }
 
@@ -2274,16 +2299,38 @@ function renderFixtureHTML(fx, sesionNum, categoria) {
     if (fx.format === '2courts') {
       const allScoredA = (round.matchesA||[]).length > 0 && (round.matchesA||[]).every(m=>m.score);
       const allScoredB = (round.matchesB||[]).length > 0 && (round.matchesB||[]).every(m=>m.score);
+      const r1Complete = allScoredA && allScoredB;
+
+      // For R1: compute who moves for R2 (show indicators if R1 complete and R2 not yet generated)
+      let movement = null;
+      if (round.num === 1 && r1Complete && !fx.r2generated) {
+        const statsA = computeStandings(round.matchesA||[], fx.courtA, 'A', isS1);
+        const statsB = computeStandings(round.matchesB||[], fx.courtB, 'B', isS1);
+        const rankA  = rankByCourt(fx.courtA||[], statsA);
+        const rankB  = rankByCourt(fx.courtB||[], statsB);
+        const swapCount = Math.min(2, Math.floor(Math.min(rankA.length, rankB.length) / 2));
+        const downA  = new Set(rankA.slice(rankA.length - swapCount));
+        const upB    = new Set(rankB.slice(0, swapCount));
+        // movementA: players IN court A that go down; movementB: players IN court B that go up
+        movement = { A: { up: new Set(), down: downA }, B: { up: upB, down: new Set() } };
+      }
+
+      // For R2: show new court groups
+      const courtAuids = round.num === 2 ? (fx.courtA_r2||fx.courtA||[]) : (fx.courtA||[]);
+      const courtBuids = round.num === 2 ? (fx.courtB_r2||fx.courtB||[]) : (fx.courtB||[]);
+
       html += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
         <div>
           <div style="font-family:'Barlow Condensed',sans-serif;font-size:.75rem;font-weight:900;text-transform:uppercase;letter-spacing:.1em;color:#065f46;margin-bottom:8px;background:#dcfce7;padding:4px 10px">Cancha A · ${isS1?'V:2/D:0':'V:3/D:1'}</div>
+          ${round.num === 2 ? `<div style="font-size:.75rem;color:var(--muted);margin-bottom:8px;padding:4px 0">${courtAuids.map(u=>`<span style="display:inline-block;background:${(fx.promotedToA||[]).includes(u)?'#dcfce7':'#f0f0ee'};padding:1px 6px;margin:1px;font-size:.72rem">${(fx.promotedToA||[]).includes(u)?'⬆ ':''} ${pn[u]||u}</span>`).join('')}</div>` : ''}
           ${(round.matchesA||[]).map(m=>renderMatchRow(m,pn,'A',isS1,sesionNum,categoria,round.num)).join('')}
-          ${allScoredA ? renderStandingsTable(computeStandings(round.matchesA,fx.courtA,'A',isS1),pn) : ''}
+          ${allScoredA ? renderStandingsTable(computeStandings(round.matchesA,courtAuids,'A',isS1),pn, round.num===1?movement?.A:null) : ''}
         </div>
         <div>
           <div style="font-family:'Barlow Condensed',sans-serif;font-size:.75rem;font-weight:900;text-transform:uppercase;letter-spacing:.1em;color:#1d4ed8;margin-bottom:8px;background:#dbeafe;padding:4px 10px">Cancha B · V:2/D:0</div>
+          ${round.num === 2 ? `<div style="font-size:.75rem;color:var(--muted);margin-bottom:8px;padding:4px 0">${courtBuids.map(u=>`<span style="display:inline-block;background:${(fx.relegatedToB||[]).includes(u)?'#fef2f2':'#f0f0ee'};padding:1px 6px;margin:1px;font-size:.72rem">${(fx.relegatedToB||[]).includes(u)?'⬇ ':''} ${pn[u]||u}</span>`).join('')}</div>` : ''}
           ${(round.matchesB||[]).map(m=>renderMatchRow(m,pn,'B',isS1,sesionNum,categoria,round.num)).join('')}
-          ${allScoredB ? renderStandingsTable(computeStandings(round.matchesB,fx.courtB,'B',isS1),pn) : ''}
+          ${allScoredB ? renderStandingsTable(computeStandings(round.matchesB,courtBuids,'B',isS1),pn, round.num===1?movement?.B:null) : ''}
         </div>
       </div>`;
     } else {
@@ -2405,8 +2452,11 @@ function computeStandings(matches, uids, court, isS1) {
   return s;
 }
 
-function renderStandingsTable(stats, pn) {
+// movement: { up: Set(uids), down: Set(uids) } — optional, for between-round display
+function renderStandingsTable(stats, pn, movement) {
   const sorted = Object.entries(stats).sort(([,a],[,b]) => b.pctPG-a.pctPG || b.pctPts-a.pctPts);
+  const upSet   = movement?.up   || new Set();
+  const downSet = movement?.down || new Set();
   return `<div class="standings-table" style="margin-top:14px">
     <div class="standings-header">Tabla · Ronda</div>
     <table style="width:100%;border-collapse:collapse;font-size:.78rem">
@@ -2419,17 +2469,28 @@ function renderStandingsTable(stats, pn) {
         <th style="padding:6px 8px;text-align:center">Pts−</th>
         <th style="padding:6px 8px;text-align:center">%PG</th>
         <th style="padding:6px 8px;text-align:center" title="Puntaje ladder (pts/pj)">⭐</th>
+        ${movement ? '<th style="padding:6px 8px;text-align:center">R2</th>' : ''}
       </tr></thead>
-      <tbody>${sorted.map(([u,r],i)=>`<tr style="border-bottom:1px solid var(--border);${i===0?'background:#f0fdf4;font-weight:600':''}">
-        <td style="padding:6px 10px">${pn[u]||u}</td>
-        <td style="padding:6px 8px;text-align:center;font-family:'Space Mono',monospace">${r.pj}</td>
-        <td style="padding:6px 8px;text-align:center;font-family:'Space Mono',monospace">${r.pg}</td>
-        <td style="padding:6px 8px;text-align:center;font-family:'Space Mono',monospace">${r.pp}</td>
-        <td style="padding:6px 8px;text-align:center;font-family:'Space Mono',monospace">${r.pf}</td>
-        <td style="padding:6px 8px;text-align:center;font-family:'Space Mono',monospace">${r.pc}</td>
-        <td style="padding:6px 8px;text-align:center;font-family:'Space Mono',monospace">${(r.pctPG*100).toFixed(0)}%</td>
-        <td style="padding:6px 8px;text-align:center;font-family:'Space Mono',monospace;color:var(--court);font-weight:700">${r.ladderScore.toFixed(2)}</td>
-      </tr>`).join('')}</tbody>
+      <tbody>${sorted.map(([u,r],i) => {
+        const goesUp   = upSet.has(u);
+        const goesDown = downSet.has(u);
+        const rowBg = goesUp ? 'background:#f0fdf4;' : goesDown ? 'background:#fef2f2;' : i===0 ? 'background:#fafaf8;' : '';
+        return `<tr style="border-bottom:1px solid var(--border);${rowBg}">
+          <td style="padding:6px 10px;font-weight:${goesUp||goesDown?'700':'400'}">${pn[u]||u}</td>
+          <td style="padding:6px 8px;text-align:center;font-family:'Space Mono',monospace">${r.pj}</td>
+          <td style="padding:6px 8px;text-align:center;font-family:'Space Mono',monospace">${r.pg}</td>
+          <td style="padding:6px 8px;text-align:center;font-family:'Space Mono',monospace">${r.pp}</td>
+          <td style="padding:6px 8px;text-align:center;font-family:'Space Mono',monospace">${r.pf}</td>
+          <td style="padding:6px 8px;text-align:center;font-family:'Space Mono',monospace">${r.pc}</td>
+          <td style="padding:6px 8px;text-align:center;font-family:'Space Mono',monospace">${(r.pctPG*100).toFixed(0)}%</td>
+          <td style="padding:6px 8px;text-align:center;font-family:'Space Mono',monospace;color:var(--court);font-weight:700">${r.ladderScore.toFixed(2)}</td>
+          ${movement ? `<td style="padding:6px 8px;text-align:center;font-size:.8rem">
+            ${goesUp   ? '<span style="color:#065f46;font-weight:700">⬆ sube A</span>' :
+              goesDown ? '<span style="color:#991b1b;font-weight:700">⬇ baja B</span>' :
+                         '<span style="color:var(--muted)">— queda</span>'}
+          </td>` : ''}
+        </tr>`;
+      }).join('')}</tbody>
     </table>
   </div>`;
 }
