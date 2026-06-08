@@ -1142,6 +1142,10 @@ const _origReady = APAuth.onReady.bind(APAuth);
    MODAL: AGREGAR JUGADOR MANUALMENTE
 ══════════════════════════════════════════════════════ */
 function openAdd() {
+  // Reset button state always (in case previous call left it disabled)
+  const btn = document.getElementById('btn-save-add');
+  btn.disabled = false; btn.textContent = 'Agregar jugador';
+
   // Populate session selector with current session pre-selected
   const sel = document.getElementById('add-sesion');
   sel.innerHTML = SEMANAS.map(s =>
@@ -1202,7 +1206,6 @@ async function saveAdd() {
     );
     if (dup) {
       toast(`✕ Ya existe "${nombre}" en ${categoria} · Sesión ${sesionNum}`, true);
-      btn.disabled = false; btn.textContent = 'Agregar jugador';
       return;
     }
 
@@ -1212,13 +1215,16 @@ async function saveAdd() {
     );
 
     closeModal('modal-add');
-    selectSession(sesionNum);   // switch to that session tab
     toast(`✓ ${nombre} agregado a Sesión ${sesionNum}`);
+    // Switch to the session where the player was added
+    if (sesionNum !== _currentSession) selectSession(sesionNum);
+
   } catch (err) {
     console.error(err);
-    toast('✕ Error al agregar jugador', true);
+    toast('✕ Error al guardar en Firestore: ' + (err.message || err), true);
+  } finally {
+    btn.disabled = false; btn.textContent = 'Agregar jugador';
   }
-  btn.disabled = false; btn.textContent = 'Agregar jugador';
 }
 
 // Cerrar modales con Escape
