@@ -2466,9 +2466,9 @@ function renderMatchRow(m, pn, court, isS1, sesionNum, categoria, roundNum) {
   const p2 = (m.pair2||[]).map(u=>pn[u]||u).join(' + ');
   const so = (m.sitout||[]).map(u=>pn[u]||u).join(', ');
   const s  = m.score;
-  // Encode match key as a data attribute (safe for JSON)
-  const key = JSON.stringify({sesionNum,categoria,roundNum,court:court||'X',matchId:m.id});
-  const esc = key.replace(/'/g,"\\'");
+  // Pass individual params to avoid JSON/quote escaping issues in onclick
+  const crt = court||'X';
+  const call = `trySaveScore(${sesionNum},'${categoria}',${roundNum},'${crt}','${m.id}')`;
   return `<div class="match-row${s?' scored':''}">
     <div class="match-players">
       <span class="match-pair">${p1}</span>
@@ -2479,36 +2479,35 @@ function renderMatchRow(m, pn, court, isS1, sesionNum, categoria, roundNum) {
     <div class="match-score">
       <input class="score-input" type="number" min="0" max="15" placeholder="—"
         id="sc1_${m.id}" value="${s?s.s1:''}"
-        onkeydown="if(event.key==='Enter')trySaveScore('${esc}','${m.id}')"/>
+        onkeydown="if(event.key==='Enter')${call}"/>
       <span class="score-sep">–</span>
       <input class="score-input" type="number" min="0" max="15" placeholder="—"
         id="sc2_${m.id}" value="${s?s.s2:''}"
-        onkeydown="if(event.key==='Enter')trySaveScore('${esc}','${m.id}')"/>
+        onkeydown="if(event.key==='Enter')${call}"/>
       ${s
-        ? `<button class="btn-action" onclick="trySaveScore('${esc}','${m.id}')" title="Cambia los números y haz clic para corregir" style="padding:3px 10px;font-size:.72rem;background:#f0fdf4;color:#065f46;border-color:#6ee7b7;min-width:62px">✓ Editar</button>`
-        : `<button class="btn-action" onclick="trySaveScore('${esc}','${m.id}')" style="padding:3px 10px;font-size:.72rem;min-width:62px">Guardar</button>`
+        ? `<button class="btn-action" onclick="${call}" title="Cambia los números y haz clic para corregir" style="padding:3px 10px;font-size:.72rem;background:#f0fdf4;color:#065f46;border-color:#6ee7b7;min-width:62px">✓ Editar</button>`
+        : `<button class="btn-action" onclick="${call}" style="padding:3px 10px;font-size:.72rem;min-width:62px">Guardar</button>`
       }
     </div>
   </div>`;
 }
 
-async function trySaveScore(keyStr, matchId) {
-  const k = JSON.parse(keyStr.replace(/\\'/g,"'"));
+async function trySaveScore(sesionNum, categoria, roundNum, court, matchId) {
   const s1 = parseInt(document.getElementById('sc1_'+matchId)?.value);
   const s2 = parseInt(document.getElementById('sc2_'+matchId)?.value);
-  if (isNaN(s1) || isNaN(s2) || s1 < 0 || s2 < 0) return;
+  if (isNaN(s1) || isNaN(s2) || s1 < 0 || s2 < 0) { toast('Ingresa ambos resultados', true); return; }
   if (s1 === s2) { toast('El resultado no puede ser empate', true); return; }
 
-  const docId = `t1_sesion_${k.sesionNum}_${k.categoria}`;
+  const docId = `t1_sesion_${sesionNum}_${categoria}`;
   const snap = await db.collection('ladder_fixtures').doc(docId).get();
   if (!snap.exists) return;
   const fx = snap.data();
 
   let updated = false;
   const updatedRounds = (fx.rounds||[]).map(r => {
-    if (r.num !== parseInt(k.roundNum)) return r;
+    if (r.num !== parseInt(roundNum)) return r;
     const upd = arr => (arr||[]).map(m => {
-      if (m.id !== k.matchId) return m;
+      if (m.id !== matchId) return m;
       updated = true;
       return {...m, score:{s1,s2}};
     });
@@ -2516,9 +2515,9 @@ async function trySaveScore(keyStr, matchId) {
     return {...r, matches:upd(r.matches)};
   });
 
-  if (!updated) return;
+  if (!updated) { toast('No se encontró el partido', true); return; }
   await db.collection('ladder_fixtures').doc(docId).update({rounds:updatedRounds});
-  loadAndRenderFixture(parseInt(k.sesionNum), k.categoria);
+  loadAndRenderFixture(parseInt(sesionNum), categoria);
 }
 
 // ── Standings computation ──
