@@ -467,6 +467,9 @@
     <!-- Chips de resumen -->
     <div class="session-summary" id="session-summary"></div>
 
+    <!-- Fixture por categoría -->
+    <div id="fixture-cats-section" style="display:none;margin-bottom:20px"></div>
+
     <!-- Tabla de inscritos -->
     <div id="loading-state">Cargando datos…</div>
     <div class="reg-table-wrap" id="table-wrap" style="display:none">
@@ -490,9 +493,8 @@
     <!-- FIXTURE PANEL -->
     <div id="fixture-panel" style="display:none;margin-top:28px;border:1.5px solid var(--border);background:#fff">
       <div style="background:var(--dark);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
-        <span style="font-family:'Barlow Condensed',sans-serif;font-size:1rem;font-weight:900;text-transform:uppercase;letter-spacing:.06em;color:#fff">🏆 Fixture</span>
-        <div id="fixture-cat-tabs" style="display:flex;gap:6px"></div>
-        <button onclick="document.getElementById('fixture-panel').style.display='none'" style="background:none;border:none;color:rgba(255,255,255,.5);cursor:pointer;font-size:1.4rem;line-height:1">×</button>
+        <span style="font-family:'Barlow Condensed',sans-serif;font-size:1rem;font-weight:900;text-transform:uppercase;letter-spacing:.06em;color:#fff">🏆 Fixture · <span id="fixture-panel-cat-label" style="color:#6ee7b7"></span></span>
+        <button onclick="closeFixturePanel()" style="background:none;border:none;color:rgba(255,255,255,.5);cursor:pointer;font-size:1.4rem;line-height:1">×</button>
       </div>
       <div id="fixture-inner" style="padding:20px"></div>
     </div>
@@ -1261,11 +1263,10 @@ function renderTable(sesionNum) {
     <div class="summary-chip red"><strong>${confirmed}</strong>Confirmados</div>
     <div class="summary-chip gold"><strong>${waitlist}</strong>En espera</div>
     ${pending ? `<div class="summary-chip" style="border-color:#f59e0b"><strong style="color:#92400e">${pending}</strong>Por validar</div>` : ''}
-    <div class="summary-chip"><strong>${counts.principiante}/10</strong>Principiante</div>
-    <div class="summary-chip"><strong>${counts.intermedio}/10</strong>Intermedio</div>
-    <div class="summary-chip green"><strong>${counts.open}/10</strong>Open</div>
-    ${confirmed >= 4 ? `<button class="btn-action" onclick="openFixturePanel(${sesionNum})" style="margin-left:auto;padding:9px 16px;font-size:.82rem;white-space:nowrap;background:#f0fdf4;color:#065f46;border-color:#6ee7b7">🏆 Fixture</button>` : ''}
   `;
+
+  // Sección por categoría con estado de fixture (async)
+  renderFixtureCatSection(sesionNum, counts);
 
   // Tabla
   const tbody = document.getElementById('reg-tbody');
@@ -2110,7 +2111,7 @@ async function doGenerateFixture(sesionNum, categoria) {
   const docId = `t1_sesion_${sesionNum}_${categoria}`;
   await db.collection('ladder_fixtures').doc(docId).set(fixture);
   toast(`✓ Fixture generado · ${categoria} · Sesión ${sesionNum}`);
-  loadAndRenderFixture(sesionNum, categoria);
+  openFixtureForCat(sesionNum, categoria);
 }
 
 // Sort confirmed players: penalized → force B, then by ladder ranking, new players last
@@ -2151,39 +2152,108 @@ async function sortByRanking(confirmed, sesionNum) {
 // ── Fixture panel UI ──
 let _fixtureCat = 'principiante';
 
-async function openFixturePanel(sesionNum) {
+// ── Fixture category section (per-category status + access) ──
+async function renderFixtureCatSection(sesionNum, counts) {
+  const section = document.getElementById('fixture-cats-section');
+  if (!section) return;
+  section.style.display = 'block';
+
+  const catLabels = {principiante:'Principiante', intermedio:'Intermedio', open:'Open'};
+  const cats = ['principiante','intermedio','open'];
+
+  // Skeleton while loading
+  section.innerHTML = `<div style="border:1.5px solid var(--border);background:#fafaf8;padding:0;overflow:hidden">
+    <div style="background:var(--dark);padding:8px 16px;font-family:'Barlow Condensed',sans-serif;font-size:.78rem;font-weight:900;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.6)">🏆 Fixtures por categoría</div>
+    <div style="padding:12px 16px;font-size:.82rem;color:var(--muted)">Cargando estado…</div>
+  </div>`;
+
+  // Load fixture status for each category in parallel
+  const statuses = await Promise.all(cats.map(async cat => {
+    try {
+      const snap = await db.collection('ladder_fixtures').doc(`t1_sesion_${sesionNum}_${cat}`).get();
+      if (!snap.exists) return { cat, status: 'none' };
+      const fx = snap.data();
+      return { cat, status: fx.status || 'r1_active', fx };
+    } catch(e) { return { cat, status: 'none' }; }
+  }));
+
+  const rows = statuses.map(({ cat, status, fx }) => {
+    const n = counts[cat] || 0;
+    const label = catLabels[cat];
+
+    // Status badge
+    let badge = '', btnLabel = '', btnStyle = '';
+    if (status === 'none') {
+      badge = `<span style="background:#f0f0ee;color:var(--muted);padding:2px 8px;font-size:.7rem;font-family:'Space Mono',monospace">Sin fixture</span>`;
+      if (n >= 4) {
+        btnLabel = '⚙️ Generar';
+        btnStyle = 'background:#f0fdf4;color:#065f46;border-color:#6ee7b7';
+      }
+    } else {
+      // Compute completeness
+      const r1 = (fx?.rounds||[])[0];
+      const r2 = (fx?.rounds||[])[1];
+      const allR1 = fx?.format === '2courts'
+        ? (r1?.matchesA||[]).every(m=>m.score) && (r1?.matchesB||[]).every(m=>m.score) && (r1?.matchesA||[]).length > 0
+        : (r1?.matches||[]).every(m=>m.score) && (r1?.matches||[]).length > 0;
+      const allR2 = fx?.format === '2courts'
+        ? (r2?.matchesA||[]).every(m=>m.score) && (r2?.matchesB||[]).every(m=>m.score) && (r2?.matchesA||[]).length > 0
+        : (r2?.matches||[]).every(m=>m.score) && (r2?.matches||[]).length > 0;
+
+      if (fx?.r2generated && allR2) {
+        badge = `<span style="background:#dcfce7;color:#065f46;padding:2px 8px;font-size:.7rem;font-family:'Space Mono',monospace">✓ Completa</span>`;
+      } else if (fx?.r2generated) {
+        badge = `<span style="background:#ede9fe;color:#6d28d9;padding:2px 8px;font-size:.7rem;font-family:'Space Mono',monospace">▶ R2 en curso</span>`;
+      } else if (allR1 && fx?.totalRounds === 2) {
+        badge = `<span style="background:#fef3c7;color:#92400e;padding:2px 8px;font-size:.7rem;font-family:'Space Mono',monospace">⚡ R1 lista → generar R2</span>`;
+      } else if (allR1) {
+        badge = `<span style="background:#dcfce7;color:#065f46;padding:2px 8px;font-size:.7rem;font-family:'Space Mono',monospace">✓ Completa</span>`;
+      } else {
+        badge = `<span style="background:#dbeafe;color:#1d4ed8;padding:2px 8px;font-size:.7rem;font-family:'Space Mono',monospace">▶ R1 en curso</span>`;
+      }
+      btnLabel = '🏆 Ver fixture';
+      btnStyle = 'background:#fff;color:var(--dark);border-color:var(--border)';
+    }
+
+    const btn = (btnLabel && n >= 4)
+      ? `<button class="btn-action" onclick="openFixtureForCat(${sesionNum},'${cat}')" style="${btnStyle};white-space:nowrap">${btnLabel}</button>`
+      : (n < 4 ? `<span style="font-size:.72rem;color:var(--muted)">mín. 4 jugadores (hay ${n})</span>` : '');
+
+    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-top:1px solid var(--border);gap:12px;flex-wrap:wrap">
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:.95rem;text-transform:uppercase;min-width:110px">${label}</span>
+        <span style="font-size:.78rem;color:var(--muted)">${n} jugador${n!==1?'es':''}</span>
+        ${badge}
+      </div>
+      <div>${btn}</div>
+    </div>`;
+  });
+
+  section.innerHTML = `<div style="border:1.5px solid var(--border);background:#fff;overflow:hidden">
+    <div style="background:var(--dark);padding:8px 16px;font-family:'Barlow Condensed',sans-serif;font-size:.78rem;font-weight:900;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.6)">🏆 Fixtures por categoría</div>
+    ${rows.join('')}
+  </div>`;
+}
+
+function openFixtureForCat(sesionNum, cat) {
+  const catLabels = {principiante:'Principiante', intermedio:'Intermedio', open:'Open'};
+  _fixtureCat = cat;
   const panel = document.getElementById('fixture-panel');
-  if (panel.style.display === 'block' && sesionNum === _currentSession) {
-    panel.style.display = 'none';
-    return;
-  }
+  const lbl   = document.getElementById('fixture-panel-cat-label');
+  if (lbl) lbl.textContent = catLabels[cat] || cat;
   panel.style.display = 'block';
   panel.scrollIntoView({ behavior:'smooth', block:'start' });
-
-  const cats = ['principiante','intermedio','open'];
-  const defaultCat = cats.find(c =>
-    (_allData[sesionNum]||[]).filter(p=>p.status==='confirmed'&&p.categoria===c).length >= 4
-  ) || 'principiante';
-  _fixtureCat = defaultCat;
-
-  renderFixtureCatTabs(sesionNum);
-  loadAndRenderFixture(sesionNum, _fixtureCat);
-}
-
-function renderFixtureCatTabs(sesionNum) {
-  const catLabels = {principiante:'Principiante', intermedio:'Intermedio', open:'Open'};
-  document.getElementById('fixture-cat-tabs').innerHTML =
-    ['principiante','intermedio','open'].map(c => {
-      const cnt = (_allData[sesionNum]||[]).filter(p=>p.status==='confirmed'&&p.categoria===c).length;
-      return `<button class="fixture-cat-tab${c===_fixtureCat?' active':''}"
-        onclick="selectFixtureCat(${sesionNum},'${c}')">${catLabels[c]} <span style="opacity:.6;font-size:.65rem">(${cnt})</span></button>`;
-    }).join('');
-}
-
-function selectFixtureCat(sesionNum, cat) {
-  _fixtureCat = cat;
-  renderFixtureCatTabs(sesionNum);
   loadAndRenderFixture(sesionNum, cat);
+}
+
+function closeFixturePanel() {
+  document.getElementById('fixture-panel').style.display = 'none';
+  // Refresh category section to update status badges
+  const counts = {};
+  ['principiante','intermedio','open'].forEach(c => {
+    counts[c] = (_allData[_currentSession]||[]).filter(p=>p.status==='confirmed'&&p.categoria===c).length;
+  });
+  renderFixtureCatSection(_currentSession, counts);
 }
 
 async function loadAndRenderFixture(sesionNum, categoria) {
@@ -2208,6 +2278,12 @@ async function loadAndRenderFixture(sesionNum, categoria) {
     }
     const fx = snap.data();
     inner.innerHTML = renderFixtureHTML(fx, sesionNum, categoria);
+    // Refresh category section badges
+    const counts = {};
+    ['principiante','intermedio','open'].forEach(c => {
+      counts[c] = (_allData[sesionNum]||[]).filter(p=>p.status==='confirmed'&&p.categoria===c).length;
+    });
+    renderFixtureCatSection(sesionNum, counts);
   } catch(err) {
     console.error('loadAndRenderFixture error:', err);
     inner.innerHTML = `<div style="padding:20px;color:var(--red);font-size:.85rem">
