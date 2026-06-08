@@ -1462,7 +1462,10 @@ function renderCalendar() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  loadPublicRanking('principiante');
+  // Wait for anonymous auth before reading Firestore
+  firebase.auth().onAuthStateChanged(user => {
+    if (user) loadPublicRanking(_activeCat || 'principiante');
+  });
   renderCalendar();
 
   document.querySelectorAll('.s-tab').forEach(btn => {
@@ -1488,6 +1491,7 @@ document.addEventListener('DOMContentLoaded', () => {
 <!-- ══ Firebase SDK (ranking público) ══ -->
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
 <script>
   firebase.initializeApp({
     apiKey: "AIzaSyBBmUQR8AGdosXSGNK3galyBmFjkn6jOuM",
@@ -1498,6 +1502,8 @@ document.addEventListener('DOMContentLoaded', () => {
     appId: "1:270487643715:web:701b74a71253ac599056f6"
   });
   const db = firebase.firestore();
+  // Sign in anonymously so Firestore rules allow reads
+  firebase.auth().signInAnonymously().catch(e => console.warn('anon auth:', e));
 </script>
 
 <!-- ══ AUTH BRIDGE — sesión compartida con antigua-pickleball.com ══ -->

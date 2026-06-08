@@ -2555,7 +2555,9 @@ async function loadAndRenderFixture(sesionNum, categoria) {
   inner.innerHTML = '<div style="padding:16px;color:var(--muted);font-size:.82rem;font-family:\'Space Mono\',monospace">Cargando…</div>';
 
   try {
+    console.log('[fixture] loading', sesionNum, categoria);
     const snap = await db.collection('ladder_fixtures').doc(`t1_sesion_${sesionNum}_${categoria}`).get();
+    console.log('[fixture] loaded, exists:', snap.exists);
     if (!snap.exists) {
       const cnt = (_allData[sesionNum]||[]).filter(p=>p.status==='confirmed'&&p.categoria===categoria).length;
       const catLabels = {principiante:'Principiante', intermedio:'Intermedio', open:'Open'};
@@ -2570,7 +2572,9 @@ async function loadAndRenderFixture(sesionNum, categoria) {
       return;
     }
     const fx = snap.data();
+    console.log('[fixture] rendering HTML...');
     inner.innerHTML = renderFixtureHTML(fx, sesionNum, categoria);
+    console.log('[fixture] render done');
     // Refresh category section badges
     const counts = {};
     ['principiante','intermedio','open'].forEach(c => {
