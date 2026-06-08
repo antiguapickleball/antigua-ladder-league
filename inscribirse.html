@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Inscribirse · Antigua Ladder League</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,400;0,600;0,700;0,800;0,900;1,700;1,900&family=Barlow:wght@300;400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --green:  #00c853;
+      --green2: #00e676;
+      --dark:   #0a0f0a;
+      --card:   #111811;
+      --border: #1e2d1e;
+      --text:   #e8f5e9;
+      --muted:  #7a9a7a;
+    }
+    body { background: var(--dark); color: var(--text); font-family: 'Barlow', sans-serif; min-height: 100vh; }
+
+    /* ── NAV ── */
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(10,15,10,.92); backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: .75rem 1.5rem; gap: 1rem;
+    }
+    .nav-logo { display: flex; align-items: center; gap: .6rem; text-decoration: none; }
+    .nav-logo img { height: 36px; width: 36px; object-fit: contain; border-radius: 50%; }
+    .nav-logo span { font-family:'Barlow Condensed',sans-serif; font-weight:800; font-size:1.1rem;
+      letter-spacing:.06em; color:var(--green); text-transform:uppercase; }
+    .nav-right { display: flex; align-items: center; gap: .75rem; }
+    .nav-btn-ghost {
+      font-family:'Barlow Condensed',sans-serif; font-weight:700; font-size:.88rem;
+      letter-spacing:.06em; text-transform:uppercase; color:var(--green);
+      border: 1.5px solid var(--green); border-radius: 6px;
+      padding: .35rem .85rem; text-decoration: none; transition: background .2s;
+    }
+    .nav-btn-ghost:hover { background: rgba(0,200,83,.12); }
+    #nav-user-slot { display: flex; align-items: center; gap: .5rem; }
+    .nav-user {
+      font-family:'Barlow Condensed',sans-serif; font-weight:700; font-size:.88rem;
+      letter-spacing:.04em; text-transform:uppercase; color:var(--green2);
+      text-decoration: none; border-bottom: 1.5px solid transparent; transition: border-color .2s;
+    }
+    .nav-user:hover { border-color: var(--green2); }
+    .nav-chip-admin {
+      font-family:'Space Mono',monospace; font-size:.7rem; font-weight:700;
+      background: #ff6f00; color:#fff; border-radius:4px; padding:.2rem .5rem;
+      text-decoration:none; letter-spacing:.04em;
+    }
+
+    /* ── HERO ── */
+    .hero {
+      text-align: center;
+      padding: 3.5rem 1.5rem 2rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .hero-eyebrow {
+      font-family:'Space Mono',monospace; font-size:.75rem; font-weight:700;
+      letter-spacing:.18em; text-transform:uppercase; color:var(--green); margin-bottom:.75rem;
+    }
+    .hero h1 {
+      font-family:'Barlow Condensed',sans-serif; font-weight:900; font-size:clamp(2.2rem,6vw,3.8rem);
+      letter-spacing:.01em; text-transform:uppercase; line-height:.95;
+      margin-bottom: 1rem;
+    }
+    .hero p { color: var(--muted); font-size:1rem; max-width:520px; margin:0 auto; }
+
+    /* ── GRID ── */
+    .sessions-grid {
+      max-width: 920px; margin: 0 auto;
+      padding: 2.5rem 1.25rem 4rem;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 1.25rem;
+    }
+
+    /* ── SESSION CARD ── */
+    .ses-card {
+      background: var(--card); border: 1.5px solid var(--border); border-radius: 14px;
+      overflow: hidden; display: flex; flex-direction: column;
+      transition: border-color .25s, transform .2s, box-shadow .25s;
+      cursor: pointer; text-decoration: none; color: inherit;
+      position: relative;
+    }
+    .ses-card:hover:not(.ses-disabled) {
+      border-color: var(--green);
+      transform: translateY(-3px);
+      box-shadow: 0 8px 32px rgba(0,200,83,.15);
+    }
+    .ses-card.ses-disabled { opacity: .45; cursor: default; pointer-events: none; }
+
+    .ses-card-top {
+      padding: 1.1rem 1.25rem .75rem;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between; gap:.5rem;
+    }
+    .ses-num {
+      font-family:'Space Mono',monospace; font-size:.7rem; font-weight:700;
+      letter-spacing:.12em; text-transform:uppercase; color:var(--muted);
+    }
+    .ses-status-badge {
+      font-family:'Barlow Condensed',sans-serif; font-size:.78rem; font-weight:700;
+      letter-spacing:.06em; text-transform:uppercase; border-radius:5px; padding:.18rem .55rem;
+    }
+    .badge-proxima  { background:rgba(0,200,83,.15);  color:var(--green2); border:1px solid rgba(0,200,83,.3); }
+    .badge-pendiente{ background:rgba(120,120,120,.1); color:var(--muted);  border:1px solid rgba(120,120,120,.2); }
+    .badge-jugada   { background:rgba(100,100,100,.15);color:#666;          border:1px solid #333; }
+    .badge-llena    { background:rgba(255,100,0,.12);  color:#ff7043;       border:1px solid rgba(255,100,0,.3); }
+
+    .ses-card-body { padding: 1rem 1.25rem; flex: 1; }
+    .ses-fecha {
+      font-family:'Barlow Condensed',sans-serif; font-weight:900; font-size:2rem;
+      letter-spacing:.01em; text-transform:uppercase; line-height:1; margin-bottom:.6rem;
+    }
+    .ses-dia { font-size:1rem; font-weight:600; color:var(--muted); }
+
+    .ses-horarios { display: flex; flex-direction: column; gap: .3rem; margin-top: .9rem; }
+    .ses-h-row {
+      display: flex; align-items: center; gap: .5rem;
+      font-size: .8rem; color: var(--muted); font-weight: 500;
+    }
+    .ses-h-cat {
+      font-family:'Barlow Condensed',sans-serif; font-weight:800; font-size:.72rem;
+      letter-spacing:.06em; border-radius:4px; padding:.08rem .32rem; flex-shrink:0;
+    }
+    .ses-h-cat.p { background:rgba(0,200,83,.18);  color:var(--green2); }
+    .ses-h-cat.i { background:rgba(33,150,243,.18); color:#64b5f6; }
+    .ses-h-cat.o { background:rgba(255,193,7,.18);  color:#ffd54f; }
+
+    .ses-card-footer {
+      padding: .75rem 1.25rem 1rem;
+      border-top: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between; gap: .5rem;
+    }
+    .ses-cupos { font-size: .8rem; color: var(--muted); }
+    .ses-cupos span { color: var(--text); font-weight: 600; }
+    .ses-cta {
+      font-family:'Barlow Condensed',sans-serif; font-weight:800; font-size:.85rem;
+      letter-spacing:.07em; text-transform:uppercase; color: var(--green);
+    }
+    .ses-cta-arrow { margin-left:.2rem; transition: transform .2s; }
+    .ses-card:hover:not(.ses-disabled) .ses-cta-arrow { transform: translateX(4px); }
+
+    /* Skeleton loader */
+    .cupos-skeleton {
+      display: inline-block; width: 60px; height: 12px;
+      background: linear-gradient(90deg, #1e2d1e 25%, #2a3d2a 50%, #1e2d1e 75%);
+      background-size: 200% 100%; border-radius: 4px;
+      animation: shimmer 1.4s infinite;
+    }
+    @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+
+    /* Login prompt */
+    .login-notice {
+      text-align:center; padding: 2.5rem 1.5rem;
+      border: 1.5px solid var(--border); border-radius: 14px;
+      max-width: 480px; margin: 3rem auto;
+    }
+    .login-notice p { color: var(--muted); margin-bottom: 1.25rem; font-size:.95rem; }
+    .btn-login {
+      display:inline-block; font-family:'Barlow Condensed',sans-serif; font-weight:800;
+      font-size:1rem; letter-spacing:.06em; text-transform:uppercase;
+      background: var(--green); color: #0a0f0a; border-radius: 8px;
+      padding: .6rem 1.5rem; text-decoration:none; transition: opacity .2s;
+    }
+    .btn-login:hover { opacity:.85; }
+
+    @media (max-width:480px) {
+      .sessions-grid { padding: 1.5rem .75rem 3rem; gap: .9rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a class="nav-logo" href="index.html">
+    <img src="img/logo.png" alt="ALL" onerror="this.style.display='none'"/>
+    <span>Ladder League</span>
+  </a>
+  <div class="nav-right">
+    <div id="nav-user-slot">
+      <a class="nav-btn-ghost" id="nav-login-btn" href="https://antigua-pickleball.com/login?redirect=https://ladder.antigua-pickleball.com/inscribirse.html">Iniciar sesión</a>
+    </div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <p class="hero-eyebrow">Antigua Ladder League · Temporada 1</p>
+  <h1>Elige tu<br/>sesión</h1>
+  <p>Selecciona la semana en la que quieres jugar. Puedes inscribirte a más de una sesión.</p>
+</div>
+
+<!-- SESSION GRID -->
+<div class="sessions-grid" id="sessions-grid">
+  <!-- rendered by JS -->
+</div>
+
+<script type="module">
+  import { initializeApp }        from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+  import { getAuth, signInAnonymously } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+  import { getFirestore, collection, getDocs, query, where }
+    from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+  import '/js/auth-bridge-client.js';
+
+  const FB_CONFIG = {
+    apiKey:            "AIzaSyD8bfKBxoBpXJlSBSGK0HJJ7Gc_2L7lyg4",
+    authDomain:        "antigua-pickleball.firebaseapp.com",
+    projectId:         "antigua-pickleball",
+    storageBucket:     "antigua-pickleball.appspot.com",
+    messagingSenderId: "584018293848",
+    appId:             "1:584018293848:web:f4af79b7c1b6c3e3f32a1f"
+  };
+  const app  = initializeApp(FB_CONFIG);
+  const auth = getAuth(app);
+  const db   = getFirestore(app);
+
+  const SEMANAS = [
+    { num:1, fecha:'4 Jul',   dia:'Sábado', estado:'proxima'  },
+    { num:2, fecha:'18 Jul',  dia:'Sábado', estado:'pendiente'},
+    { num:3, fecha:'25 Jul',  dia:'Sábado', estado:'pendiente'},
+    { num:4, fecha:'1 Ago',   dia:'Sábado', estado:'pendiente'},
+    { num:5, fecha:'8 Ago',   dia:'Sábado', estado:'pendiente'},
+    { num:6, fecha:'15 Ago',  dia:'Sábado', estado:'pendiente'},
+    { num:7, fecha:'22 Ago',  dia:'Sábado', estado:'pendiente'},
+    { num:8, fecha:'29 Ago',  dia:'Sábado', estado:'pendiente'},
+  ];
+
+  const MAX_POR_CAT = 10; // cupos por categoría
+  const CATS = ['principiante','intermedio','open'];
+  const HORARIOS = [
+    { key:'principiante', label:'P', hora:'8:00 – 9:30 am' },
+    { key:'intermedio',   label:'I', hora:'9:30 – 11:00 am' },
+    { key:'open',         label:'O', hora:'11:00 am – 12:30 pm' },
+  ];
+
+  // ── Auth ─────────────────────────────────────────────────────────────────
+  const user = window.APAuth?.getUser?.() || null;
+
+  function updateNav() {
+    const slot = document.getElementById('nav-user-slot');
+    if (!user) return;
+    const first = user.displayName?.split(' ')[0] || 'Jugador';
+    const profileURL = 'https://antigua-pickleball.com/perfil';
+    const isAdmin = user.role === 'admin';
+    slot.innerHTML = `
+      ${isAdmin ? `<a class="nav-chip-admin" href="admin.html">⚙ Admin</a>` : ''}
+      <a class="nav-user" href="${profileURL}" target="_blank" rel="noopener">${first}</a>`;
+  }
+  updateNav();
+
+  // Anonymous auth so Firestore reads work
+  await signInAnonymously(auth).catch(() => {});
+
+  // ── Load counts from Firestore ───────────────────────────────────────────
+  async function loadCounts() {
+    const counts = {}; // counts[sesionNum][categoria] = { confirmed, waitlist }
+    SEMANAS.forEach(s => {
+      counts[s.num] = {};
+      CATS.forEach(c => { counts[s.num][c] = { confirmed:0, waitlist:0 }; });
+    });
+
+    try {
+      // Fetch all sessions in parallel
+      await Promise.all(SEMANAS.map(async s => {
+        const col = collection(db, `ladder_sesion_${s.num}`);
+        const snap = await getDocs(col);
+        snap.forEach(doc => {
+          const d = doc.data();
+          const cat = d.categoria;
+          const sta = d.status;
+          if (!counts[s.num][cat]) return;
+          if (sta === 'confirmed' || sta === 'pending_review') counts[s.num][cat].confirmed++;
+          else if (sta === 'waitlist') counts[s.num][cat].waitlist++;
+        });
+      }));
+    } catch(e) {
+      console.warn('No se pudo cargar cupos:', e);
+    }
+    return counts;
+  }
+
+  function badgeClass(estado) {
+    if (estado === 'proxima')   return 'badge-proxima';
+    if (estado === 'jugada')    return 'badge-jugada';
+    return 'badge-pendiente';
+  }
+  function badgeLabel(estado) {
+    if (estado === 'proxima')   return 'Próxima';
+    if (estado === 'jugada')    return 'Finalizada';
+    return 'Próximamente';
+  }
+
+  function totalConfirmed(counts, sesNum) {
+    return CATS.reduce((a,c) => a + counts[sesNum][c].confirmed, 0);
+  }
+  function totalMax() { return MAX_POR_CAT * CATS.length; }
+
+  // ── Render cards ─────────────────────────────────────────────────────────
+  function renderCards(counts) {
+    const grid = document.getElementById('sessions-grid');
+    grid.innerHTML = '';
+
+    SEMANAS.forEach(s => {
+      const disabled  = s.estado === 'jugada';
+      const isOpen    = s.estado === 'proxima';
+      const confirmed = totalConfirmed(counts, s.num);
+      const available = totalMax() - confirmed;
+      const llena     = available <= 0 && isOpen;
+
+      const badge = llena
+        ? `<span class="ses-status-badge badge-llena">Llena</span>`
+        : `<span class="ses-status-badge ${badgeClass(s.estado)}">${badgeLabel(s.estado)}</span>`;
+
+      const horariosHtml = HORARIOS.map(h => `
+        <div class="ses-h-row">
+          <span class="ses-h-cat ${h.key[0]}">${h.label}</span>
+          ${h.hora}
+        </div>`).join('');
+
+      // cupos display
+      const cuposHtml = isOpen
+        ? `<span class="ses-cupos"><span>${available > 0 ? available : 0}</span> / ${totalMax()} cupos disponibles</span>`
+        : `<span class="ses-cupos">Abre pronto</span>`;
+
+      const href = `sesion.html?n=${s.num}`;
+      const disabledAttr = disabled ? 'ses-disabled' : '';
+      const tag = disabled ? 'div' : 'a';
+      const hrefAttr = disabled ? '' : `href="${href}"`;
+
+      grid.innerHTML += `
+        <${tag} class="ses-card ${disabledAttr}" ${hrefAttr}>
+          <div class="ses-card-top">
+            <span class="ses-num">Semana ${s.num}</span>
+            ${badge}
+          </div>
+          <div class="ses-card-body">
+            <div class="ses-fecha">${s.fecha}</div>
+            <div class="ses-dia">${s.dia}</div>
+            <div class="ses-horarios">${horariosHtml}</div>
+          </div>
+          <div class="ses-card-footer">
+            ${cuposHtml}
+            ${!disabled ? `<span class="ses-cta">Inscribirme <span class="ses-cta-arrow">→</span></span>` : ''}
+          </div>
+        </${tag}>`;
+    });
+  }
+
+  // ── Skeleton render (while loading) ─────────────────────────────────────
+  function renderSkeleton() {
+    const grid = document.getElementById('sessions-grid');
+    grid.innerHTML = '';
+    SEMANAS.forEach(s => {
+      const isOpen = s.estado === 'proxima';
+      const badge  = `<span class="ses-status-badge ${badgeClass(s.estado)}">${badgeLabel(s.estado)}</span>`;
+      const horariosHtml = HORARIOS.map(h => `
+        <div class="ses-h-row">
+          <span class="ses-h-cat ${h.key[0]}">${h.label}</span>
+          ${h.hora}
+        </div>`).join('');
+      grid.innerHTML += `
+        <a class="ses-card" href="sesion.html?n=${s.num}">
+          <div class="ses-card-top">
+            <span class="ses-num">Semana ${s.num}</span>
+            ${badge}
+          </div>
+          <div class="ses-card-body">
+            <div class="ses-fecha">${s.fecha}</div>
+            <div class="ses-dia">${s.dia}</div>
+            <div class="ses-horarios">${horariosHtml}</div>
+          </div>
+          <div class="ses-card-footer">
+            ${isOpen ? `<span class="ses-cupos"><span class="cupos-skeleton"></span></span>` : '<span class="ses-cupos">Abre pronto</span>'}
+            <span class="ses-cta">Inscribirme <span class="ses-cta-arrow">→</span></span>
+          </div>
+        </a>`;
+    });
+  }
+
+  // ── Init ─────────────────────────────────────────────────────────────────
+  renderSkeleton();
+  const counts = await loadCounts();
+  renderCards(counts);
+</script>
+</body>
+</html>
