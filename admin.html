@@ -2188,24 +2188,33 @@ function selectFixtureCat(sesionNum, cat) {
 
 async function loadAndRenderFixture(sesionNum, categoria) {
   const inner = document.getElementById('fixture-inner');
+  if (!inner) return;
   inner.innerHTML = '<div style="padding:16px;color:var(--muted);font-size:.82rem;font-family:\'Space Mono\',monospace">Cargando…</div>';
 
-  const snap = await db.collection('ladder_fixtures').doc(`t1_sesion_${sesionNum}_${categoria}`).get();
-  if (!snap.exists) {
-    const cnt = (_allData[sesionNum]||[]).filter(p=>p.status==='confirmed'&&p.categoria===categoria).length;
-    const catLabels = {principiante:'Principiante', intermedio:'Intermedio', open:'Open'};
-    inner.innerHTML = `<div style="padding:20px">
-      <p style="font-size:.9rem;color:var(--muted);margin-bottom:16px">
-        ${cnt >= 4
-          ? `<strong>${cnt}</strong> jugadores confirmados en <strong>${catLabels[categoria]}</strong>. Listo para generar el fixture.`
-          : `Se necesitan al menos <strong>4</strong> jugadores confirmados en ${catLabels[categoria]} (hay ${cnt}).`}
-      </p>
-      ${cnt >= 4 ? `<button class="btn-modal btn-save" onclick="doGenerateFixture(${sesionNum},'${categoria}')">⚙️ Generar Fixture</button>` : ''}
+  try {
+    const snap = await db.collection('ladder_fixtures').doc(`t1_sesion_${sesionNum}_${categoria}`).get();
+    if (!snap.exists) {
+      const cnt = (_allData[sesionNum]||[]).filter(p=>p.status==='confirmed'&&p.categoria===categoria).length;
+      const catLabels = {principiante:'Principiante', intermedio:'Intermedio', open:'Open'};
+      inner.innerHTML = `<div style="padding:20px">
+        <p style="font-size:.9rem;color:var(--muted);margin-bottom:16px">
+          ${cnt >= 4
+            ? `<strong>${cnt}</strong> jugadores confirmados en <strong>${catLabels[categoria]}</strong>. Listo para generar el fixture.`
+            : `Se necesitan al menos <strong>4</strong> jugadores confirmados en ${catLabels[categoria]} (hay ${cnt}).`}
+        </p>
+        ${cnt >= 4 ? `<button class="btn-modal btn-save" onclick="doGenerateFixture(${sesionNum},'${categoria}')">⚙️ Generar Fixture</button>` : ''}
+      </div>`;
+      return;
+    }
+    const fx = snap.data();
+    inner.innerHTML = renderFixtureHTML(fx, sesionNum, categoria);
+  } catch(err) {
+    console.error('loadAndRenderFixture error:', err);
+    inner.innerHTML = `<div style="padding:20px;color:var(--red);font-size:.85rem">
+      ✕ Error al cargar: ${err.message || err}<br>
+      <span style="font-size:.75rem;color:var(--muted)">Revisa la consola para más detalles.</span>
     </div>`;
-    return;
   }
-  const fx = snap.data();
-  inner.innerHTML = renderFixtureHTML(fx, sesionNum, categoria);
 }
 
 function renderFixtureHTML(fx, sesionNum, categoria) {
