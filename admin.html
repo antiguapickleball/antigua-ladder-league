@@ -117,8 +117,10 @@
     tbody tr { border-bottom: 1px solid var(--border); transition: background .1s; }
     tbody tr:last-child { border: none; }
     tbody tr:hover { background: #fafaf8; }
-    tbody tr.waitlist-row { background: #fffbeb; }
-    tbody tr.waitlist-row:hover { background: #fef3c7; }
+    tbody tr.waitlist-row  { background: #fffbeb; }
+    tbody tr.waitlist-row:hover  { background: #fef3c7; }
+    tbody tr.pending-row   { background: #fef9c3; }
+    tbody tr.pending-row:hover   { background: #fef08a; }
     td { padding: 10px 14px; vertical-align: middle; }
     td.num { font-family: 'Space Mono', monospace; font-size: .7rem; color: var(--muted); width: 36px; }
     td.nombre { font-weight: 600; }
@@ -152,12 +154,63 @@
       font-size: .72rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase;
       padding: 5px 10px; cursor: pointer; border: 1px solid; transition: all .15s; margin-right: 4px;
     }
-    .btn-edit   { background: #fff; color: var(--dark); border-color: var(--border); }
+    .btn-edit    { background: #fff; color: var(--dark); border-color: var(--border); }
     .btn-edit:hover { background: #f0f0ee; }
-    .btn-move   { background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; }
+    .btn-move    { background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; }
     .btn-move:hover { background: #dbeafe; }
-    .btn-delete { background: #fef2f2; color: var(--red); border-color: #fecaca; }
+    .btn-delete  { background: #fef2f2; color: var(--red); border-color: #fecaca; }
     .btn-delete:hover { background: #fee2e2; }
+    .btn-accept  { background: #d1fae5; color: #065f46; border-color: #6ee7b7; }
+    .btn-accept:hover { background: #a7f3d0; }
+    .btn-deny    { background: #fef2f2; color: #991b1b; border-color: #fca5a5; }
+    .btn-deny:hover { background: #fee2e2; }
+    .btn-wa      { background: #25D366; color: #fff; border-color: #25D366; }
+    .btn-wa:hover { background: #1ebe57; }
+
+    /* PENDING SECTION */
+    .pending-section {
+      margin-bottom: 32px; border: 2px solid #f59e0b; background: #fff;
+    }
+    .pending-header {
+      background: #fffbeb; padding: 14px 20px;
+      display: flex; align-items: center; justify-content: space-between;
+      border-bottom: 1px solid #fcd34d;
+    }
+    .pending-title {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 1rem; font-weight: 900; text-transform: uppercase; letter-spacing: .06em; color: #92400e;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .pending-count {
+      background: #f59e0b; color: #fff;
+      font-family: 'Space Mono', monospace; font-size: .7rem; font-weight: 700;
+      padding: 2px 8px; border-radius: 99px;
+    }
+
+    /* BOLETA PREVIEW */
+    .boleta-thumb {
+      width: 48px; height: 48px; object-fit: cover; border: 1px solid var(--border);
+      cursor: pointer; transition: transform .15s;
+    }
+    .boleta-thumb:hover { transform: scale(1.1); }
+    .boleta-pdf {
+      display: inline-flex; align-items: center; gap: 4px;
+      font-family: 'Barlow Condensed', sans-serif; font-size: .75rem; font-weight: 700;
+      padding: 5px 10px; border: 1px solid var(--border); background: #f8f8f6; color: var(--red);
+      text-decoration: none;
+    }
+
+    /* LIGHTBOX */
+    #lightbox {
+      display: none; position: fixed; inset: 0; background: rgba(0,0,0,.9);
+      z-index: 2000; align-items: center; justify-content: center;
+    }
+    #lightbox.open { display: flex; }
+    #lightbox img { max-width: 90vw; max-height: 90vh; object-fit: contain; }
+    #lightbox-close {
+      position: absolute; top: 20px; right: 24px;
+      background: none; border: none; color: #fff; font-size: 2rem; cursor: pointer; line-height: 1;
+    }
 
     /* MODAL */
     .modal-overlay {
@@ -259,6 +312,27 @@
       </div>
     </div>
 
+    <!-- PENDIENTES DE VALIDACIÓN -->
+    <div id="pending-section" style="display:none" class="pending-section">
+      <div class="pending-header">
+        <div class="pending-title">
+          🕐 Pendientes de validación
+          <span class="pending-count" id="pending-count-badge">0</span>
+        </div>
+      </div>
+      <div style="overflow-x:auto">
+        <table>
+          <thead>
+            <tr>
+              <th>Jugador</th><th>Sesión</th><th>Cat.</th><th>DUPR</th>
+              <th>Teléfono</th><th>Boleta</th><th>Registro</th><th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="pending-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
     <!-- Tabs por sesión -->
     <div class="session-tabs" id="session-tabs"></div>
 
@@ -316,7 +390,9 @@
         <label class="field-label">Estado</label>
         <select class="field-select" id="edit-status">
           <option value="confirmed">Confirmado (pagó)</option>
+          <option value="pending_review">Por validar (transferencia)</option>
           <option value="waitlist">Lista de espera</option>
+          <option value="denied">Denegado</option>
         </select>
       </div>
     </div>
@@ -375,6 +451,12 @@
 
 <!-- Toast -->
 <div id="toast"></div>
+
+<!-- Lightbox para ver boleta -->
+<div id="lightbox" onclick="closeLightbox()">
+  <button id="lightbox-close" onclick="closeLightbox()">×</button>
+  <img id="lightbox-img" src="" alt="Boleta"/>
+</div>
 
 <!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
@@ -487,6 +569,9 @@ function subscribeAll() {
         // Actualizar tabla si es la sesión activa
         if (s.num === _currentSession) renderTable(s.num);
 
+        // Siempre actualizar panel de pendientes
+        renderPending();
+
       }, err => console.error(`Error sesión ${s.num}:`, err));
     _unsubscribers.push(unsub);
   });
@@ -495,8 +580,127 @@ function subscribeAll() {
   setTimeout(() => {
     document.getElementById('loading-state').style.display = 'none';
     renderTable(_currentSession);
+    renderPending();
   }, 1500);
 }
+
+/* ══════════════════════════════════════════════════════
+   RENDER PENDIENTES
+══════════════════════════════════════════════════════ */
+function renderPending() {
+  // Recopilar todos los pendientes de todas las sesiones
+  const pending = [];
+  Object.entries(_allData).forEach(([num, inscritos]) => {
+    inscritos.filter(p => p.status === 'pending_review').forEach(p => {
+      pending.push({ ...p, sesionNum: parseInt(num) });
+    });
+  });
+  pending.sort((a,b) => (a.registeredAt?.seconds||0) - (b.registeredAt?.seconds||0));
+
+  const section = document.getElementById('pending-section');
+  const badge   = document.getElementById('pending-count-badge');
+  const tbody   = document.getElementById('pending-tbody');
+
+  if (!pending.length) {
+    section.style.display = 'none';
+    return;
+  }
+
+  section.style.display = 'block';
+  badge.textContent     = pending.length;
+
+  const catLabels = { principiante:'Principiante', intermedio:'Intermedio', open:'Open' };
+  const sesLabels = (n) => {
+    const s = SEMANAS.find(x=>x.num===n);
+    return s ? (s.estado==='gran-final' ? 'Gran Final' : `Semana ${n} · ${s.fecha}`) : `S${n}`;
+  };
+
+  tbody.innerHTML = pending.map(p => {
+    const fecha = p.registeredAt
+      ? new Date(p.registeredAt.seconds*1000).toLocaleDateString('es-GT',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})
+      : '—';
+
+    const boletaCell = p.boletaUrl
+      ? (p.boletaUrl.match(/\.pdf/i)
+          ? `<a href="${p.boletaUrl}" target="_blank" class="boleta-pdf">📄 PDF</a>`
+          : `<img src="${p.boletaUrl}" class="boleta-thumb" onclick="openLightbox('${p.boletaUrl}')" title="Ver boleta"/>`)
+      : '<span style="color:var(--muted);font-size:.75rem">Sin boleta</span>';
+
+    const waMsg  = encodeURIComponent(`Hola ${p.nombre}, tu inscripción en Ladder League ${sesLabels(p.sesionNum)} fue confirmada. ¡Nos vemos en cancha!`);
+    const waLink = `https://wa.me/${(p.phone||'').replace(/\D/g,'')}?text=${waMsg}`;
+
+    return `<tr class="pending-row">
+      <td class="nombre">${p.nombre}<br><span style="font-size:.72rem;color:var(--muted)">${p.email}</span></td>
+      <td style="white-space:nowrap;font-size:.8rem">${sesLabels(p.sesionNum)}</td>
+      <td>${p.categoria ? `<span class="cat-badge ${p.categoria}">${catLabels[p.categoria]||p.categoria}</span>` : '—'}</td>
+      <td class="dupr">${p.duprId||'—'}</td>
+      <td style="font-family:'Space Mono',monospace;font-size:.75rem">${p.phone||'—'}</td>
+      <td>${boletaCell}</td>
+      <td class="fecha">${fecha}</td>
+      <td class="actions" style="white-space:nowrap">
+        <button class="btn-action btn-accept" onclick="acceptPending(${p.sesionNum},'${p.uid}')">✓ Aceptar</button>
+        <button class="btn-action btn-deny"   onclick="denyPending(${p.sesionNum},'${p.uid}')">✕ Denegar</button>
+        ${p.phone ? `<a href="${waLink}" target="_blank" class="btn-action btn-wa" style="text-decoration:none;display:inline-block">💬 WA</a>` : ''}
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+async function acceptPending(sesionNum, uid) {
+  const player = (_allData[sesionNum]||[]).find(p=>p.uid===uid);
+  if (!player) return;
+  if (!confirm(`¿Aceptar inscripción de ${player.nombre}?`)) return;
+
+  try {
+    const docRef  = db.collection(COLLECTION).doc(`t1_sesion_${sesionNum}`);
+    const snap    = await docRef.get();
+    const updated = (snap.data()?.inscritos||[]).map(p =>
+      p.uid === uid ? { ...p, status: 'confirmed', approvedAt: firebase.firestore.Timestamp.now() } : p
+    );
+    await docRef.update({ inscritos: updated });
+
+    // WhatsApp automático si tiene teléfono
+    if (player.phone) {
+      const sesLabel = SEMANAS.find(s=>s.num===sesionNum)?.estado==='gran-final'
+        ? 'Gran Final' : `Semana ${sesionNum}`;
+      const msg = encodeURIComponent(`Hola ${player.nombre} 👋 Tu inscripción en *Antigua Ladder League – ${sesLabel}* fue *confirmada*. ¡Nos vemos en cancha! 🎾`);
+      window.open(`https://wa.me/${player.phone.replace(/\D/g,'')}?text=${msg}`, '_blank');
+    }
+
+    toast(`✓ ${player.nombre} aceptado`);
+  } catch(err) { console.error(err); toast('✕ Error al aceptar', true); }
+}
+
+async function denyPending(sesionNum, uid) {
+  const player = (_allData[sesionNum]||[]).find(p=>p.uid===uid);
+  if (!player) return;
+  if (!confirm(`¿Denegar inscripción de ${player.nombre}? Se eliminará su registro.`)) return;
+
+  try {
+    const docRef  = db.collection(COLLECTION).doc(`t1_sesion_${sesionNum}`);
+    const snap    = await docRef.get();
+    const updated = (snap.data()?.inscritos||[]).filter(p => p.uid !== uid);
+    await docRef.update({ inscritos: updated });
+
+    if (player.phone) {
+      const msg = encodeURIComponent(`Hola ${player.nombre}, lamentablemente tu inscripción en Antigua Ladder League no pudo ser validada. Contáctanos para más información.`);
+      window.open(`https://wa.me/${player.phone.replace(/\D/g,'')}?text=${msg}`, '_blank');
+    }
+
+    toast(`Inscripción de ${player.nombre} denegada`);
+  } catch(err) { console.error(err); toast('✕ Error', true); }
+}
+
+// ── Lightbox ──
+function openLightbox(url) {
+  document.getElementById('lightbox-img').src = url;
+  document.getElementById('lightbox').classList.add('open');
+}
+function closeLightbox() {
+  document.getElementById('lightbox').classList.remove('open');
+  document.getElementById('lightbox-img').src = '';
+}
+document.addEventListener('keydown', e => { if (e.key==='Escape') closeLightbox(); });
 
 /* ══════════════════════════════════════════════════════
    RENDER TABLA
@@ -506,9 +710,11 @@ function renderTable(sesionNum) {
   const inscritos = (_allData[sesionNum] || [])
     .slice()
     .sort((a, b) => {
-      // confirmed primero, luego waitlist
-      if (a.status === b.status) return (a.registeredAt?.seconds||0) - (b.registeredAt?.seconds||0);
-      return a.status === 'confirmed' ? -1 : 1;
+      // confirmed → pending_review → waitlist → denied
+      const order = { confirmed:0, pending_review:1, waitlist:2, denied:3 };
+      const oa = order[a.status]??9, ob = order[b.status]??9;
+      if (oa !== ob) return oa - ob;
+      return (a.registeredAt?.seconds||0) - (b.registeredAt?.seconds||0);
     });
 
   // Ocultar loading, mostrar tabla
@@ -518,12 +724,14 @@ function renderTable(sesionNum) {
   // Summary chips
   const confirmed = inscritos.filter(p => p.status === 'confirmed').length;
   const waitlist  = inscritos.filter(p => p.status === 'waitlist').length;
+  const pending   = inscritos.filter(p => p.status === 'pending_review').length;
   const counts    = { principiante: 0, intermedio: 0, open: 0 };
   inscritos.filter(p=>p.status==='confirmed').forEach(p => { if (counts[p.categoria]!==undefined) counts[p.categoria]++; });
 
   document.getElementById('session-summary').innerHTML = `
     <div class="summary-chip red"><strong>${confirmed}</strong>Confirmados</div>
     <div class="summary-chip gold"><strong>${waitlist}</strong>En espera</div>
+    ${pending ? `<div class="summary-chip" style="border-color:#f59e0b"><strong style="color:#92400e">${pending}</strong>Por validar</div>` : ''}
     <div class="summary-chip"><strong>${counts.principiante}/10</strong>Principiante</div>
     <div class="summary-chip"><strong>${counts.intermedio}/10</strong>Intermedio</div>
     <div class="summary-chip green"><strong>${counts.open}/10</strong>Open</div>
@@ -539,19 +747,27 @@ function renderTable(sesionNum) {
   const catLabels = { principiante:'Principiante', intermedio:'Intermedio', open:'Open' };
 
   tbody.innerHTML = inscritos.map((p, i) => {
-    const isWait = p.status === 'waitlist';
-    const fecha  = p.registeredAt
+    const isWait    = p.status === 'waitlist';
+    const isPending = p.status === 'pending_review';
+    const fecha     = p.registeredAt
       ? new Date(p.registeredAt.seconds*1000).toLocaleDateString('es-GT', {day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'})
       : '—';
-    return `<tr class="${isWait?'waitlist-row':''}">
+    const statusLabels = { confirmed:'Confirmado', waitlist:'Espera', pending_review:'Por validar', denied:'Denegado' };
+    const rowClass = isWait ? 'waitlist-row' : isPending ? 'pending-row' : '';
+    return `<tr class="${rowClass}">
       <td class="num">${i+1}</td>
       <td class="nombre">${p.nombre || '—'}</td>
       <td class="dupr">${p.duprId || '—'}</td>
       <td>${p.categoria ? `<span class="cat-badge ${p.categoria}">${catLabels[p.categoria]||p.categoria}</span>` : '—'}</td>
-      <td><span class="status-badge ${p.status}">${isWait ? 'Espera' : 'Confirmado'}</span></td>
+      <td>
+        <span class="status-badge ${p.status}">${statusLabels[p.status]||p.status}</span>
+        ${isPending && p.boletaUrl ? `<br><a href="${p.boletaUrl}" target="_blank" style="font-size:.68rem;color:var(--red)">Ver boleta</a>` : ''}
+      </td>
       <td class="email">${p.email || '—'}</td>
       <td class="fecha">${fecha}</td>
       <td class="actions">
+        ${isPending ? `<button class="btn-action btn-accept" onclick="acceptPending(${sesionNum},'${p.uid}')">✓</button>
+                       <button class="btn-action btn-deny"   onclick="denyPending(${sesionNum},'${p.uid}')">✕</button>` : ''}
         <button class="btn-action btn-edit"   onclick="openEdit(${sesionNum}, '${p.uid}')">Editar</button>
         <button class="btn-action btn-move"   onclick="openMove(${sesionNum}, '${p.uid}')">Mover</button>
         <button class="btn-action btn-delete" onclick="openDelete(${sesionNum}, '${p.uid}')">Borrar</button>

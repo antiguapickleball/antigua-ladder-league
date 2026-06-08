@@ -303,6 +303,71 @@
     .btn-waitlist:hover { background: #fef3c7; }
     .btn-waitlist:disabled { opacity: .5; cursor: default; }
 
+    /* PAYMENT METHOD TOGGLE */
+    .pay-method-toggle {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 4px;
+    }
+    .pay-method-btn {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: .82rem; font-weight: 800; letter-spacing: .07em; text-transform: uppercase;
+      padding: 11px 8px; border: 2px solid var(--border); background: #fff;
+      color: var(--muted); cursor: pointer; transition: all .15s; text-align: center;
+      display: flex; flex-direction: column; align-items: center; gap: 3px;
+    }
+    .pay-method-btn .pm-icon { font-size: 1.3rem; }
+    .pay-method-btn.active { border-color: var(--red); background: #fff5f5; color: var(--dark); }
+    .pay-method-btn:hover:not(.active) { border-color: #aaa; color: var(--dark); }
+
+    /* TRANSFER FORM */
+    .transfer-form { display: flex; flex-direction: column; gap: 12px; }
+    .bank-info-box {
+      background: #f0fdf4; border: 1px solid #86efac; padding: 14px 16px;
+      display: flex; flex-direction: column; gap: 6px;
+    }
+    .bank-info-box .bank-title {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: .72rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase;
+      color: #166534; margin-bottom: 2px;
+    }
+    .bank-info-box .bank-row { font-size: .88rem; color: #14532d; line-height: 1.5; }
+    .bank-info-box .bank-row strong { font-weight: 700; }
+    .bank-amount {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 2rem; font-weight: 900; color: #166534; letter-spacing: .02em;
+    }
+    .upload-area {
+      border: 2px dashed var(--border); padding: 20px 16px; text-align: center;
+      cursor: pointer; transition: border-color .15s; position: relative;
+    }
+    .upload-area:hover { border-color: var(--red); }
+    .upload-area.has-file { border-color: var(--court); border-style: solid; background: var(--court-light); }
+    .upload-area input[type="file"] {
+      position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+    }
+    .upload-icon { font-size: 1.8rem; margin-bottom: 4px; }
+    .upload-label { font-family: 'Barlow Condensed', sans-serif; font-size: .85rem; font-weight: 700; color: var(--muted); }
+    .upload-label.ok { color: var(--court); }
+    .phone-input {
+      font-family: 'Barlow', sans-serif; font-size: .9rem;
+      padding: 9px 12px; border: 2px solid var(--border); width: 100%;
+      transition: border-color .15s; outline: none;
+    }
+    .phone-input:focus { border-color: var(--red); }
+    .btn-transfer-submit {
+      width: 100%; padding: 14px; font-family: 'Barlow Condensed', sans-serif;
+      font-size: 1.05rem; font-weight: 900; letter-spacing: .08em; text-transform: uppercase;
+      background: var(--court); color: #fff; border: none; cursor: pointer; transition: background .15s;
+    }
+    .btn-transfer-submit:hover { background: #3a6340; }
+    .btn-transfer-submit:disabled { opacity: .5; cursor: default; }
+
+    /* PENDING REVIEW badge */
+    .reg-msg.pending {
+      border-color: #f59e0b; background: #fffbeb; color: #92400e;
+    }
+    .status-badge.pending_review { background: #fef3c7; color: #92400e; }
+    .status-badge.denied { background: #fee2e2; color: #991b1b; }
+
     /* FOOTER */
     footer {
       background: #111; color: rgba(255,255,255,.4);
@@ -434,10 +499,11 @@
 
 <!-- PayPal SDK (Sandbox) -->
 <script src="https://www.paypal.com/sdk/js?client-id=AbZT5b9-IofM_vNiYIhSNlNqsjTcP3ljtqVd7caQIYhs0jqTqZaEKORvgyZuRlj3DkmVnE1_b5QhjoA8&currency=USD&intent=capture&components=buttons&enable-funding=card&disable-funding=venmo,paylater"></script>
-<!-- Firebase + Auth -->
+<!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
 <script src="js/auth-bridge-client.js"></script>
 <script>
 /* ══════════════════════════════════════════════════════
@@ -467,8 +533,9 @@ const FIREBASE_CONFIG = {
   appId: "1:270487643715:web:701b74a71253ac599056f6"
 };
 if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
-const db   = firebase.firestore();
-const auth = firebase.auth();
+const db      = firebase.firestore();
+const auth    = firebase.auth();
+const storage = firebase.storage();
 
 // Sign-in anónimo para que Firestore acepte lecturas/escrituras autenticadas.
 // No reemplaza el login del usuario — solo da contexto de auth a Firebase.
@@ -524,9 +591,17 @@ function loadInscritos(currentUser) {
 // ══════════════════════════════════════════════════════
 //  CONFIG
 // ══════════════════════════════════════════════════════
-const PAYPAL_ENV    = 'sandbox';   // → 'production' para live
-const SESSION_PRICE = '10.00';
-const CAP_POR_CAT   = 10;          // máximo confirmados por categoría
+const PAYPAL_ENV      = 'sandbox';   // → 'production' para live
+const SESSION_PRICE   = '10.00';
+const TRANSFER_PRICE  = 'Q75';
+const CAP_POR_CAT     = 10;          // máximo confirmados por categoría
+
+const BANK_INFO = {
+  banco:  'Banco Industrial',
+  tipo:   'Cuenta Monetaria',
+  numero: '5240042902',
+  nombre: 'Luis Buenahora',
+};
 
 const CATEGORIAS = [
   { id: 'principiante', label: 'Principiante', rango: '2.0 – 3.0' },
@@ -569,24 +644,45 @@ async function loadUserDuprId(uid) {
   } catch (_) { return ''; }
 }
 
+// ── Cargar teléfono del perfil ──
+async function loadUserPhone(uid) {
+  try {
+    const doc = await db.collection('users').doc(uid).get();
+    return doc.exists ? (doc.data().phone || doc.data().telefono || '') : '';
+  } catch (_) { return ''; }
+}
+
+// ── Subir boleta a Firebase Storage ──
+async function uploadBoleta(uid, file) {
+  const ext  = file.name.split('.').pop().toLowerCase() || 'jpg';
+  const path = `ladder/boletas/t1_sesion_${NUM}/${uid}_${Date.now()}.${ext}`;
+  const ref  = storage.ref(path);
+  await ref.put(file);
+  return await ref.getDownloadURL();
+}
+
 // ══════════════════════════════════════════════════════
 //  RENDER LISTA DE INSCRITOS (con filtros por categoría)
 // ══════════════════════════════════════════════════════
 function renderInscritos(inscritos, currentUser) {
   const counts     = getCounts(inscritos);
   const waitCounts = getWaitCounts(inscritos);
-  const total      = inscritos.filter(p => p.status === 'confirmed').length;
-  const totalEspera= inscritos.filter(p => p.status === 'waitlist').length;
+  const total       = inscritos.filter(p => p.status === 'confirmed').length;
+  const totalEspera = inscritos.filter(p => p.status === 'waitlist').length;
+  const totalPending= inscritos.filter(p => p.status === 'pending_review').length;
 
   document.getElementById('inscritos-count').textContent =
-    `${total} inscrito${total !== 1 ? 's' : ''}${totalEspera ? ` · ${totalEspera} en espera` : ''}`;
+    `${total} inscrito${total !== 1 ? 's' : ''}` +
+    (totalEspera  ? ` · ${totalEspera} en espera`    : '') +
+    (totalPending ? ` · ${totalPending} por validar`  : '');
 
   const tabs = [
     { id: 'todos',         label: `Todos (${total})` },
     { id: 'principiante',  label: `Principiante (${counts.principiante}/10)` },
     { id: 'intermedio',    label: `Intermedio (${counts.intermedio}/10)` },
     { id: 'open',          label: `Open (${counts.open}/10)` },
-    ...(totalEspera ? [{ id: 'espera', label: `Espera (${totalEspera})` }] : []),
+    ...(totalEspera  ? [{ id: 'espera',   label: `Espera (${totalEspera})` }]   : []),
+    ...(totalPending ? [{ id: 'pendiente', label: `Por validar (${totalPending})` }] : []),
   ];
 
   const listEl = document.getElementById('inscritos-list');
@@ -614,8 +710,9 @@ function renderRows(inscritos, currentUser, filter) {
   if (!rowsEl) return;
 
   let filtered = inscritos.filter(p => {
-    if (filter === 'todos')   return p.status === 'confirmed';
-    if (filter === 'espera')  return p.status === 'waitlist';
+    if (filter === 'todos')     return p.status === 'confirmed';
+    if (filter === 'espera')    return p.status === 'waitlist';
+    if (filter === 'pendiente') return p.status === 'pending_review';
     return p.status === 'confirmed' && p.categoria === filter;
   }).sort((a,b) => (a.registeredAt?.seconds||0) - (b.registeredAt?.seconds||0));
 
@@ -672,11 +769,12 @@ function renderRegContainer(user, inscritos) {
   const yaReg = inscritos.find(p => p.uid === user.uid);
   if (yaReg) { renderYaInscrito(container, user, yaReg, inscritos); return; }
 
-  // Formulario: DUPR (auto-fill) + categoría + PayPal
+  // Formulario: DUPR (auto-fill) + categoría + método de pago
   const counts = getCounts(inscritos);
   container.innerHTML = `
     <div class="reg-box">
 
+      <!-- DUPR ID -->
       <div class="dupr-form">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
           <label class="dupr-label">Tu DUPR ID</label>
@@ -690,13 +788,14 @@ function renderRegContainer(user, inscritos) {
         </p>
       </div>
 
+      <!-- CATEGORÍA -->
       <div class="cat-select-label">Selecciona tu categoría</div>
       <div class="cat-options" id="cat-options">
         ${CATEGORIAS.map(c => {
           const count = counts[c.id];
           const full  = count >= CAP_POR_CAT;
           return `<label class="cat-option${full?' cat-full':''}">
-            <input type="radio" name="categoria" value="${c.id}" ${full?'':''}/>
+            <input type="radio" name="categoria" value="${c.id}" ${full?'disabled':''}/>
             <div class="cat-option-inner">
               <div class="cat-option-top">
                 <span class="cat-option-name">${c.label}</span>
@@ -709,35 +808,93 @@ function renderRegContainer(user, inscritos) {
         }).join('')}
       </div>
 
+      <!-- MÉTODO DE PAGO -->
+      <div class="cat-select-label" id="pay-method-label" style="display:none">Método de pago</div>
+      <div class="pay-method-toggle" id="pay-method-toggle" style="display:none">
+        <button class="pay-method-btn active" id="btn-pm-paypal" type="button">
+          <span class="pm-icon">💳</span>Tarjeta / PayPal
+        </button>
+        <button class="pay-method-btn" id="btn-pm-transfer" type="button">
+          <span class="pm-icon">🏦</span>Transferencia
+        </button>
+      </div>
+
       <div id="reg-form-error" class="reg-status-line err" style="display:none"></div>
-      <div id="paypal-button-container" style="min-height:50px"></div>
+
+      <!-- SECCIÓN PAYPAL -->
+      <div id="paypal-section">
+        <div id="paypal-button-container" style="min-height:50px"></div>
+        <div style="display:flex;align-items:center;gap:8px;justify-content:center;margin-top:4px" id="paypal-logo-row">
+          <img src="https://www.paypalobjects.com/webstatic/mktg/Logo/pp-logo-100px.png" alt="PayPal" height="16" style="opacity:.45"/>
+          <span style="font-size:.7rem;color:var(--muted)">Pago seguro · Tarjeta o cuenta PayPal · $10 USD</span>
+        </div>
+      </div>
+
+      <!-- SECCIÓN TRANSFERENCIA -->
+      <div id="transfer-section" style="display:none">
+        <div class="transfer-form">
+          <div class="bank-info-box">
+            <div class="bank-title">💳 Datos para transferencia</div>
+            <div class="bank-amount">${TRANSFER_PRICE}</div>
+            <div class="bank-row">🏦 <strong>${BANK_INFO.banco}</strong> · ${BANK_INFO.tipo}</div>
+            <div class="bank-row">No. <strong>${BANK_INFO.numero}</strong></div>
+            <div class="bank-row">A nombre de: <strong>${BANK_INFO.nombre}</strong></div>
+          </div>
+
+          <div class="field-group-reg">
+            <div class="dupr-label" style="margin-bottom:6px">Tu número de teléfono</div>
+            <input class="phone-input" id="phone-input" type="tel"
+              placeholder="Ej: +502 5555-0000" autocomplete="tel"/>
+            <p style="font-size:.72rem;color:var(--muted);margin-top:4px;line-height:1.4">
+              Para contactarte y confirmar tu inscripción.
+            </p>
+          </div>
+
+          <div>
+            <div class="dupr-label" style="margin-bottom:6px">Boleta de pago <span style="color:var(--red)">*</span></div>
+            <div class="upload-area" id="upload-area">
+              <input type="file" id="boleta-file" accept="image/*,application/pdf"/>
+              <div class="upload-icon">📎</div>
+              <div class="upload-label" id="upload-label">Adjunta foto o PDF de tu boleta</div>
+              <div style="font-size:.7rem;color:var(--muted);margin-top:3px">JPG, PNG o PDF · máx 5 MB</div>
+            </div>
+          </div>
+
+          <div style="background:#fffbeb;border:1px solid #fcd34d;padding:12px 14px;font-size:.82rem;color:#78350f;line-height:1.6">
+            ⚠️ Tu inscripción quedará <strong>pendiente de validación</strong>. El admin revisará tu boleta y confirmará por WhatsApp.
+          </div>
+
+          <button class="btn-transfer-submit" id="btn-transfer-submit" type="button">
+            Enviar inscripción con boleta
+          </button>
+        </div>
+      </div>
+
+      <!-- LISTA DE ESPERA -->
       <div id="waitlist-btn-wrap" style="display:none">
         <button class="btn-waitlist" id="btn-waitlist">Entrar en lista de espera (gratis)</button>
         <p style="font-size:.72rem;color:var(--muted);text-align:center;line-height:1.5;margin-top:6px">
           Sin costo. Si se libera un lugar, podrás confirmar y pagar.
         </p>
       </div>
-
-      <div style="display:flex;align-items:center;gap:8px;justify-content:center;margin-top:4px" id="paypal-logo-row">
-        <img src="https://www.paypalobjects.com/webstatic/mktg/Logo/pp-logo-100px.png" alt="PayPal" height="16" style="opacity:.45"/>
-        <span style="font-size:.7rem;color:var(--muted)">Pago seguro · Tarjeta o PayPal</span>
-      </div>
     </div>`;
 
-  // Cargar DUPR ID del perfil
+  // Cargar DUPR ID
   loadUserDuprId(user.uid).then(saved => {
     const input = document.getElementById('dupr-input');
     if (!input) return;
-    if (saved) {
-      input.value   = saved;
-      _pendingDuprId = saved;
-    } else {
-      input.value       = '';
-      input.readOnly    = false;
-      input.placeholder = 'Ej: 12345678';
+    if (saved) { input.value = saved; _pendingDuprId = saved; }
+    else {
+      input.value = ''; input.readOnly = false; input.placeholder = 'Ej: 12345678';
       const hint = document.getElementById('dupr-hint');
       if (hint) hint.innerHTML = `Tu DUPR ID no está en tu perfil. Ingrésalo aquí. <a href="https://dupr.com" target="_blank">dupr.com</a>`;
     }
+  });
+
+  // Cargar teléfono
+  loadUserPhone(user.uid).then(phone => {
+    const el = document.getElementById('phone-input');
+    if (el && phone) el.value = phone;
   });
 
   document.getElementById('dupr-edit-btn').addEventListener('click', () => {
@@ -748,24 +905,62 @@ function renderRegContainer(user, inscritos) {
     _pendingDuprId = e.target.value.trim();
   });
 
-  // Escuchar selección de categoría para mostrar PayPal o lista de espera
+  // Selección de categoría → mostrar método de pago o waitlist
   document.getElementById('cat-options').addEventListener('change', e => {
     if (e.target.name !== 'categoria') return;
     _pendingCategoria = e.target.value;
     const full = isFull(_inscritos, _pendingCategoria);
-    document.getElementById('paypal-button-container').style.display = full ? 'none' : 'block';
-    document.getElementById('waitlist-btn-wrap').style.display       = full ? 'block' : 'none';
-    document.getElementById('paypal-logo-row').style.display         = full ? 'none' : 'flex';
-    document.getElementById('reg-form-error').style.display = 'none';
+    document.getElementById('pay-method-label').style.display  = full ? 'none' : 'block';
+    document.getElementById('pay-method-toggle').style.display = full ? 'none' : 'grid';
+    document.getElementById('paypal-section').style.display    = full ? 'none' : 'block';
+    document.getElementById('transfer-section').style.display  = 'none';
+    document.getElementById('waitlist-btn-wrap').style.display = full ? 'block' : 'none';
+    document.getElementById('reg-form-error').style.display    = 'none';
+    // Resetear al método activo (paypal)
+    document.getElementById('btn-pm-paypal').classList.add('active');
+    document.getElementById('btn-pm-transfer').classList.remove('active');
+  });
+
+  // Toggle PayPal / Transferencia
+  document.getElementById('btn-pm-paypal').addEventListener('click', () => {
+    document.getElementById('btn-pm-paypal').classList.add('active');
+    document.getElementById('btn-pm-transfer').classList.remove('active');
+    document.getElementById('paypal-section').style.display   = 'block';
+    document.getElementById('transfer-section').style.display = 'none';
+  });
+  document.getElementById('btn-pm-transfer').addEventListener('click', () => {
+    document.getElementById('btn-pm-transfer').classList.add('active');
+    document.getElementById('btn-pm-paypal').classList.remove('active');
+    document.getElementById('paypal-section').style.display   = 'none';
+    document.getElementById('transfer-section').style.display = 'block';
+  });
+
+  // Preview del archivo subido
+  document.getElementById('boleta-file').addEventListener('change', e => {
+    const file = e.target.files[0];
+    const area  = document.getElementById('upload-area');
+    const label = document.getElementById('upload-label');
+    if (file) {
+      area.classList.add('has-file');
+      label.className = 'upload-label ok';
+      label.textContent = '✓ ' + file.name;
+    } else {
+      area.classList.remove('has-file');
+      label.className = 'upload-label';
+      label.textContent = 'Adjunta foto o PDF de tu boleta';
+    }
   });
 
   mountPayPalButtons(user);
 
   document.getElementById('btn-waitlist').addEventListener('click', () => joinWaitlist(user));
+  document.getElementById('btn-transfer-submit').addEventListener('click', () => submitTransfer(user));
 }
 
 function renderYaInscrito(container, user, reg, inscritos) {
   const isWait    = reg.status === 'waitlist';
+  const isPending = reg.status === 'pending_review';
+  const isDenied  = reg.status === 'denied';
   const catLabel  = { principiante:'Principiante', intermedio:'Intermedio', open:'Open' }[reg.categoria] || reg.categoria;
   const waitPos   = isWait
     ? inscritos.filter(p => p.status==='waitlist' && p.categoria===reg.categoria)
@@ -779,12 +974,24 @@ function renderYaInscrito(container, user, reg, inscritos) {
         ? `<div class="reg-msg" style="border-color:#f59e0b;background:#fffbeb;color:#92400e">
              ⏳ Estás en lista de espera — posición #${waitPos} en ${catLabel}.
            </div>`
+        : isPending
+        ? `<div class="reg-msg pending">
+             🕐 Inscripción pendiente de validación.<br>
+             <span style="font-size:.8rem;font-family:'Barlow',sans-serif;font-weight:400">
+               El admin revisará tu boleta y te confirmará por WhatsApp.
+             </span>
+           </div>`
+        : isDenied
+        ? `<div class="reg-msg error">
+             ✕ Inscripción no aprobada. Contacta al admin por <a href="https://wa.me/50230912707" style="color:var(--red)">WhatsApp</a>.
+           </div>`
         : `<div class="reg-msg success">✓ Inscrito y pago confirmado — ${catLabel}.</div>`
       }
       <div style="display:flex;flex-direction:column;gap:5px;font-size:.8rem;color:var(--muted)">
         <span>DUPR ID: <strong style="color:var(--dark)">${reg.duprId||'—'}</strong></span>
         <span>Categoría: <strong style="color:var(--dark)">${catLabel}</strong></span>
-        ${!isWait ? `<span>Pago: <strong style="color:var(--court)">$10 USD ✓</strong></span>` : ''}
+        ${!isWait && !isPending && !isDenied ? `<span>Pago: <strong style="color:var(--court)">${reg.paymentMethod==='transfer'?'Q75 · Transferencia':'$10 USD · PayPal'} ✓</strong></span>` : ''}
+        ${isPending ? `<span>Método: <strong style="color:var(--dark)">Transferencia bancaria</strong></span>` : ''}
       </div>
       ${isWait ? `
         <div style="border-top:1px solid var(--border);padding-top:14px;margin-top:4px">
@@ -902,6 +1109,74 @@ function mountPayPalButtons(user) {
   }).render('#paypal-button-container');
 }
 
+// ── Inscripción por transferencia bancaria ──
+async function submitTransfer(user) {
+  const duprId = (document.getElementById('dupr-input')?.value||'').trim();
+  const cat    = document.querySelector('input[name="categoria"]:checked')?.value;
+  const phone  = (document.getElementById('phone-input')?.value||'').trim();
+  const file   = document.getElementById('boleta-file')?.files[0];
+  const errEl  = document.getElementById('reg-form-error');
+
+  if (!duprId || duprId.length < 6) {
+    errEl.textContent = '✕ Ingresa tu DUPR ID.'; errEl.style.display='block'; return;
+  }
+  if (!cat) {
+    errEl.textContent = '✕ Selecciona una categoría.'; errEl.style.display='block'; return;
+  }
+  if (!phone || phone.length < 8) {
+    errEl.textContent = '✕ Ingresa tu número de teléfono.'; errEl.style.display='block'; return;
+  }
+  if (!file) {
+    errEl.textContent = '✕ Adjunta la boleta de pago.'; errEl.style.display='block'; return;
+  }
+  if (file.size > 5 * 1024 * 1024) {
+    errEl.textContent = '✕ La boleta no debe superar 5 MB.'; errEl.style.display='block'; return;
+  }
+
+  const btn = document.getElementById('btn-transfer-submit');
+  btn.disabled = true; btn.textContent = 'Subiendo boleta…';
+  errEl.style.display = 'none';
+
+  try {
+    // 1. Subir boleta a Storage
+    const boletaUrl = await uploadBoleta(user.uid, file);
+    btn.textContent = 'Guardando inscripción…';
+
+    // 2. Guardar en Firestore con status pending_review
+    await saveRegistration(user, duprId, cat, null, 'pending_review', {
+      paymentMethod: 'transfer',
+      transferAmount: TRANSFER_PRICE,
+      boletaUrl,
+      phone,
+    });
+
+    // 3. Guardar teléfono en perfil
+    db.collection('users').doc(user.uid).set({ phone }, { merge: true }).catch(()=>{});
+
+    // 4. Confirmación inmediata
+    document.getElementById('reg-container').innerHTML = `
+      <div class="reg-box">
+        <div class="reg-msg pending">
+          🕐 ¡Inscripción enviada!<br>
+          <span style="font-size:.8rem;font-family:'Barlow',sans-serif;font-weight:400">
+            El admin revisará tu boleta y te confirmará por WhatsApp al <strong>${phone}</strong>.
+          </span>
+        </div>
+        <div style="font-size:.8rem;color:var(--muted);display:flex;flex-direction:column;gap:5px">
+          <span>DUPR ID: <strong style="color:var(--dark)">${duprId}</strong></span>
+          <span>Categoría: <strong style="color:var(--dark)">${{ principiante:'Principiante', intermedio:'Intermedio', open:'Open' }[cat]}</strong></span>
+          <span>Monto: <strong style="color:var(--dark)">${TRANSFER_PRICE}</strong></span>
+        </div>
+      </div>`;
+
+  } catch (err) {
+    console.error('Transfer submit error:', err);
+    btn.disabled = false; btn.textContent = 'Enviar inscripción con boleta';
+    errEl.textContent = '✕ Error al enviar. Intenta de nuevo o contacta por WhatsApp.';
+    errEl.style.display = 'block';
+  }
+}
+
 // ── Lista de espera (sin pago) ──
 async function joinWaitlist(user) {
   const duprId = (document.getElementById('dupr-input')?.value||'').trim();
@@ -965,11 +1240,11 @@ async function moveToSession(user, reg) {
   }
 }
 
-async function saveRegistration(user, duprId, categoria, paypalOrderId, status) {
+async function saveRegistration(user, duprId, categoria, paypalOrderId, status, extra = {}) {
   const nombre = user.displayName || user.email.split('@')[0];
   const docRef = db.collection(COLLECTION).doc(DOC_ID);
 
-  // Guardar DUPR ID en perfil del usuario para próximas sesiones
+  // Guardar DUPR ID en perfil
   db.collection('users').doc(user.uid).set({ duprId }, { merge: true }).catch(() => {});
 
   const entry = {
@@ -978,12 +1253,16 @@ async function saveRegistration(user, duprId, categoria, paypalOrderId, status) 
     email:        user.email || '',
     duprId:       duprId,
     categoria:    categoria,
-    status:       status,             // 'confirmed' | 'waitlist'
+    status:       status,   // 'confirmed' | 'waitlist' | 'pending_review' | 'denied'
+    paymentMethod: extra.paymentMethod || 'paypal',
     registeredAt: firebase.firestore.Timestamp.now(),
-    ...(status === 'confirmed' ? {
+    ...(status === 'confirmed' && paypalOrderId ? {
       paypalOrderId: paypalOrderId,
       paidUSD:       SESSION_PRICE,
     } : {}),
+    ...(extra.boletaUrl     ? { boletaUrl:      extra.boletaUrl }     : {}),
+    ...(extra.phone         ? { phone:          extra.phone }         : {}),
+    ...(extra.transferAmount? { transferAmount: extra.transferAmount } : {}),
   };
 
   await docRef.set({
@@ -991,20 +1270,13 @@ async function saveRegistration(user, duprId, categoria, paypalOrderId, status) 
     inscritos: firebase.firestore.FieldValue.arrayUnion(entry),
   }, { merge: true });
 
-  // Auditoría de pagos (solo si pagó)
+  // Auditoría
   if (status === 'confirmed' && paypalOrderId) {
     db.collection('ladder_payments').add({
-      uid:           user.uid,
-      nombre:        nombre,
-      email:         user.email || '',
-      sesionNum:     NUM,
-      docId:         DOC_ID,
-      categoria:     categoria,
-      paypalOrderId: paypalOrderId,
-      amount:        SESSION_PRICE,
-      currency:      'USD',
-      paidAt:        firebase.firestore.Timestamp.now(),
-      env:           PAYPAL_ENV,
+      uid: user.uid, nombre, email: user.email||'',
+      sesionNum: NUM, docId: DOC_ID, categoria,
+      paypalOrderId, amount: SESSION_PRICE, currency: 'USD',
+      paidAt: firebase.firestore.Timestamp.now(), env: PAYPAL_ENV,
     }).catch(() => {});
   }
 }
