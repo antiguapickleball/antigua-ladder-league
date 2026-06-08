@@ -1984,12 +1984,13 @@ async function publishSession(sesionNum) {
     const processMatches = (matches, uids, court) => {
       const stats = computeStandings(matches, uids, court, isS1);
       const maxPts = isS1 ? 2 : (court === 'A' ? 3 : 2);
+      const courtFactor = (!isS1 && court === 'A') ? 1.5 : 1.0;
       const key = `${sesionNum}_${cat}`;
       Object.entries(stats).forEach(([uid, s]) => {
         if (s.pj === 0) return;
         if (!playerStats[uid]) playerStats[uid] = { nombre: pn[uid]||uid, duprId: duprMap[uid]||null, sessions: {} };
         if (!playerStats[uid].sessions[key]) {
-          playerStats[uid].sessions[key] = { pts:0, pj:0, court:court||'—', sesionNum, categoria:cat, maxPts };
+          playerStats[uid].sessions[key] = { pts:0, pj:0, court:court||'—', sesionNum, categoria:cat, maxPts, courtFactor };
         }
         playerStats[uid].sessions[key].pts += s.pts;
         playerStats[uid].sessions[key].pj  += s.pj;
@@ -2025,7 +2026,7 @@ async function publishSession(sesionNum) {
       sessionsData[key] = {
         sesionNum: s.sesionNum,
         categoria: s.categoria,
-        score: s.pj > 0 ? s.pts / (s.pj * s.maxPts) : 0,
+        score: s.pj > 0 ? (s.pts / (s.pj * s.maxPts)) * (s.courtFactor||1.0) : 0,
         pj: s.pj,
         court: s.court,
         publishedAt: now,
@@ -2095,17 +2096,18 @@ async function computeGlobalLadder() {
     const addStats = (matches, uids, court) => {
       const stats = computeStandings(matches, uids, court, isS1);
       const maxPts = isS1 ? 2 : (court === 'A' ? 3 : 2);
+      const courtFactor = (!isS1 && court === 'A') ? 1.5 : 1.0;
       Object.entries(stats).forEach(([uid, s]) => {
         if (s.pj === 0) return;
         if (!allPlayers[uid]) allPlayers[uid] = { nombre: pn[uid]||uid, bySession: {} };
         const key = `${sn}_${cat}`;
         if (!allPlayers[uid].bySession[key]) {
-          allPlayers[uid].bySession[key] = { pts:0, pj:0, court:court||'—', sesionNum:sn, categoria:cat, maxPts:maxPts };
+          allPlayers[uid].bySession[key] = { pts:0, pj:0, court:court||'—', sesionNum:sn, categoria:cat, maxPts, courtFactor };
         }
         allPlayers[uid].bySession[key].pts += s.pts;
         allPlayers[uid].bySession[key].pj  += s.pj;
-        // maxPts: use the court's maxPts (last one wins if mixed, but players stay per court)
         allPlayers[uid].bySession[key].maxPts = maxPts;
+        allPlayers[uid].bySession[key].courtFactor = courtFactor;
       });
     };
 
@@ -2129,7 +2131,7 @@ async function computeGlobalLadder() {
   const playerRows = Object.entries(allPlayers).map(([uid, data]) => {
     const sessions = Object.values(data.bySession).map(s => ({
       ...s,
-      ladderScore: s.pj > 0 ? s.pts / (s.pj * (s.maxPts||2)) : 0,
+      ladderScore: s.pj > 0 ? (s.pts / (s.pj * (s.maxPts||2))) * (s.courtFactor||1.0) : 0,
     })).sort((a,b) => a.sesionNum - b.sesionNum);
 
     const allScores = sessions.map(s => s.ladderScore);
@@ -2214,7 +2216,7 @@ function renderLadderHTML(rows) {
       </tbody>
     </table>
     <div style="margin-top:10px;font-size:.72rem;color:var(--muted)">
-      ⭐ Promedio = % puntos posibles (0-1) · Tachado = sesión descartada (peor resultado) · ⬆A Cancha A · ⬇B Cancha B · 1C 1 cancha
+      ⭐ Promedio = pts_norm × factor_cancha · S1/Cancha B: máx 1.0 · Cancha A (S2+): máx 1.5 · Tachado = sesión descartada · ⬆A Cancha A · ⬇B Cancha B
     </div>
   </div>`;
 }
@@ -2813,10 +2815,11 @@ function computeStandings(matches, uids, court, isS1) {
   });
 
   const maxPts = isS1 ? 2 : (court === 'A' ? 3 : 2);
+  const courtFactor = (!isS1 && court === 'A') ? 1.5 : 1.0;
   Object.values(s).forEach(r => {
     r.pctPG      = r.pj > 0 ? r.pg / r.pj : 0;
     r.pctPts     = (r.pf+r.pc) > 0 ? r.pf / (r.pf+r.pc) : 0;
-    r.ladderScore= r.pj > 0 ? r.pts / (r.pj * maxPts) : 0;
+    r.ladderScore= r.pj > 0 ? (r.pts / (r.pj * maxPts)) * courtFactor : 0;
   });
   return s;
 }
