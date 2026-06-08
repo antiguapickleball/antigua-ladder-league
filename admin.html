@@ -2485,8 +2485,8 @@ function renderMatchRow(m, pn, court, isS1, sesionNum, categoria, roundNum) {
         id="sc2_${m.id}" value="${s?s.s2:''}"
         onkeydown="if(event.key==='Enter')trySaveScore('${esc}','${m.id}')"/>
       ${s
-        ? `<button class="btn-action" onclick="trySaveScore('${esc}','${m.id}')" style="padding:3px 10px;font-size:.72rem;background:#f0fdf4;color:#065f46;border-color:#6ee7b7;min-width:52px">✓ OK</button>`
-        : `<button class="btn-action" onclick="trySaveScore('${esc}','${m.id}')" style="padding:3px 10px;font-size:.72rem;min-width:52px">Guardar</button>`
+        ? `<button class="btn-action" onclick="trySaveScore('${esc}','${m.id}')" title="Cambia los números y haz clic para corregir" style="padding:3px 10px;font-size:.72rem;background:#f0fdf4;color:#065f46;border-color:#6ee7b7;min-width:62px">✓ Editar</button>`
+        : `<button class="btn-action" onclick="trySaveScore('${esc}','${m.id}')" style="padding:3px 10px;font-size:.72rem;min-width:62px">Guardar</button>`
       }
     </div>
   </div>`;
