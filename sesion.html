@@ -556,15 +556,16 @@
 /* ══════════════════════════════════════════════════════
    DATOS DE SESIONES — mismo que index.html
 ══════════════════════════════════════════════════════ */
-const SEMANAS = [
-  { num: 1, fecha: '4 Jul',  estado: 'proxima'                        },
-  { num: 2, fecha: '18 Jul', estado: 'pendiente'                      },
-  { num: 3, fecha: '25 Jul', estado: 'pendiente'                      },
-  { num: 4, fecha: '1 Ago',  estado: 'pendiente'                      },
-  { num: 5, fecha: '8 Ago',  estado: 'pendiente'                      },
-  { num: 6, fecha: '15 Ago', estado: 'pendiente'                      },
-  { num: 7, fecha: '22 Ago', estado: 'pendiente'                      },
-  { num: 8, fecha: '29 Ago', estado: 'pendiente'                      },
+// Fallback — se sobreescribe con datos de Firestore en initSesion()
+let SEMANAS = [
+  { num: 1, fecha: '4 Jul',  dia: 'Sábado', estado: 'proxima'   },
+  { num: 2, fecha: '18 Jul', dia: 'Sábado', estado: 'pendiente' },
+  { num: 3, fecha: '25 Jul', dia: 'Sábado', estado: 'pendiente' },
+  { num: 4, fecha: '1 Ago',  dia: 'Sábado', estado: 'pendiente' },
+  { num: 5, fecha: '8 Ago',  dia: 'Sábado', estado: 'pendiente' },
+  { num: 6, fecha: '15 Ago', dia: 'Sábado', estado: 'pendiente' },
+  { num: 7, fecha: '22 Ago', dia: 'Sábado', estado: 'pendiente' },
+  { num: 8, fecha: '29 Ago', dia: 'Sábado', estado: 'pendiente' },
 ];
 
 const HORARIOS = [
@@ -598,27 +599,45 @@ auth.signInAnonymously().catch(err => console.warn('Anonymous auth error:', err)
 ══════════════════════════════════════════════════════ */
 const params = new URLSearchParams(window.location.search);
 const NUM    = parseInt(params.get('n') || '1', 10);
-const sesion = SEMANAS.find(s => s.num === NUM);
 
-// Si no existe la sesión, redirigir
-if (!sesion) { window.location.href = 'index.html#calendario'; }
+// Cargar config de sesiones desde Firestore antes de renderizar
+async function initSesion() {
+  try {
+    const snap = await db.collection('ladder_config').doc('t1_semanas').get();
+    if (snap.exists && snap.data().semanas?.length) {
+      SEMANAS = snap.data().semanas;
+    }
+  } catch(e) { /* usa fallback hardcodeado */ }
+
+  const sesion = SEMANAS.find(s => s.num === NUM);
+  if (!sesion) { window.location.href = 'index.html#calendario'; return; }
+
+  startPage(sesion);
+}
+
+initSesion();
 
 const DOC_ID      = `t1_sesion_${NUM}`;
 const COLLECTION  = 'ladder_registrations';
 const estadoLabels = {
   proxima:'Próxima', pendiente:'Pendiente', jugada:'Jugada',
-  cancelada:'Cancelada'
+  cancelada:'Cancelada', 'gran-final':'Gran Final'
 };
 
-// ── Render hero ──
-document.title = `Semana ${NUM} · Antigua Ladder League`;
-document.getElementById('hero-title').textContent = `Semana ${NUM}`;
-document.getElementById('hero-fecha').textContent = sesion.fecha;
-const badge = document.getElementById('hero-badge');
-badge.textContent = estadoLabels[sesion.estado] || sesion.estado;
-badge.className   = 'session-estado-badge ' + sesion.estado;
-if (sesion.nota && !isGF) {
-  document.getElementById('hero-label').textContent += ` · ${sesion.nota}`;
+let sesion = null; // se asigna en startPage después de cargar config
+
+function startPage(s) {
+  sesion = s;
+  // ── Render hero ──
+  document.title = `Semana ${NUM} · Antigua Ladder League`;
+  document.getElementById('hero-title').textContent = `Semana ${NUM}`;
+  document.getElementById('hero-fecha').textContent = sesion.fecha;
+  const badge = document.getElementById('hero-badge');
+  badge.textContent = estadoLabels[sesion.estado] || sesion.estado;
+  badge.className   = 'session-estado-badge ' + sesion.estado;
+  if (sesion.nota) {
+    document.getElementById('hero-label').textContent += ` · ${sesion.nota}`;
+  }
 }
 
 // ── Cargar inscritos en tiempo real ──

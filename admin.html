@@ -377,7 +377,10 @@
     <!-- Tabs por sesión -->
     <div style="display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:0">
       <div class="session-tabs" id="session-tabs" style="margin-bottom:0;border-bottom:none;flex:1"></div>
-      <button class="btn-action btn-accept" style="padding:9px 18px;font-size:.82rem;margin-bottom:12px;white-space:nowrap" onclick="openAdd()">➕ Agregar jugador</button>
+      <div style="display:flex;gap:8px;margin-bottom:12px">
+        <button class="btn-action" style="padding:9px 14px;font-size:.82rem;white-space:nowrap" onclick="openEditSessions()">📅 Editar sesiones</button>
+        <button class="btn-action btn-accept" style="padding:9px 18px;font-size:.82rem;white-space:nowrap" onclick="openAdd()">➕ Agregar jugador</button>
+      </div>
     </div>
     <div style="border-bottom:2px solid var(--border);margin-bottom:24px"></div>
 
@@ -553,6 +556,26 @@
   </div>
 </div>
 
+<!-- MODAL: EDITAR SESIONES -->
+<div class="modal-overlay" id="modal-sessions" style="display:none" onclick="if(event.target===this)closeModal('modal-sessions')">
+  <div class="modal-box" style="max-width:560px;width:100%">
+    <div class="modal-header">
+      <div class="modal-title">📅 Editar sesiones</div>
+      <button class="modal-close" onclick="closeModal('modal-sessions')">×</button>
+    </div>
+    <div class="modal-body" style="max-height:70vh;overflow-y:auto">
+      <p style="font-size:.8rem;color:var(--muted);margin-bottom:16px;line-height:1.5">
+        Los cambios se guardan en Firestore y se reflejan automáticamente en toda la página (inscribirse, sesión, admin).
+      </p>
+      <div id="sessions-editor-rows"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-modal btn-cancel-modal" onclick="closeModal('modal-sessions')">Cerrar</button>
+      <button class="btn-modal btn-save" id="btn-save-sessions" onclick="saveSessions()">Guardar cambios</button>
+    </div>
+  </div>
+</div>
+
 <!-- Toast -->
 <div id="toast"></div>
 
@@ -571,15 +594,16 @@
 /* ══════════════════════════════════════════════════════
    SESIONES
 ══════════════════════════════════════════════════════ */
-const SEMANAS = [
-  { num: 1, fecha: '4 Jul',  estado: 'proxima'                        },
-  { num: 2, fecha: '18 Jul', estado: 'pendiente'                      },
-  { num: 3, fecha: '25 Jul', estado: 'pendiente'                      },
-  { num: 4, fecha: '1 Ago',  estado: 'pendiente'                      },
-  { num: 5, fecha: '8 Ago',  estado: 'pendiente'                      },
-  { num: 6, fecha: '15 Ago', estado: 'pendiente'                      },
-  { num: 7, fecha: '22 Ago', estado: 'pendiente'                      },
-  { num: 8, fecha: '29 Ago', estado: 'pendiente'                      },
+// Sesiones — se carga desde Firestore (ladder_config/t1_semanas), fallback hardcodeado
+let SEMANAS = [
+  { num: 1, fecha: '4 Jul',  dia: 'Sábado', estado: 'proxima'   },
+  { num: 2, fecha: '18 Jul', dia: 'Sábado', estado: 'pendiente' },
+  { num: 3, fecha: '25 Jul', dia: 'Sábado', estado: 'pendiente' },
+  { num: 4, fecha: '1 Ago',  dia: 'Sábado', estado: 'pendiente' },
+  { num: 5, fecha: '8 Ago',  dia: 'Sábado', estado: 'pendiente' },
+  { num: 6, fecha: '15 Ago', dia: 'Sábado', estado: 'pendiente' },
+  { num: 7, fecha: '22 Ago', dia: 'Sábado', estado: 'pendiente' },
+  { num: 8, fecha: '29 Ago', dia: 'Sábado', estado: 'pendiente' },
 ];
 
 const COLLECTION = 'ladder_registrations';
@@ -611,7 +635,7 @@ let _unsubscribers  = [];          // listeners de Firestore
 /* ══════════════════════════════════════════════════════
    INIT — verificar admin
 ══════════════════════════════════════════════════════ */
-APAuth.onReady(function(user) {
+APAuth.onReady(async function(user) {
   if (!user || user.role !== 'admin') {
     document.getElementById('access-denied').style.display = 'block';
     return;
@@ -620,12 +644,104 @@ APAuth.onReady(function(user) {
   document.getElementById('admin-panel').style.display = 'block';
   document.getElementById('nav-username').textContent = user.displayName || user.email || 'Admin';
 
-  auth.signInAnonymously().catch(() => {});
+  await auth.signInAnonymously().catch(() => {});
+
+  // Cargar config de sesiones desde Firestore (sobreescribe hardcode si existe)
+  await loadSemanasConfig();
 
   buildTabs();
   subscribeAll();
   subscribeNotifications();
 });
+
+/* ══════════════════════════════════════════════════════
+   CONFIG DE SESIONES (Firestore ↔ SEMANAS)
+══════════════════════════════════════════════════════ */
+const CONFIG_DOC = 'ladder_config';
+const CONFIG_SEMANAS_ID = 't1_semanas';
+
+async function loadSemanasConfig() {
+  try {
+    const snap = await db.collection(CONFIG_DOC).doc(CONFIG_SEMANAS_ID).get();
+    if (snap.exists && snap.data().semanas?.length) {
+      SEMANAS = snap.data().semanas;
+    } else {
+      // Primera vez: guardar el fallback en Firestore
+      await db.collection(CONFIG_DOC).doc(CONFIG_SEMANAS_ID).set({ semanas: SEMANAS });
+    }
+  } catch(e) {
+    console.warn('No se pudo cargar config de sesiones, usando hardcode:', e);
+  }
+}
+
+const ESTADO_LABELS = {
+  proxima:    'Próxima',
+  pendiente:  'Próximamente',
+  jugada:     'Finalizada',
+  cancelada:  'Cancelada',
+  'gran-final': 'Gran Final',
+};
+
+function openEditSessions() {
+  const rows = document.getElementById('sessions-editor-rows');
+  rows.innerHTML = SEMANAS.map(s => `
+    <div style="display:grid;grid-template-columns:2rem 1fr 1fr auto;gap:8px;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)">
+      <span style="font-family:'Space Mono',monospace;font-size:.7rem;color:var(--muted);font-weight:700">${s.num}</span>
+      <div>
+        <div style="font-family:'Space Mono',monospace;font-size:.58rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:3px">Fecha</div>
+        <input class="field-input" data-num="${s.num}" data-field="fecha"
+          value="${s.fecha}" placeholder="Ej: 4 Jul"
+          style="width:100%;font-family:'Barlow Condensed',sans-serif;font-size:.95rem;font-weight:700;padding:6px 10px;border:1px solid var(--border)"/>
+      </div>
+      <div>
+        <div style="font-family:'Space Mono',monospace;font-size:.58rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:3px">Día</div>
+        <input class="field-input" data-num="${s.num}" data-field="dia"
+          value="${s.dia || 'Sábado'}" placeholder="Ej: Sábado"
+          style="width:100%;font-family:'Barlow Condensed',sans-serif;font-size:.95rem;font-weight:700;padding:6px 10px;border:1px solid var(--border)"/>
+      </div>
+      <div>
+        <div style="font-family:'Space Mono',monospace;font-size:.58rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:3px">Estado</div>
+        <select class="field-select" data-num="${s.num}" data-field="estado" style="padding:6px 8px;border:1px solid var(--border);font-size:.82rem">
+          ${Object.entries(ESTADO_LABELS).map(([val, lbl]) =>
+            `<option value="${val}" ${s.estado === val ? 'selected' : ''}>${lbl}</option>`
+          ).join('')}
+        </select>
+      </div>
+    </div>`).join('');
+
+  openModal('modal-sessions');
+}
+
+async function saveSessions() {
+  const btn = document.getElementById('btn-save-sessions');
+  btn.disabled = true; btn.textContent = 'Guardando…';
+
+  // Leer valores del formulario
+  const updated = SEMANAS.map(s => {
+    const fecha  = document.querySelector(`input[data-num="${s.num}"][data-field="fecha"]`)?.value.trim() || s.fecha;
+    const dia    = document.querySelector(`input[data-num="${s.num}"][data-field="dia"]`)?.value.trim()   || s.dia || 'Sábado';
+    const estado = document.querySelector(`select[data-num="${s.num}"][data-field="estado"]`)?.value      || s.estado;
+    return { ...s, fecha, dia, estado };
+  });
+
+  try {
+    await db.collection(CONFIG_DOC).doc(CONFIG_SEMANAS_ID).set({ semanas: updated });
+    SEMANAS = updated;
+
+    // Reconstruir tabs con los nuevos datos
+    const tabsWrap = document.getElementById('session-tabs');
+    tabsWrap.innerHTML = '';
+    buildTabs();
+
+    closeModal('modal-sessions');
+    toast('✓ Sesiones actualizadas — los cambios ya son visibles en toda la página');
+  } catch(err) {
+    console.error(err);
+    toast('✕ Error al guardar: ' + (err.message || err), true);
+  } finally {
+    btn.disabled = false; btn.textContent = 'Guardar cambios';
+  }
+}
 
 /* ══════════════════════════════════════════════════════
    TABS
@@ -1489,7 +1605,7 @@ async function saveAdd() {
 // Cerrar modales con Escape
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') {
-    ['modal-edit','modal-move','modal-delete','modal-add'].forEach(closeModal);
+    ['modal-edit','modal-move','modal-delete','modal-add','modal-sessions'].forEach(closeModal);
   }
 });
 </script>

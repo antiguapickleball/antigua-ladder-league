@@ -267,7 +267,8 @@
   const COLLECTION = 'ladder_registrations';
   const CAP_POR_CAT = 10;
 
-  const SEMANAS = [
+  // Fallback — se sobreescribe con datos de Firestore
+  let SEMANAS = [
     { num:1, fecha:'4 Jul',   dia:'Sábado', estado:'proxima'  },
     { num:2, fecha:'18 Jul',  dia:'Sábado', estado:'pendiente'},
     { num:3, fecha:'25 Jul',  dia:'Sábado', estado:'pendiente'},
@@ -384,6 +385,14 @@
         </${tag}>`;
     });
   }
+
+  // Cargar config de sesiones desde Firestore
+  try {
+    const cfgSnap = await getDoc(doc(db, 'ladder_config', 't1_semanas'));
+    if (cfgSnap.exists() && cfgSnap.data().semanas?.length) {
+      SEMANAS = cfgSnap.data().semanas;
+    }
+  } catch(e) { /* usa fallback */ }
 
   // Skeleton mientras carga
   renderCards(null, true);
