@@ -380,6 +380,24 @@
         <div class="admin-title">Panel de Administración</div>
         <div class="admin-subtitle">Temporada 1 · Antigua Ladder League</div>
       </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn-action" style="padding:9px 16px;font-size:.82rem;background:#f0fdf4;color:#065f46;border-color:#6ee7b7" onclick="toggleLadderPanel()">📊 Tabla Ladder</button>
+        <button class="btn-action" style="padding:9px 16px;font-size:.82rem;background:#fef2f2;color:#991b1b;border-color:#fca5a5" onclick="openModal('modal-danger')">⚙️ Peligro</button>
+      </div>
+    </div>
+
+    <!-- LADDER GLOBAL PANEL -->
+    <div id="ladder-panel" style="display:none;margin-bottom:28px;border:1.5px solid #6ee7b7;background:#fff">
+      <div style="background:#064e3b;padding:14px 20px;display:flex;align-items:center;justify-content:space-between">
+        <span style="font-family:'Barlow Condensed',sans-serif;font-size:1rem;font-weight:900;text-transform:uppercase;letter-spacing:.06em;color:#fff">📊 Tabla Ladder Global · Temporada 1</span>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button onclick="loadLadderTable()" style="font-family:'Barlow Condensed',sans-serif;font-size:.75rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;padding:5px 12px;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:#fff;cursor:pointer">↺ Actualizar</button>
+          <button onclick="document.getElementById('ladder-panel').style.display='none'" style="background:none;border:none;color:rgba(255,255,255,.5);cursor:pointer;font-size:1.4rem;line-height:1">×</button>
+        </div>
+      </div>
+      <div id="ladder-inner" style="padding:20px">
+        <div style="color:var(--muted);font-size:.85rem">Haz clic en "↺ Actualizar" para cargar la tabla.</div>
+      </div>
     </div>
 
     <!-- NOTIFICACIONES: lugar liberado / cancelación tardía -->
@@ -438,8 +456,9 @@
     <!-- Tabs por sesión -->
     <div style="display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:0">
       <div class="session-tabs" id="session-tabs" style="margin-bottom:0;border-bottom:none;flex:1"></div>
-      <div style="display:flex;gap:8px;margin-bottom:12px">
+      <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
         <button class="btn-action" style="padding:9px 14px;font-size:.82rem;white-space:nowrap" onclick="openEditSessions()">📅 Editar sesiones</button>
+        <button class="btn-action btn-delete" style="padding:9px 14px;font-size:.82rem;white-space:nowrap" onclick="deleteSessionFixtures(_currentSession)">🗑 Borrar fixtures sesión</button>
         <button class="btn-action btn-accept" style="padding:9px 18px;font-size:.82rem;white-space:nowrap" onclick="openAdd()">➕ Agregar jugador</button>
       </div>
     </div>
@@ -643,6 +662,49 @@
     <div class="modal-footer">
       <button class="btn-modal btn-cancel-modal" onclick="closeModal('modal-sessions')">Cerrar</button>
       <button class="btn-modal btn-save" id="btn-save-sessions" onclick="saveSessions()">Guardar cambios</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL PELIGRO / RESET -->
+<div class="modal-overlay" id="modal-danger" style="display:none" onclick="if(event.target===this)closeModal('modal-danger')">
+  <div class="modal" style="max-width:500px">
+    <div class="modal-header" style="background:#fef2f2;border-bottom-color:#fca5a5">
+      <span class="modal-title" style="color:#991b1b">⚙️ Zona de Peligro</span>
+      <button class="modal-close" onclick="closeModal('modal-danger')">×</button>
+    </div>
+    <div class="modal-body" style="gap:12px">
+      <p style="font-size:.82rem;color:var(--muted);line-height:1.6">Estas acciones son irreversibles. Úsalas solo para pruebas o mantenimiento.</p>
+
+      <div style="border:1.5px solid #fca5a5;padding:14px;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap">
+        <div>
+          <div style="font-weight:700;font-size:.9rem">🗑 Borrar fixture de categoría</div>
+          <div style="font-size:.78rem;color:var(--muted);margin-top:2px">Elimina el fixture de la sesión y categoría actualmente visible</div>
+        </div>
+        <button class="btn-modal btn-save-red" style="white-space:nowrap" onclick="deleteCurrentFixture();closeModal('modal-danger')">Borrar fixture</button>
+      </div>
+
+      <div style="border:1.5px solid #fca5a5;padding:14px;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap">
+        <div>
+          <div style="font-weight:700;font-size:.9rem">🗑🗑 Borrar todos los fixtures de la sesión activa</div>
+          <div style="font-size:.78rem;color:var(--muted);margin-top:2px">Elimina los 3 fixtures (Principiante, Intermedio, Open) de la sesión actual</div>
+        </div>
+        <button class="btn-modal btn-save-red" style="white-space:nowrap" onclick="deleteSessionFixtures(_currentSession);closeModal('modal-danger')">Borrar sesión</button>
+      </div>
+
+      <div style="border:2px solid #991b1b;padding:14px;background:#fef2f2">
+        <div style="font-weight:700;font-size:.9rem;color:#991b1b;margin-bottom:8px">💀 RESETEAR TODA LA LIGA</div>
+        <div style="font-size:.78rem;color:#991b1b;margin-bottom:12px;line-height:1.6">
+          Borra <strong>todos</strong> los registros, fixtures, penalizaciones y notificaciones. Los datos de sesiones (fechas/estado) se conservan.
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <input id="reset-confirm-input" class="field-input" type="text" placeholder='Escribe RESETEAR para confirmar' style="flex:1;min-width:200px;border-color:#fca5a5"/>
+          <button class="btn-modal btn-save-red" onclick="resetLeague()">RESETEAR LIGA</button>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-modal btn-cancel-modal" onclick="closeModal('modal-danger')">Cerrar</button>
     </div>
   </div>
 </div>
@@ -1726,9 +1788,232 @@ async function saveAdd() {
 // Cerrar modales con Escape
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') {
-    ['modal-edit','modal-move','modal-delete','modal-add','modal-sessions','modal-penalty'].forEach(closeModal);
+    ['modal-edit','modal-move','modal-delete','modal-add','modal-sessions','modal-penalty','modal-danger'].forEach(closeModal);
   }
 });
+
+/* ══════════════════════════════════════════════════════
+   TABLA LADDER GLOBAL
+══════════════════════════════════════════════════════ */
+
+function toggleLadderPanel() {
+  const p = document.getElementById('ladder-panel');
+  if (p.style.display === 'none') { p.style.display = 'block'; loadLadderTable(); }
+  else p.style.display = 'none';
+}
+
+async function loadLadderTable() {
+  const inner = document.getElementById('ladder-inner');
+  inner.innerHTML = '<div style="color:var(--muted);font-size:.82rem;font-family:\'Space Mono\',monospace;padding:8px 0">Calculando…</div>';
+  try {
+    const rows = await computeGlobalLadder();
+    inner.innerHTML = renderLadderHTML(rows);
+  } catch(e) {
+    console.error(e);
+    inner.innerHTML = '<div style="color:var(--red);font-size:.85rem">Error al cargar la tabla: ' + (e.message||e) + '</div>';
+  }
+}
+
+async function computeGlobalLadder() {
+  const snap = await db.collection('ladder_fixtures').get();
+  const allPlayers = {}; // uid -> { nombre, bySession: { 'sn_cat': {pts,pj,court} } }
+
+  snap.docs.forEach(doc => {
+    const fx = doc.data();
+    const pn = fx.playerNames || {};
+    const isS1 = fx.isSession1;
+    const sn = fx.sesionNum;
+    const cat = fx.categoria;
+
+    const addStats = (matches, uids, court) => {
+      const stats = computeStandings(matches, uids, court, isS1);
+      Object.entries(stats).forEach(([uid, s]) => {
+        if (s.pj === 0) return;
+        if (!allPlayers[uid]) allPlayers[uid] = { nombre: pn[uid]||uid, bySession: {} };
+        const key = `${sn}_${cat}`;
+        if (!allPlayers[uid].bySession[key]) {
+          allPlayers[uid].bySession[key] = { pts:0, pj:0, court:court||'—', sesionNum:sn, categoria:cat };
+        }
+        allPlayers[uid].bySession[key].pts += s.pts;
+        allPlayers[uid].bySession[key].pj  += s.pj;
+      });
+    };
+
+    if (fx.format === '2courts') {
+      (fx.rounds||[]).forEach(r => {
+        addStats(r.matchesA||[], fx.courtA, 'A');
+        addStats(r.matchesB||[], fx.courtB, 'B');
+      });
+    } else {
+      (fx.rounds||[]).forEach(r => addStats(r.matches||[], fx.courtA, null));
+    }
+  });
+
+  // Build per-player summary
+  const playerRows = Object.entries(allPlayers).map(([uid, data]) => {
+    const sessions = Object.values(data.bySession).map(s => ({
+      ...s,
+      ladderScore: s.pj > 0 ? s.pts / s.pj : 0,
+    })).sort((a,b) => a.sesionNum - b.sesionNum);
+
+    const allScores = sessions.map(s => s.ladderScore);
+    const n = allScores.length;
+
+    let status, usedScores;
+    if (n === 0) return null;
+    if (n < 3) {
+      status = `Necesita ${3-n} sesión${3-n>1?'es':''} más`;
+      usedScores = allScores;
+    } else {
+      status = 'compitiendo';
+      const sorted = [...allScores].sort((a,b) => a - b);
+      usedScores = n >= 7 ? sorted.slice(2) : sorted.slice(1); // drop 2 worst if 7+, else 1
+    }
+    const avg = usedScores.length > 0 ? usedScores.reduce((a,b)=>a+b,0)/usedScores.length : 0;
+
+    return { uid, nombre: data.nombre, sesiones: n, avg, status, sessions, allScores };
+  }).filter(Boolean);
+
+  playerRows.sort((a,b) => {
+    if ((a.status==='compitiendo') !== (b.status==='compitiendo'))
+      return a.status==='compitiendo' ? -1 : 1;
+    return b.avg - a.avg;
+  });
+
+  return playerRows;
+}
+
+function renderLadderHTML(rows) {
+  if (!rows.length) return '<div style="color:var(--muted);font-size:.85rem">No hay datos de fixtures todavía.</div>';
+
+  const catLabels = {principiante:'Prin.',intermedio:'Int.',open:'Open'};
+  const sesLabels = (n) => { const s=SEMANAS.find(x=>x.num===n); return s?`S${n}`:n; };
+
+  // Get all unique session numbers that appear
+  const allSessions = [...new Set(rows.flatMap(r=>r.sessions.map(s=>s.sesionNum)))].sort((a,b)=>a-b);
+
+  return `<div style="overflow-x:auto">
+    <table style="width:100%;border-collapse:collapse;font-size:.82rem;min-width:500px">
+      <thead>
+        <tr style="background:#064e3b;color:rgba(255,255,255,.85)">
+          <th style="padding:8px 12px;text-align:left;white-space:nowrap">#</th>
+          <th style="padding:8px 12px;text-align:left">Jugador</th>
+          ${allSessions.map(n=>`<th style="padding:8px 10px;text-align:center;white-space:nowrap">${sesLabels(n)}</th>`).join('')}
+          <th style="padding:8px 10px;text-align:center">Sesiones</th>
+          <th style="padding:8px 12px;text-align:center;white-space:nowrap">⭐ Promedio</th>
+          <th style="padding:8px 12px;text-align:left">Estado</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rows.map((r, i) => {
+          const isComp = r.status==='compitiendo';
+          const scoresBySn = {};
+          r.sessions.forEach(s => { scoresBySn[s.sesionNum] = s; });
+          const minScore = r.allScores.length > 0 ? Math.min(...r.allScores) : null;
+          const minScore2 = r.allScores.length >= 7 ? [...r.allScores].sort((a,b)=>a-b)[1] : null;
+
+          return `<tr style="border-bottom:1px solid var(--border);${isComp&&i===0?'background:#f0fdf4;':''}${!isComp?'opacity:.7':''}">
+            <td style="padding:8px 12px;font-family:'Space Mono',monospace;font-size:.7rem;color:var(--muted)">${isComp?i+1:'—'}</td>
+            <td style="padding:8px 12px;font-weight:${isComp?'700':'400'}">${r.nombre}</td>
+            ${allSessions.map(sn => {
+              const s = scoresBySn[sn];
+              if (!s) return `<td style="padding:8px 10px;text-align:center;color:#d1d5db">—</td>`;
+              const ls = s.ladderScore;
+              // Mark dropped scores (worst)
+              const isDrop = (ls === minScore && r.allScores.length >= 4) ||
+                             (ls === minScore2 && r.allScores.length >= 7);
+              return `<td style="padding:8px 10px;text-align:center;font-family:'Space Mono',monospace;font-size:.78rem;${isDrop?'text-decoration:line-through;color:#9ca3af':''}">
+                ${ls.toFixed(2)}
+                <div style="font-size:.6rem;color:#9ca3af">${s.court==='A'?'⬆A':s.court==='B'?'⬇B':'1C'}</div>
+              </td>`;
+            }).join('')}
+            <td style="padding:8px 10px;text-align:center;font-family:'Space Mono',monospace;font-size:.78rem">${r.sesiones}</td>
+            <td style="padding:8px 12px;text-align:center;font-family:'Space Mono',monospace;font-size:.88rem;font-weight:900;color:${isComp?'#065f46':'var(--muted)'}">${r.avg.toFixed(2)}</td>
+            <td style="padding:8px 12px;font-size:.75rem">${isComp
+              ? `<span style="background:#d1fae5;color:#065f46;padding:2px 8px;font-family:'Barlow Condensed',sans-serif;font-weight:800;text-transform:uppercase;letter-spacing:.04em">Compitiendo</span>`
+              : `<span style="color:#92400e;font-size:.75rem">${r.status}</span>`
+            }</td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table>
+    <div style="margin-top:10px;font-size:.72rem;color:var(--muted)">
+      ⭐ Promedio = pts/partido · Tachado = sesión descartada (peor resultado) · ⬆A Cancha A · ⬇B Cancha B · 1C 1 cancha
+    </div>
+  </div>`;
+}
+
+/* ══════════════════════════════════════════════════════
+   DELETE / RESET
+══════════════════════════════════════════════════════ */
+
+function deleteCurrentFixture() {
+  if (!_fixtureCat) { toast('Abre primero el panel de fixture', true); return; }
+  if (!confirm(`¿Borrar el fixture de ${_fixtureCat} · Sesión ${_currentSession}? Se perderán todos los resultados.`)) return;
+  const docId = `t1_sesion_${_currentSession}_${_fixtureCat}`;
+  db.collection('ladder_fixtures').doc(docId).delete()
+    .then(() => {
+      toast(`✓ Fixture de ${_fixtureCat} · Sesión ${_currentSession} eliminado`);
+      loadAndRenderFixture(_currentSession, _fixtureCat);
+    })
+    .catch(e => toast('✕ Error: ' + e.message, true));
+}
+
+async function deleteSessionFixtures(sesionNum) {
+  if (!confirm(`¿Borrar TODOS los fixtures de la Sesión ${sesionNum} (Principiante, Intermedio, Open)?\n\nSe perderán todos los resultados.`)) return;
+  const cats = ['principiante','intermedio','open'];
+  try {
+    await Promise.all(cats.map(c =>
+      db.collection('ladder_fixtures').doc(`t1_sesion_${sesionNum}_${c}`).delete().catch(()=>{})
+    ));
+    toast(`✓ Fixtures de Sesión ${sesionNum} eliminados`);
+    document.getElementById('fixture-panel').style.display = 'none';
+  } catch(e) { toast('✕ Error: ' + e.message, true); }
+}
+
+async function resetLeague() {
+  const val = document.getElementById('reset-confirm-input')?.value?.trim();
+  if (val !== 'RESETEAR') {
+    toast('Escribe exactamente RESETEAR para confirmar', true);
+    return;
+  }
+
+  if (!confirm('⚠️ ÚLTIMA ADVERTENCIA\n\nEsto borrará:\n• Todos los registros de inscripción\n• Todos los fixtures y resultados\n• Todas las penalizaciones\n• Todas las notificaciones\n\n¿Estás seguro?')) return;
+
+  closeModal('modal-danger');
+  toast('Reseteando… espera');
+
+  try {
+    const dels = async (colName) => {
+      const snap = await db.collection(colName).get();
+      await Promise.all(snap.docs.map(d => d.ref.delete()));
+    };
+
+    await dels('ladder_fixtures');
+    await dels('ladder_penalties');
+    await dels('ladder_notifications');
+
+    // Clear inscritos from all registration docs (keep doc structure)
+    const regSnap = await db.collection(COLLECTION).get();
+    await Promise.all(regSnap.docs.map(d =>
+      d.ref.update({ inscritos: [] })
+    ));
+
+    // Reset local state
+    Object.keys(_allData).forEach(k => { _allData[k] = []; });
+    document.getElementById('fixture-panel').style.display = 'none';
+    document.getElementById('ladder-panel').style.display = 'none';
+    document.getElementById('reset-confirm-input').value = '';
+    renderTable(_currentSession);
+    renderPending();
+    renderWaitlist();
+
+    toast('✓ Liga reseteada correctamente');
+  } catch(e) {
+    console.error(e);
+    toast('✕ Error durante el reset: ' + e.message, true);
+  }
+}
 
 /* ══════════════════════════════════════════════════════
    FIXTURE SYSTEM
@@ -1977,7 +2262,8 @@ function renderFixtureHTML(fx, sesionNum, categoria) {
   });
 
   html += `<div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border);display:flex;gap:8px;flex-wrap:wrap">
-    <button class="btn-action btn-delete" onclick="if(confirm('¿Regenerar? Se borrarán los resultados guardados.'))doGenerateFixture(${sesionNum},'${categoria}')">↺ Regenerar fixture</button>
+    <button class="btn-action btn-delete" onclick="if(confirm('¿Regenerar? Se borrarán los resultados guardados.'))doGenerateFixture(${sesionNum},'${categoria}')">↺ Regenerar</button>
+    <button class="btn-action btn-delete" onclick="deleteCurrentFixture()">🗑 Borrar fixture</button>
   </div>`;
   return html;
 }
