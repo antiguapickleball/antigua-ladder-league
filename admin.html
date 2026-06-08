@@ -1301,7 +1301,7 @@ function renderTable(sesionNum) {
         ${isWait ? `<button class="btn-action btn-accept" onclick="manualPromote(${sesionNum},'${p.uid}')">↑ Promover</button>` : ''}
         <button class="btn-action btn-edit"   onclick="openEdit(${sesionNum}, '${p.uid}')">Editar</button>
         <button class="btn-action btn-move"   onclick="openMove(${sesionNum}, '${p.uid}')">Mover</button>
-        ${p.status === 'confirmed' ? `<button class="btn-action btn-penalty" onclick="openPenalty(${sesionNum},'${p.uid}',${JSON.stringify(p.nombre)})">⚠️</button>` : ''}
+        ${p.status === 'confirmed' ? `<button class="btn-action btn-penalty" onclick="openPenalty(${sesionNum},'${p.uid}','${(p.nombre||'').replace(/'/g,'&#39;')}')">⚠️ Penalizar</button>` : ''}
         <button class="btn-action btn-delete" onclick="openDelete(${sesionNum}, '${p.uid}')">Borrar</button>
       </td>
     </tr>`;
