@@ -2319,15 +2319,22 @@ function renderFixtureHTML(fx, sesionNum, categoria) {
       const courtAuids = round.num === 2 ? (fx.courtA_r2||fx.courtA||[]) : (fx.courtA||[]);
       const courtBuids = round.num === 2 ? (fx.courtB_r2||fx.courtB||[]) : (fx.courtB||[]);
 
+      const scoredA = (round.matchesA||[]).filter(m=>m.score).length;
+      const totalA  = (round.matchesA||[]).length;
+      const scoredB = (round.matchesB||[]).filter(m=>m.score).length;
+      const totalB  = (round.matchesB||[]).length;
+      const progA   = scoredA < totalA ? ` <span style="font-weight:400;font-size:.7rem;opacity:.8">(${scoredA}/${totalA} resultados)</span>` : ` <span style="font-size:.7rem">✓</span>`;
+      const progB   = scoredB < totalB ? ` <span style="font-weight:400;font-size:.7rem;opacity:.8">(${scoredB}/${totalB} resultados)</span>` : ` <span style="font-size:.7rem">✓</span>`;
+
       html += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
         <div>
-          <div style="font-family:'Barlow Condensed',sans-serif;font-size:.75rem;font-weight:900;text-transform:uppercase;letter-spacing:.1em;color:#065f46;margin-bottom:8px;background:#dcfce7;padding:4px 10px">Cancha A · ${isS1?'V:2/D:0':'V:3/D:1'}</div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:.75rem;font-weight:900;text-transform:uppercase;letter-spacing:.1em;color:#065f46;margin-bottom:8px;background:#dcfce7;padding:4px 10px">Cancha A · ${isS1?'V:2/D:0':'V:3/D:1'}${progA}</div>
           ${round.num === 2 ? `<div style="font-size:.75rem;color:var(--muted);margin-bottom:8px;padding:4px 0">${courtAuids.map(u=>`<span style="display:inline-block;background:${(fx.promotedToA||[]).includes(u)?'#dcfce7':'#f0f0ee'};padding:1px 6px;margin:1px;font-size:.72rem">${(fx.promotedToA||[]).includes(u)?'⬆ ':''} ${pn[u]||u}</span>`).join('')}</div>` : ''}
           ${(round.matchesA||[]).map(m=>renderMatchRow(m,pn,'A',isS1,sesionNum,categoria,round.num)).join('')}
           ${allScoredA ? renderStandingsTable(computeStandings(round.matchesA,courtAuids,'A',isS1),pn, round.num===1?movement?.A:null) : ''}
         </div>
         <div>
-          <div style="font-family:'Barlow Condensed',sans-serif;font-size:.75rem;font-weight:900;text-transform:uppercase;letter-spacing:.1em;color:#1d4ed8;margin-bottom:8px;background:#dbeafe;padding:4px 10px">Cancha B · V:2/D:0</div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:.75rem;font-weight:900;text-transform:uppercase;letter-spacing:.1em;color:#1d4ed8;margin-bottom:8px;background:#dbeafe;padding:4px 10px">Cancha B · V:2/D:0${progB}</div>
           ${round.num === 2 ? `<div style="font-size:.75rem;color:var(--muted);margin-bottom:8px;padding:4px 0">${courtBuids.map(u=>`<span style="display:inline-block;background:${(fx.relegatedToB||[]).includes(u)?'#fef2f2':'#f0f0ee'};padding:1px 6px;margin:1px;font-size:.72rem">${(fx.relegatedToB||[]).includes(u)?'⬇ ':''} ${pn[u]||u}</span>`).join('')}</div>` : ''}
           ${(round.matchesB||[]).map(m=>renderMatchRow(m,pn,'B',isS1,sesionNum,categoria,round.num)).join('')}
           ${allScoredB ? renderStandingsTable(computeStandings(round.matchesB,courtBuids,'B',isS1),pn, round.num===1?movement?.B:null) : ''}
@@ -2357,8 +2364,16 @@ function renderFixtureHTML(fx, sesionNum, categoria) {
         <button class="btn-modal btn-save" onclick="generateRound2('${sesionNum}','${categoria}')" style="background:#065f46;white-space:nowrap">▶ Generar Ronda 2</button>
       </div>`;
     } else {
+      const r1p = (fx.rounds||[])[0];
+      const doneA = (r1p?.matchesA||[]).filter(m=>m.score).length;
+      const pendA = (r1p?.matchesA||[]).length - doneA;
+      const doneB = (r1p?.matchesB||[]).filter(m=>m.score).length;
+      const pendB = (r1p?.matchesB||[]).length - doneB;
+      const pending = [];
+      if (pendA > 0) pending.push(`${pendA} partido${pendA>1?'s':''} en Cancha A`);
+      if (pendB > 0) pending.push(`${pendB} partido${pendB>1?'s':''} en Cancha B`);
       html += `<div style="margin:16px 0;padding:12px 16px;background:#fafaf8;border:1px solid var(--border);font-size:.82rem;color:var(--muted)">
-        Completa todos los resultados de Ronda 1 para generar Ronda 2.
+        ⏳ Faltan resultados: ${pending.join(' · ')}
       </div>`;
     }
   }
