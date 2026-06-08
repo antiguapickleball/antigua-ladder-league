@@ -1277,7 +1277,130 @@ const SEMANAS = [
   { num: 8, fecha: '29 Ago', estado: 'pendiente'                      },
 ];
 
-function renderStandings(cat) {
+// Current active category tab
+let _activeCat = 'principiante';
+
+async function loadPublicRanking(cat) {
+  _activeCat = cat || _activeCat;
+  const wrap = document.getElementById('standings-body');
+  wrap.innerHTML = `<div class="standings-empty"><p style="color:#6b7280;font-size:.9rem">Cargando ranking…</p></div>`;
+
+  try {
+    const snap = await db.collection('ladder_scores').get();
+
+    if (snap.empty) {
+      renderStaticStandings(_activeCat);
+      return;
+    }
+
+    // Filter players for current category
+    const allDocs = snap.docs.map(d => ({ docId: d.id, ...d.data() }));
+    const filtered = allDocs.filter(p => {
+      const sessions = Object.values(p.sessions || {});
+      return sessions.some(s => s.categoria === _activeCat);
+    });
+
+    if (!filtered.length) {
+      renderStaticStandings(_activeCat);
+      return;
+    }
+
+    // Collect session keys for this category
+    const sessionKeys = new Set();
+    filtered.forEach(p => {
+      Object.entries(p.sessions || {}).forEach(([k, s]) => {
+        if (s.categoria === _activeCat) sessionKeys.add(k);
+      });
+    });
+    const sortedKeys = [...sessionKeys].sort((a, b) => {
+      const na = parseInt(a), nb = parseInt(b);
+      return na !== nb ? na - nb : a.localeCompare(b);
+    });
+
+    // Build rows
+    const rows = filtered.map(p => {
+      const catSessions = Object.entries(p.sessions || {})
+        .filter(([, s]) => s.categoria === _activeCat)
+        .map(([k, s]) => ({ key: k, sesionNum: s.sesionNum, score: s.score, pj: s.pj, court: s.court }))
+        .sort((a, b) => a.sesionNum - b.sesionNum);
+
+      const allScores = catSessions.map(s => s.score);
+      const n = allScores.length;
+      let usedScores, droppedScores = new Set();
+
+      if (n < 3) {
+        usedScores = allScores;
+      } else {
+        const sorted = [...allScores].sort((a, b) => a - b);
+        const dropCount = n >= 7 ? 2 : 1;
+        const dropped = sorted.slice(0, dropCount);
+        // Mark scores as dropped (by index, handle ties)
+        let dropCopy = [...dropped];
+        catSessions.forEach((s, i) => {
+          const idx = dropCopy.indexOf(s.score);
+          if (idx !== -1) { droppedScores.add(i); dropCopy.splice(idx, 1); }
+        });
+        usedScores = catSessions.filter((_, i) => !droppedScores.has(i)).map(s => s.score);
+      }
+
+      const avg = usedScores.length > 0 ? usedScores.reduce((a, b) => a + b, 0) / usedScores.length : 0;
+      const scoreByKey = {};
+      catSessions.forEach((s, i) => { scoreByKey[s.key] = { ...s, dropped: droppedScores.has(i) }; });
+
+      return { ...p, catSessions, allScores, avg, scoreByKey, status: n >= 3 ? 'compitiendo' : `Necesita ${3-n} sesión${3-n>1?'es':''} más` };
+    }).sort((a, b) => {
+      if ((a.status === 'compitiendo') !== (b.status === 'compitiendo'))
+        return a.status === 'compitiendo' ? -1 : 1;
+      return b.avg - a.avg;
+    });
+
+    const catLabel = { principiante: 'Principiante', intermedio: 'Intermedio', open: 'Open' }[_activeCat] || _activeCat;
+
+    let html = `<div class="standings-table-wrap">
+      <table class="standings-table">
+        <thead><tr>
+          <th style="text-align:center">#</th>
+          <th>Jugador</th>
+          ${sortedKeys.map(k => `<th title="Sesión ${k.split('_')[0]}">S${k.split('_')[0]}</th>`).join('')}
+          <th>Sesiones</th>
+          <th>⭐ Promedio</th>
+          <th>Estado</th>
+        </tr></thead>
+        <tbody>`;
+
+    rows.forEach((r, i) => {
+      const isComp = r.status === 'compitiendo';
+      html += `<tr class="${isComp && i === 0 ? 'row-top1' : ''}${!isComp ? ' style="opacity:.7"' : ''}">
+        <td class="td-rank">${isComp ? i + 1 : '—'}</td>
+        <td class="td-name" style="font-weight:${isComp ? '700' : '400'}">${r.nombre || r.docId}</td>
+        ${sortedKeys.map(k => {
+          const s = r.scoreByKey[k];
+          if (!s) return `<td class="td-mono" style="color:#d1d5db">—</td>`;
+          return `<td class="td-mono td-pct"${s.dropped ? ' style="text-decoration:line-through;color:#9ca3af"' : ''}>${(s.score * 100).toFixed(1)}%</td>`;
+        }).join('')}
+        <td class="td-mono">${r.catSessions.length}</td>
+        <td class="td-pct" style="font-weight:900;color:${isComp ? 'var(--red)' : 'var(--muted)'}">${(r.avg * 100).toFixed(1)}%</td>
+        <td style="font-size:.75rem">${isComp
+          ? `<span style="background:#fdecea;color:var(--red);padding:2px 8px;font-family:'Barlow Condensed',sans-serif;font-weight:800;text-transform:uppercase;font-size:.72rem;letter-spacing:.04em">Compitiendo</span>`
+          : `<span style="color:#92400e;font-size:.75rem">${r.status}</span>`
+        }</td>
+      </tr>`;
+    });
+
+    html += `</tbody></table>
+      <div style="margin-top:10px;font-size:.72rem;color:#9ca3af;padding:0 4px">
+        ⭐ Promedio = % puntos posibles (0–100%) · Tachado = sesión descartada (peor resultado)
+      </div>
+    </div>`;
+
+    wrap.innerHTML = html;
+  } catch (e) {
+    console.error('Error cargando ranking:', e);
+    renderStaticStandings(_activeCat);
+  }
+}
+
+function renderStaticStandings(cat) {
   const j = [...JUGADORES[cat]].map(p => ({
     ...p, pct: p.ptosPosibles ? p.ptosGanados / p.ptosPosibles * 100 : null,
   })).sort((a, b) => {
@@ -1339,14 +1462,14 @@ function renderCalendar() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  renderStandings('principiante');
+  loadPublicRanking('principiante');
   renderCalendar();
 
   document.querySelectorAll('.s-tab').forEach(btn => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('.s-tab').forEach(t => t.classList.remove('active'));
       btn.classList.add('active');
-      renderStandings(btn.dataset.cat);
+      loadPublicRanking(btn.dataset.cat);
     });
   });
 
@@ -1360,6 +1483,21 @@ document.addEventListener('DOMContentLoaded', () => {
   }, { threshold: 0.06 });
   document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
 });
+</script>
+
+<!-- ══ Firebase SDK (ranking público) ══ -->
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+<script>
+  firebase.initializeApp({
+    apiKey: "AIzaSyBBmUQR8AGdosXSGNK3galyBmFjkn6jOuM",
+    authDomain: "antigua-pickleball.firebaseapp.com",
+    projectId: "antigua-pickleball",
+    storageBucket: "antigua-pickleball.firebasestorage.app",
+    messagingSenderId: "270487643715",
+    appId: "1:270487643715:web:701b74a71253ac599056f6"
+  });
+  const db = firebase.firestore();
 </script>
 
 <!-- ══ AUTH BRIDGE — sesión compartida con antigua-pickleball.com ══ -->

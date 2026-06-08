@@ -395,8 +395,25 @@
           <button onclick="document.getElementById('ladder-panel').style.display='none'" style="background:none;border:none;color:rgba(255,255,255,.5);cursor:pointer;font-size:1.4rem;line-height:1">×</button>
         </div>
       </div>
+      <!-- Tabs -->
+      <div style="display:flex;border-bottom:2px solid #6ee7b7;background:#f0fdf4">
+        <button id="ladder-tab-calc" onclick="switchLadderTab('calc')" style="font-family:'Barlow Condensed',sans-serif;font-size:.8rem;font-weight:900;text-transform:uppercase;letter-spacing:.06em;padding:10px 18px;border:none;border-bottom:3px solid #065f46;background:transparent;color:#065f46;cursor:pointer">Calcular (preview)</button>
+        <button id="ladder-tab-pub" onclick="switchLadderTab('pub')" style="font-family:'Barlow Condensed',sans-serif;font-size:.8rem;font-weight:900;text-transform:uppercase;letter-spacing:.06em;padding:10px 18px;border:none;border-bottom:3px solid transparent;background:transparent;color:#6b7280;cursor:pointer">Publicado</button>
+      </div>
       <div id="ladder-inner" style="padding:20px">
         <div style="color:var(--muted);font-size:.85rem">Haz clic en "↺ Actualizar" para cargar la tabla.</div>
+      </div>
+      <!-- Publish section -->
+      <div id="ladder-publish-section" style="padding:16px 20px;border-top:1.5px solid #d1fae5;background:#f9fef9">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:.85rem;font-weight:900;text-transform:uppercase;letter-spacing:.06em;color:#065f46;margin-bottom:12px">📤 Publicar jornada al ranking</div>
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+          <select id="publish-session-select" style="font-family:'Barlow Condensed',sans-serif;font-size:.82rem;padding:6px 10px;border:1.5px solid #6ee7b7;background:#fff;color:#064e3b;font-weight:700">
+            <option value="">— sesión —</option>
+          </select>
+          <button onclick="confirmPublishSession()" style="font-family:'Barlow Condensed',sans-serif;font-size:.78rem;font-weight:900;text-transform:uppercase;letter-spacing:.06em;padding:7px 14px;background:#065f46;color:#fff;border:none;cursor:pointer">📤 Publicar</button>
+          <button onclick="openDeletePublishedSession()" style="font-family:'Barlow Condensed',sans-serif;font-size:.78rem;font-weight:900;text-transform:uppercase;letter-spacing:.06em;padding:7px 14px;background:#fef2f2;color:#991b1b;border:1.5px solid #fca5a5;cursor:pointer">🗑 Borrar jornada del ranking</button>
+        </div>
+        <div id="publish-status" style="margin-top:8px;font-size:.78rem;color:var(--muted)"></div>
       </div>
     </div>
 
@@ -1797,10 +1814,27 @@ document.addEventListener('keydown', e => {
    TABLA LADDER GLOBAL
 ══════════════════════════════════════════════════════ */
 
+let _ladderTab = 'calc';
+
+function switchLadderTab(tab) {
+  _ladderTab = tab;
+  document.getElementById('ladder-tab-calc').style.borderBottomColor = tab==='calc' ? '#065f46' : 'transparent';
+  document.getElementById('ladder-tab-calc').style.color = tab==='calc' ? '#065f46' : '#6b7280';
+  document.getElementById('ladder-tab-pub').style.borderBottomColor = tab==='pub' ? '#065f46' : 'transparent';
+  document.getElementById('ladder-tab-pub').style.color = tab==='pub' ? '#065f46' : '#6b7280';
+  if (tab === 'calc') loadLadderTable();
+  else loadPublishedLadder();
+}
+
 function toggleLadderPanel() {
   const p = document.getElementById('ladder-panel');
-  if (p.style.display === 'none') { p.style.display = 'block'; loadLadderTable(); }
-  else p.style.display = 'none';
+  if (p.style.display === 'none') {
+    p.style.display = 'block';
+    loadLadderTable();
+    populatePublishSessionSelect();
+  } else {
+    p.style.display = 'none';
+  }
 }
 
 async function loadLadderTable() {
@@ -1812,6 +1846,238 @@ async function loadLadderTable() {
   } catch(e) {
     console.error(e);
     inner.innerHTML = '<div style="color:var(--red);font-size:.85rem">Error al cargar la tabla: ' + (e.message||e) + '</div>';
+  }
+}
+
+async function loadPublishedLadder() {
+  const inner = document.getElementById('ladder-inner');
+  inner.innerHTML = '<div style="color:var(--muted);font-size:.82rem;font-family:\'Space Mono\',monospace;padding:8px 0">Cargando publicado…</div>';
+  try {
+    const snap = await db.collection('ladder_scores').get();
+    if (snap.empty) {
+      inner.innerHTML = '<div style="color:var(--muted);font-size:.85rem">No hay ranking publicado todavía.</div>';
+      return;
+    }
+
+    // Collect all session keys
+    const allSessionKeys = new Set();
+    const players = [];
+    snap.docs.forEach(doc => {
+      const d = doc.data();
+      Object.keys(d.sessions||{}).forEach(k => allSessionKeys.add(k));
+      players.push({ ...d, docId: doc.id });
+    });
+
+    const sortedKeys = [...allSessionKeys].sort((a,b) => {
+      const na = parseInt(a), nb = parseInt(b);
+      return na !== nb ? na - nb : a.localeCompare(b);
+    });
+
+    // Build rows
+    const rows = players.map(p => {
+      const sessions = Object.entries(p.sessions||{}).map(([k, s]) => ({
+        key: k, sesionNum: s.sesionNum, categoria: s.categoria,
+        score: s.score, pj: s.pj, court: s.court
+      })).sort((a,b) => a.sesionNum - b.sesionNum);
+
+      const allScores = sessions.map(s => s.score);
+      const n = allScores.length;
+      let usedScores;
+      if (n < 3) usedScores = allScores;
+      else {
+        const sorted = [...allScores].sort((a,b) => a - b);
+        usedScores = n >= 7 ? sorted.slice(2) : sorted.slice(1);
+      }
+      const avg = usedScores.length > 0 ? usedScores.reduce((a,b)=>a+b,0)/usedScores.length : 0;
+      return { ...p, sessions, allScores, avg };
+    }).sort((a,b) => b.avg - a.avg);
+
+    const catLabels = {principiante:'Prin.',intermedio:'Int.',open:'Open'};
+    let html = `<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:.82rem;min-width:500px">
+      <thead><tr style="background:#064e3b;color:rgba(255,255,255,.85)">
+        <th style="padding:8px 12px;text-align:left">#</th>
+        <th style="padding:8px 12px;text-align:left">Jugador</th>
+        <th style="padding:8px 10px;text-align:center;white-space:nowrap">DUPR</th>
+        ${sortedKeys.map(k=>`<th style="padding:8px 10px;text-align:center;white-space:nowrap">S${k.split('_')[0]}<br><span style="font-size:.65rem;opacity:.7">${catLabels[k.split('_')[1]]||k.split('_')[1]}</span></th>`).join('')}
+        <th style="padding:8px 12px;text-align:center">⭐ Promedio</th>
+      </tr></thead><tbody>`;
+
+    rows.forEach((r, i) => {
+      const scoresByKey = {};
+      r.sessions.forEach(s => { scoresByKey[s.key] = s; });
+      const minScore = r.allScores.length > 0 ? Math.min(...r.allScores) : null;
+      const minScore2 = r.allScores.length >= 7 ? [...r.allScores].sort((a,b)=>a-b)[1] : null;
+
+      html += `<tr style="border-bottom:1px solid var(--border)">
+        <td style="padding:8px 12px;font-family:'Space Mono',monospace;font-size:.7rem;color:var(--muted)">${i+1}</td>
+        <td style="padding:8px 12px;font-weight:700">${r.nombre||r.uid||r.docId}</td>
+        <td style="padding:8px 10px;text-align:center;font-family:'Space Mono',monospace;font-size:.72rem;color:var(--muted)">${r.duprId||'—'}</td>
+        ${sortedKeys.map(k => {
+          const s = scoresByKey[k];
+          if (!s) return `<td style="padding:8px 10px;text-align:center;color:#d1d5db">—</td>`;
+          const isDrop = r.allScores.length >= 4 && (
+            (s.score === minScore) || (minScore2 !== null && s.score === minScore2 && r.allScores.length >= 7)
+          );
+          return `<td style="padding:8px 10px;text-align:center;font-family:'Space Mono',monospace;font-size:.78rem;${isDrop?'text-decoration:line-through;color:#9ca3af':''}">${(s.score*100).toFixed(1)}%</td>`;
+        }).join('')}
+        <td style="padding:8px 12px;text-align:center;font-family:'Space Mono',monospace;font-size:.88rem;font-weight:900;color:#065f46">${(r.avg*100).toFixed(1)}%</td>
+      </tr>`;
+    });
+
+    html += `</tbody></table>
+      <div style="margin-top:10px;font-size:.72rem;color:var(--muted)">⭐ Promedio = % puntos posibles · Tachado = sesión descartada</div>
+    </div>`;
+    inner.innerHTML = html;
+  } catch(e) {
+    console.error(e);
+    inner.innerHTML = '<div style="color:var(--red);font-size:.85rem">Error: ' + (e.message||e) + '</div>';
+  }
+}
+
+async function populatePublishSessionSelect() {
+  const sel = document.getElementById('publish-session-select');
+  const snap = await db.collection('ladder_fixtures').get();
+  const sessionNums = new Set();
+  snap.docs.forEach(d => { const n = d.data().sesionNum; if (n) sessionNums.add(n); });
+  const sorted = [...sessionNums].sort((a,b)=>a-b);
+  sel.innerHTML = '<option value="">— sesión —</option>' + sorted.map(n => `<option value="${n}">Sesión ${n}</option>`).join('');
+}
+
+async function confirmPublishSession() {
+  const sel = document.getElementById('publish-session-select');
+  const sesionNum = parseInt(sel.value);
+  if (!sesionNum) { toast('Selecciona una sesión', true); return; }
+  if (!confirm(`¿Publicar Sesión ${sesionNum} al ranking? Esto sobrescribirá los datos previos de esa sesión para todos los jugadores.`)) return;
+  const status = document.getElementById('publish-status');
+  status.textContent = 'Publicando…';
+  try {
+    await publishSession(sesionNum);
+    status.innerHTML = `<span style="color:#065f46">✓ Sesión ${sesionNum} publicada correctamente</span>`;
+    toast(`✓ Sesión ${sesionNum} publicada al ranking`);
+  } catch(e) {
+    console.error(e);
+    status.innerHTML = `<span style="color:var(--red)">✕ Error: ${e.message||e}</span>`;
+    toast('✕ Error al publicar: ' + (e.message||e), true);
+  }
+}
+
+async function publishSession(sesionNum) {
+  const cats = ['principiante','intermedio','open'];
+  const isS1 = sesionNum === 1;
+
+  // Collect per-player stats across all categories for this session
+  const playerStats = {}; // uid -> { nombre, duprId, sessions: { key: {score, pj, court, sesionNum, categoria} } }
+
+  for (const cat of cats) {
+    const docId = `t1_sesion_${sesionNum}_${cat}`;
+    const doc = await db.collection('ladder_fixtures').doc(docId).get();
+    if (!doc.exists) continue;
+
+    const fx = doc.data();
+    const pn = fx.playerNames || {};
+
+    // Build uid -> duprId map from _allData
+    const duprMap = {};
+    const inscritos = _allData[sesionNum] || [];
+    inscritos.forEach(p => { if (p.uid && p.duprId) duprMap[p.uid] = p.duprId; });
+
+    const processMatches = (matches, uids, court) => {
+      const stats = computeStandings(matches, uids, court, isS1);
+      const maxPts = isS1 ? 2 : (court === 'A' ? 3 : 2);
+      const key = `${sesionNum}_${cat}`;
+      Object.entries(stats).forEach(([uid, s]) => {
+        if (s.pj === 0) return;
+        if (!playerStats[uid]) playerStats[uid] = { nombre: pn[uid]||uid, duprId: duprMap[uid]||null, sessions: {} };
+        if (!playerStats[uid].sessions[key]) {
+          playerStats[uid].sessions[key] = { pts:0, pj:0, court:court||'—', sesionNum, categoria:cat, maxPts };
+        }
+        playerStats[uid].sessions[key].pts += s.pts;
+        playerStats[uid].sessions[key].pj  += s.pj;
+      });
+    };
+
+    if (fx.format === '2courts') {
+      const rounds = fx.rounds || [];
+      const r1 = rounds[0], r2 = rounds[1];
+      if (r1) {
+        processMatches(r1.matchesA||[], fx.courtA, 'A');
+        processMatches(r1.matchesB||[], fx.courtB, 'B');
+      }
+      if (r2) {
+        processMatches(r2.matchesA||[], fx.courtA_r2||fx.courtA, 'A');
+        processMatches(r2.matchesB||[], fx.courtB_r2||fx.courtB, 'B');
+      }
+    } else {
+      (fx.rounds||[]).forEach(r => processMatches(r.matches||[], fx.courtA, null));
+    }
+  }
+
+  // Write to ladder_scores — one set per player with merge
+  const now = firebase.firestore.Timestamp.now();
+
+  for (const [uid, data] of Object.entries(playerStats)) {
+    const docKey = data.duprId || uid;
+    const ref = db.collection('ladder_scores').doc(docKey);
+
+    // Build session entries
+    const sessionsData = {};
+    Object.entries(data.sessions).forEach(([key, s]) => {
+      sessionsData[key] = {
+        sesionNum: s.sesionNum,
+        categoria: s.categoria,
+        score: s.pj > 0 ? s.pts / (s.pj * s.maxPts) : 0,
+        pj: s.pj,
+        court: s.court,
+        publishedAt: now,
+      };
+    });
+
+    await ref.set({
+      nombre: data.nombre,
+      duprId: data.duprId || null,
+      uid,
+      sessions: sessionsData,
+    }, { merge: true });
+  }
+}
+
+async function openDeletePublishedSession() {
+  const snap = await db.collection('ladder_scores').get();
+  if (snap.empty) { toast('No hay ranking publicado', true); return; }
+
+  // Collect all session keys
+  const sessionKeys = new Set();
+  snap.docs.forEach(d => {
+    Object.keys(d.data().sessions||{}).forEach(k => sessionKeys.add(k));
+  });
+
+  if (!sessionKeys.size) { toast('No hay sesiones publicadas', true); return; }
+
+  const sorted = [...sessionKeys].sort((a,b) => {
+    const na = parseInt(a), nb = parseInt(b);
+    return na !== nb ? na - nb : a.localeCompare(b);
+  });
+
+  const key = prompt(`¿Qué sesión borrar del ranking?\n\nSesiones disponibles:\n${sorted.map((k,i)=>`${i+1}. ${k}`).join('\n')}\n\nEscribe la clave exacta (ej: 1_open):`);
+  if (!key || !sessionKeys.has(key)) {
+    if (key !== null) toast('Clave no válida', true);
+    return;
+  }
+
+  if (!confirm(`¿Borrar la sesión "${key}" del ranking de TODOS los jugadores?`)) return;
+
+  try {
+    const batch = db.batch();
+    snap.docs.forEach(d => {
+      if (d.data().sessions?.[key] !== undefined) {
+        batch.update(d.ref, { [`sessions.${key}`]: firebase.firestore.FieldValue.delete() });
+      }
+    });
+    await batch.commit();
+    toast(`✓ Sesión "${key}" eliminada del ranking`);
+    if (_ladderTab === 'pub') loadPublishedLadder();
+  } catch(e) {
+    toast('✕ Error: ' + (e.message||e), true);
   }
 }
 
@@ -1828,23 +2094,32 @@ async function computeGlobalLadder() {
 
     const addStats = (matches, uids, court) => {
       const stats = computeStandings(matches, uids, court, isS1);
+      const maxPts = isS1 ? 2 : (court === 'A' ? 3 : 2);
       Object.entries(stats).forEach(([uid, s]) => {
         if (s.pj === 0) return;
         if (!allPlayers[uid]) allPlayers[uid] = { nombre: pn[uid]||uid, bySession: {} };
         const key = `${sn}_${cat}`;
         if (!allPlayers[uid].bySession[key]) {
-          allPlayers[uid].bySession[key] = { pts:0, pj:0, court:court||'—', sesionNum:sn, categoria:cat };
+          allPlayers[uid].bySession[key] = { pts:0, pj:0, court:court||'—', sesionNum:sn, categoria:cat, maxPts:maxPts };
         }
         allPlayers[uid].bySession[key].pts += s.pts;
         allPlayers[uid].bySession[key].pj  += s.pj;
+        // maxPts: use the court's maxPts (last one wins if mixed, but players stay per court)
+        allPlayers[uid].bySession[key].maxPts = maxPts;
       });
     };
 
     if (fx.format === '2courts') {
-      (fx.rounds||[]).forEach(r => {
-        addStats(r.matchesA||[], fx.courtA, 'A');
-        addStats(r.matchesB||[], fx.courtB, 'B');
-      });
+      const rounds = fx.rounds || [];
+      const r1 = rounds[0], r2 = rounds[1];
+      if (r1) {
+        addStats(r1.matchesA||[], fx.courtA, 'A');
+        addStats(r1.matchesB||[], fx.courtB, 'B');
+      }
+      if (r2) {
+        addStats(r2.matchesA||[], fx.courtA_r2||fx.courtA, 'A');
+        addStats(r2.matchesB||[], fx.courtB_r2||fx.courtB, 'B');
+      }
     } else {
       (fx.rounds||[]).forEach(r => addStats(r.matches||[], fx.courtA, null));
     }
@@ -1854,7 +2129,7 @@ async function computeGlobalLadder() {
   const playerRows = Object.entries(allPlayers).map(([uid, data]) => {
     const sessions = Object.values(data.bySession).map(s => ({
       ...s,
-      ladderScore: s.pj > 0 ? s.pts / s.pj : 0,
+      ladderScore: s.pj > 0 ? s.pts / (s.pj * (s.maxPts||2)) : 0,
     })).sort((a,b) => a.sesionNum - b.sesionNum);
 
     const allScores = sessions.map(s => s.ladderScore);
@@ -1939,7 +2214,7 @@ function renderLadderHTML(rows) {
       </tbody>
     </table>
     <div style="margin-top:10px;font-size:.72rem;color:var(--muted)">
-      ⭐ Promedio = pts/partido · Tachado = sesión descartada (peor resultado) · ⬆A Cancha A · ⬇B Cancha B · 1C 1 cancha
+      ⭐ Promedio = % puntos posibles (0-1) · Tachado = sesión descartada (peor resultado) · ⬆A Cancha A · ⬇B Cancha B · 1C 1 cancha
     </div>
   </div>`;
 }
@@ -2537,10 +2812,11 @@ function computeStandings(matches, uids, court, isS1) {
     (los||[]).forEach(u => { if(s[u]){s[u].pp++;s[u].pf+=lp;s[u].pc+=wp;s[u].pts+=pts.l;} });
   });
 
+  const maxPts = isS1 ? 2 : (court === 'A' ? 3 : 2);
   Object.values(s).forEach(r => {
     r.pctPG      = r.pj > 0 ? r.pg / r.pj : 0;
     r.pctPts     = (r.pf+r.pc) > 0 ? r.pf / (r.pf+r.pc) : 0;
-    r.ladderScore= r.pj > 0 ? r.pts / r.pj : 0;
+    r.ladderScore= r.pj > 0 ? r.pts / (r.pj * maxPts) : 0;
   });
   return s;
 }
