@@ -405,13 +405,18 @@
       </div>
       <!-- Publish section -->
       <div id="ladder-publish-section" style="padding:16px 20px;border-top:1.5px solid #d1fae5;background:#f9fef9">
-        <div style="font-family:'Barlow Condensed',sans-serif;font-size:.85rem;font-weight:900;text-transform:uppercase;letter-spacing:.06em;color:#065f46;margin-bottom:12px">📤 Publicar jornada al ranking</div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:.85rem;font-weight:900;text-transform:uppercase;letter-spacing:.06em;color:#065f46;margin-bottom:12px">📤 Publicar al ranking</div>
         <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
           <select id="publish-session-select" style="font-family:'Barlow Condensed',sans-serif;font-size:.82rem;padding:6px 10px;border:1.5px solid #6ee7b7;background:#fff;color:#064e3b;font-weight:700">
-            <option value="">— sesión —</option>
+            <option value="">— jornada —</option>
+          </select>
+          <select id="publish-cat-select" style="font-family:'Barlow Condensed',sans-serif;font-size:.82rem;padding:6px 10px;border:1.5px solid #6ee7b7;background:#fff;color:#064e3b;font-weight:700">
+            <option value="principiante">Principiante</option>
+            <option value="intermedio">Intermedio</option>
+            <option value="open">Open</option>
           </select>
           <button onclick="confirmPublishSession()" style="font-family:'Barlow Condensed',sans-serif;font-size:.78rem;font-weight:900;text-transform:uppercase;letter-spacing:.06em;padding:7px 14px;background:#065f46;color:#fff;border:none;cursor:pointer">📤 Publicar</button>
-          <button onclick="openDeletePublishedSession()" style="font-family:'Barlow Condensed',sans-serif;font-size:.78rem;font-weight:900;text-transform:uppercase;letter-spacing:.06em;padding:7px 14px;background:#fef2f2;color:#991b1b;border:1.5px solid #fca5a5;cursor:pointer">🗑 Borrar jornada del ranking</button>
+          <button onclick="openDeletePublishedSession()" style="font-family:'Barlow Condensed',sans-serif;font-size:.78rem;font-weight:900;text-transform:uppercase;letter-spacing:.06em;padding:7px 14px;background:#fef2f2;color:#991b1b;border:1.5px solid #fca5a5;cursor:pointer">🗑 Borrar del ranking</button>
         </div>
         <div id="publish-status" style="margin-top:8px;font-size:.78rem;color:var(--muted)"></div>
       </div>
@@ -1944,16 +1949,20 @@ async function populatePublishSessionSelect() {
 }
 
 async function confirmPublishSession() {
-  const sel = document.getElementById('publish-session-select');
+  const sel    = document.getElementById('publish-session-select');
+  const catSel = document.getElementById('publish-cat-select');
   const sesionNum = parseInt(sel.value);
-  if (!sesionNum) { toast('Selecciona una sesión', true); return; }
-  if (!confirm(`¿Publicar Sesión ${sesionNum} al ranking? Esto sobrescribirá los datos previos de esa sesión para todos los jugadores.`)) return;
+  const cat    = catSel.value;
+  if (!sesionNum) { toast('Selecciona una jornada', true); return; }
+  if (!cat) { toast('Selecciona una categoría', true); return; }
+  const catLabel = {principiante:'Principiante',intermedio:'Intermedio',open:'Open'}[cat];
+  if (!confirm(`¿Publicar Jornada ${sesionNum} · ${catLabel} al ranking?`)) return;
   const status = document.getElementById('publish-status');
   status.textContent = 'Publicando…';
   try {
-    await publishSession(sesionNum);
-    status.innerHTML = `<span style="color:#065f46">✓ Sesión ${sesionNum} publicada correctamente</span>`;
-    toast(`✓ Sesión ${sesionNum} publicada al ranking`);
+    await publishSession(sesionNum, cat);
+    status.innerHTML = `<span style="color:#065f46">✓ J${sesionNum} · ${catLabel} publicada</span>`;
+    toast(`✓ J${sesionNum} · ${catLabel} publicada al ranking`);
   } catch(e) {
     console.error(e);
     status.innerHTML = `<span style="color:var(--red)">✕ Error: ${e.message||e}</span>`;
@@ -1961,11 +1970,11 @@ async function confirmPublishSession() {
   }
 }
 
-async function publishSession(sesionNum) {
-  const cats = ['principiante','intermedio','open'];
+async function publishSession(sesionNum, categoria) {
+  const cats = categoria ? [categoria] : ['principiante','intermedio','open'];
   const isS1 = sesionNum === 1;
 
-  // Collect per-player stats across all categories for this session
+  // Collect per-player stats for this session+category
   const playerStats = {}; // uid -> { nombre, duprId, sessions: { key: {score, pj, court, sesionNum, categoria} } }
 
   for (const cat of cats) {
@@ -2059,13 +2068,20 @@ async function openDeletePublishedSession() {
     return na !== nb ? na - nb : a.localeCompare(b);
   });
 
-  const key = prompt(`¿Qué sesión borrar del ranking?\n\nSesiones disponibles:\n${sorted.map((k,i)=>`${i+1}. ${k}`).join('\n')}\n\nEscribe la clave exacta (ej: 1_open):`);
+  const catLabels = {principiante:'Principiante',intermedio:'Intermedio',open:'Open'};
+  const optionsList = sorted.map(k => {
+    const [sn, cat] = k.split('_');
+    return `J${sn} · ${catLabels[cat]||cat} (${k})`;
+  }).join('\n');
+
+  const key = prompt(`Selecciona qué borrar del ranking:\n\n${optionsList}\n\nEscribe la clave (ej: 1_open):`);
   if (!key || !sessionKeys.has(key)) {
     if (key !== null) toast('Clave no válida', true);
     return;
   }
 
-  if (!confirm(`¿Borrar la sesión "${key}" del ranking de TODOS los jugadores?`)) return;
+  const [sn, cat] = key.split('_');
+  if (!confirm(`¿Borrar J${sn} · ${catLabels[cat]||cat} del ranking de todos los jugadores?`)) return;
 
   try {
     const batch = db.batch();
