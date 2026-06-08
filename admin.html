@@ -1044,7 +1044,7 @@ function closeModal(id) {
   document.body.style.overflow = '';
 }
 
-let _toastTimer;
+var _toastTimer;
 function toast(msg, isErr = false) {
   const el = document.getElementById('toast');
   el.textContent = msg;
@@ -1134,9 +1134,6 @@ async function applyPenalty(uid, nombre, sesionNum, delta, notifId) {
     toast(`Penalización registrada para ${nombre}`);
   } catch(err) { toast('Error', true); console.error(err); }
 }
-
-// Agregar suscripción al flujo de arranque
-const _origReady = APAuth.onReady.bind(APAuth);
 
 /* ══════════════════════════════════════════════════════
    MODAL: AGREGAR JUGADOR MANUALMENTE
