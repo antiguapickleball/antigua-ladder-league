@@ -353,6 +353,27 @@
       </div>
     </div>
 
+    <!-- Panel Lista de Espera global -->
+    <div id="waitlist-section" style="display:none" class="pending-section" style="border-color:#d97706">
+      <div class="pending-header" style="background:#fef3c7;border-color:#fcd34d">
+        <div class="pending-title" style="color:#92400e">
+          ⏳ Lista de espera
+          <span class="pending-count" id="waitlist-count-badge" style="background:#d97706">0</span>
+        </div>
+        <span style="font-size:.75rem;color:#92400e;font-family:'Barlow',sans-serif">Por orden de registro (FIFO). Usa "↑ Promover" en la tabla para confirmar manualmente.</span>
+      </div>
+      <div style="overflow-x:auto">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th><th>Jugador</th><th>Sesión</th><th>Categoría</th><th>DUPR</th><th>Registro</th><th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="waitlist-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
     <!-- Tabs por sesión -->
     <div style="display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:0">
       <div class="session-tabs" id="session-tabs" style="margin-bottom:0;border-bottom:none;flex:1"></div>
@@ -652,8 +673,9 @@ function subscribeAll() {
         // Actualizar tabla si es la sesión activa
         if (s.num === _currentSession) renderTable(s.num);
 
-        // Siempre actualizar panel de pendientes
+        // Siempre actualizar paneles de pendientes y lista de espera
         renderPending();
+        renderWaitlist();
 
       }, err => console.error(`Error sesión ${s.num}:`, err));
     _unsubscribers.push(unsub);
@@ -664,6 +686,7 @@ function subscribeAll() {
     document.getElementById('loading-state').style.display = 'none';
     renderTable(_currentSession);
     renderPending();
+    renderWaitlist();
   }, 1500);
 }
 
@@ -727,6 +750,66 @@ function renderPending() {
   }).join('');
 }
 
+function renderWaitlist() {
+  const waitlist = [];
+  Object.entries(_allData).forEach(([num, inscritos]) => {
+    inscritos.filter(p => p.status === 'waitlist').forEach(p => {
+      waitlist.push({ ...p, sesionNum: parseInt(num) });
+    });
+  });
+  // FIFO global: por sesionNum primero, luego por registeredAt
+  waitlist.sort((a, b) => {
+    if (a.sesionNum !== b.sesionNum) return a.sesionNum - b.sesionNum;
+    return (a.registeredAt?.seconds||0) - (b.registeredAt?.seconds||0);
+  });
+
+  const section = document.getElementById('waitlist-section');
+  const badge   = document.getElementById('waitlist-count-badge');
+  const tbody   = document.getElementById('waitlist-tbody');
+
+  if (!section) return;
+
+  if (!waitlist.length) {
+    section.style.display = 'none';
+    return;
+  }
+
+  section.style.display = 'block';
+  badge.textContent     = waitlist.length;
+
+  const catLabels = { principiante:'Principiante', intermedio:'Intermedio', open:'Open' };
+  const sesLabels = (n) => {
+    const s = SEMANAS.find(x=>x.num===n);
+    return s ? `S${n} · ${s.fecha}` : `S${n}`;
+  };
+
+  // Numerar por categoría dentro de cada sesión (posición en cola)
+  const posCounter = {};
+  tbody.innerHTML = waitlist.map(p => {
+    const key = `${p.sesionNum}_${p.categoria}`;
+    posCounter[key] = (posCounter[key] || 0) + 1;
+    const pos  = posCounter[key];
+    const fecha = p.registeredAt
+      ? new Date(p.registeredAt.seconds*1000).toLocaleDateString('es-GT',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})
+      : '—';
+    return `<tr class="waitlist-row">
+      <td class="num" style="font-weight:700;color:#92400e">${pos}°</td>
+      <td class="nombre">${p.nombre}<br><span style="font-size:.72rem;color:var(--muted)">${p.email||''}</span></td>
+      <td style="white-space:nowrap;font-size:.8rem">${sesLabels(p.sesionNum)}</td>
+      <td>${p.categoria ? `<span class="cat-badge ${p.categoria}">${catLabels[p.categoria]||p.categoria}</span>` : '—'}</td>
+      <td class="dupr">${p.duprId||'—'}</td>
+      <td class="fecha">${fecha}</td>
+      <td class="actions">
+        <button class="btn-action btn-accept" onclick="manualPromote(${p.sesionNum},'${p.uid}')">↑ Promover</button>
+        <button class="btn-action btn-edit"   onclick="openEdit(${p.sesionNum},'${p.uid}');closeWaitlistPanelFocus()">Editar</button>
+        <button class="btn-action btn-delete" onclick="openDelete(${p.sesionNum},'${p.uid}')">Borrar</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function closeWaitlistPanelFocus() { /* no-op, para encadenar con onclick */ }
+
 async function acceptPending(sesionNum, uid) {
   const player = (_allData[sesionNum]||[]).find(p=>p.uid===uid);
   if (!player) return;
@@ -769,6 +852,35 @@ async function denyPending(sesionNum, uid) {
 
     toast(`Inscripción de ${player.nombre} denegada`);
   } catch(err) { console.error(err); toast('✕ Error', true); }
+}
+
+// ── Promover manualmente un jugador de lista de espera ──
+async function manualPromote(sesionNum, uid) {
+  const player = (_allData[sesionNum]||[]).find(p=>p.uid===uid);
+  if (!player) return;
+
+  const cat = player.categoria;
+  const inscritos = _allData[sesionNum] || [];
+  const confirmedCount = inscritos.filter(p => p.status === 'confirmed' && p.categoria === cat && p.uid !== uid).length;
+
+  if (confirmedCount >= 10) {
+    if (!confirm(
+      `⚠️ "${cat}" ya tiene ${confirmedCount}/10 confirmados.\n\n` +
+      `¿Promover a ${player.nombre} de todas formas? (override)`
+    )) return;
+  } else {
+    if (!confirm(`¿Promover a ${player.nombre} de lista de espera a confirmado en "${cat}"?`)) return;
+  }
+
+  try {
+    const docRef = db.collection(COLLECTION).doc(`t1_sesion_${sesionNum}`);
+    const snap   = await docRef.get();
+    const updated = (snap.data()?.inscritos||[]).map(p =>
+      p.uid === uid ? { ...p, status: 'confirmed', promotedAt: firebase.firestore.Timestamp.now() } : p
+    );
+    await docRef.update({ inscritos: updated });
+    toast(`✓ ${player.nombre} promovido a confirmado`);
+  } catch(err) { console.error(err); toast('✕ Error al promover', true); }
 }
 
 // ── Ver boleta desde Firestore (base64) ──
@@ -828,7 +940,27 @@ function renderTable(sesionNum) {
   const counts    = { principiante: 0, intermedio: 0, open: 0 };
   inscritos.filter(p=>p.status==='confirmed').forEach(p => { if (counts[p.categoria]!==undefined) counts[p.categoria]++; });
 
+  // Detectar categorías con cupo abierto + jugadores en espera → aviso accionable
+  const cats = ['principiante','intermedio','open'];
+  const promotionAlerts = cats.filter(cat => {
+    const confirmedCat = inscritos.filter(p => p.status === 'confirmed' && p.categoria === cat).length;
+    const waitlistCat  = inscritos.filter(p => p.status === 'waitlist'  && p.categoria === cat).length;
+    return confirmedCat < 10 && waitlistCat > 0;
+  });
+
+  const alertBanner = promotionAlerts.length > 0
+    ? `<div style="background:#fef3c7;border:2px solid #f59e0b;padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+        <span style="font-size:.82rem;color:#92400e;font-weight:600">
+          ⚠️ Hay cupos disponibles con jugadores en lista de espera: <strong>${promotionAlerts.join(', ')}</strong>
+        </span>
+        <button class="btn-action btn-accept" onclick="autoPromoteAll(${sesionNum})" style="white-space:nowrap">
+          ↑ Promover ahora
+        </button>
+      </div>`
+    : '';
+
   document.getElementById('session-summary').innerHTML = `
+    ${alertBanner}
     <div class="summary-chip red"><strong>${confirmed}</strong>Confirmados</div>
     <div class="summary-chip gold"><strong>${waitlist}</strong>En espera</div>
     ${pending ? `<div class="summary-chip" style="border-color:#f59e0b"><strong style="color:#92400e">${pending}</strong>Por validar</div>` : ''}
@@ -868,6 +1000,7 @@ function renderTable(sesionNum) {
       <td class="actions">
         ${isPending ? `<button class="btn-action btn-accept" onclick="acceptPending(${sesionNum},'${p.uid}')">✓</button>
                        <button class="btn-action btn-deny"   onclick="denyPending(${sesionNum},'${p.uid}')">✕</button>` : ''}
+        ${isWait ? `<button class="btn-action btn-accept" onclick="manualPromote(${sesionNum},'${p.uid}')">↑ Promover</button>` : ''}
         <button class="btn-action btn-edit"   onclick="openEdit(${sesionNum}, '${p.uid}')">Editar</button>
         <button class="btn-action btn-move"   onclick="openMove(${sesionNum}, '${p.uid}')">Mover</button>
         <button class="btn-action btn-delete" onclick="openDelete(${sesionNum}, '${p.uid}')">Borrar</button>
@@ -898,20 +1031,36 @@ async function saveEdit() {
   btn.disabled = true; btn.textContent = 'Guardando…';
 
   const { sesionNum, uid } = _editTarget;
-  const docId  = `t1_sesion_${sesionNum}`;
-  const docRef = db.collection(COLLECTION).doc(docId);
+  const docId    = `t1_sesion_${sesionNum}`;
+  const docRef   = db.collection(COLLECTION).doc(docId);
+  const newCat   = document.getElementById('edit-categoria').value;
+  let   newStatus = document.getElementById('edit-status').value;
 
   try {
     const snap = await docRef.get();
     const inscritos = snap.exists ? (snap.data().inscritos || []) : [];
+
+    // Verificar capacidad si se está asignando como 'confirmed'
+    if (newStatus === 'confirmed') {
+      const confirmedOthers = inscritos.filter(p => p.uid !== uid && p.status === 'confirmed' && p.categoria === newCat).length;
+      if (confirmedOthers >= 10) {
+        const forceConfirmed = confirm(
+          `⚠️ "${newCat}" ya tiene ${confirmedOthers}/10 confirmados.\n\n` +
+          `▶ Aceptar → Guardar como CONFIRMADO de todas formas (override)\n` +
+          `▶ Cancelar → Guardar en LISTA DE ESPERA (recomendado)`
+        );
+        if (!forceConfirmed) newStatus = 'waitlist';
+      }
+    }
+
     const updated = inscritos.map(p => {
       if (p.uid !== uid) return p;
       return {
         ...p,
-        nombre:    document.getElementById('edit-nombre').value.trim()    || p.nombre,
-        duprId:    document.getElementById('edit-dupr').value.trim()      || p.duprId,
-        categoria: document.getElementById('edit-categoria').value,
-        status:    document.getElementById('edit-status').value,
+        nombre:    document.getElementById('edit-nombre').value.trim() || p.nombre,
+        duprId:    document.getElementById('edit-dupr').value.trim()   || p.duprId,
+        categoria: newCat,
+        status:    newStatus,
       };
     });
     await docRef.update({ inscritos: updated });
@@ -923,7 +1072,11 @@ async function saveEdit() {
     }
 
     closeModal('modal-edit');
-    toast('✓ Registro actualizado');
+    if (newStatus !== document.getElementById('edit-status').value) {
+      // Ya se mostró el toast de advertencia arriba
+    } else {
+      toast('✓ Registro actualizado');
+    }
   } catch (err) {
     console.error(err);
     toast('✕ Error al guardar', true);
@@ -974,20 +1127,38 @@ async function saveMove() {
       inscritos: srcList.filter(p => p.uid !== uid)
     });
 
-    // 2. Agregar a sesión destino
+    // 2. Agregar a sesión destino — verificar capacidad si se mueve como 'confirmed'
+    let finalStatus = targetStatus;
+    if (targetStatus === 'confirmed') {
+      const dstSnap = await db.collection(COLLECTION).doc(dstDocId).get();
+      const dstList = dstSnap.exists ? (dstSnap.data().inscritos || []) : [];
+      const confirmedCount = dstList.filter(p => p.status === 'confirmed' && p.categoria === player.categoria).length;
+      if (confirmedCount >= 10) {
+        finalStatus = 'waitlist';
+      }
+    }
+
     const dstRef = db.collection(COLLECTION).doc(dstDocId);
     await dstRef.set({
       sesionNum: targetNum,
       inscritos: firebase.firestore.FieldValue.arrayUnion({
         ...player,
-        status:    targetStatus,
+        status:    finalStatus,
         movedFrom: sesionNum,
         movedAt:   firebase.firestore.Timestamp.now(),
       }),
     }, { merge: true });
 
+    // Si se quitó un confirmado de la sesión origen, promover lista de espera
+    if (player.status === 'confirmed') {
+      promoteWaitlist(sesionNum, player.categoria);
+    }
+
     closeModal('modal-move');
-    toast(`✓ ${player.nombre} movido a Sesión ${targetNum}`);
+    const msg = finalStatus !== targetStatus
+      ? `✓ ${player.nombre} movido a Sesión ${targetNum} (lista de espera — categoría llena)`
+      : `✓ ${player.nombre} movido a Sesión ${targetNum}`;
+    toast(msg);
   } catch (err) {
     console.error(err);
     toast('✕ Error al mover', true);
@@ -1018,6 +1189,10 @@ async function confirmDelete() {
   const docId  = `t1_sesion_${sesionNum}`;
   const docRef = db.collection(COLLECTION).doc(docId);
 
+  // Usar el objeto player ya disponible en _deleteTarget (evita re-lectura y posible mismatch)
+  const wasConfirmed = player.status === 'confirmed';
+  const categoria    = player.categoria;
+
   try {
     const snap = await docRef.get();
     const inscritos = snap.exists ? (snap.data().inscritos || []) : [];
@@ -1025,11 +1200,80 @@ async function confirmDelete() {
 
     closeModal('modal-delete');
     toast(`✓ Inscripción de ${player.nombre} eliminada`);
+
+    // Si era confirmado, intentar promover lista de espera
+    if (wasConfirmed && categoria) {
+      await promoteWaitlist(sesionNum, categoria);
+    }
   } catch (err) {
     console.error(err);
     toast('✕ Error al eliminar', true);
   }
   btn.disabled = false; btn.textContent = 'Sí, eliminar';
+}
+
+// Promover en todas las categorías con cupo disponible de una sesión
+async function autoPromoteAll(sesionNum) {
+  const cats = ['principiante','intermedio','open'];
+  let totalPromoted = 0;
+  for (const cat of cats) {
+    const inscritos = _allData[sesionNum] || [];
+    const confirmedCount = inscritos.filter(p => p.status === 'confirmed' && p.categoria === cat).length;
+    const waitlistCount  = inscritos.filter(p => p.status === 'waitlist'  && p.categoria === cat).length;
+    if (confirmedCount < 10 && waitlistCount > 0) {
+      await promoteWaitlist(sesionNum, cat);
+      totalPromoted++;
+    }
+  }
+  if (totalPromoted === 0) toast('No hay cupos ni jugadores en espera para promover');
+}
+
+// Promover al primer jugador en lista de espera de la categoría dada (FIFO por registeredAt)
+async function promoteWaitlist(sesionNum, categoria) {
+  const docId  = `t1_sesion_${sesionNum}`;
+  const docRef = db.collection(COLLECTION).doc(docId);
+  try {
+    const snap = await docRef.get();
+    const inscritos = snap.exists ? (snap.data().inscritos || []) : [];
+
+    // Verificar que el cupo esté realmente disponible antes de promover
+    const confirmedCount = inscritos.filter(p => p.status === 'confirmed' && p.categoria === categoria).length;
+    if (confirmedCount >= 10) return; // ya está lleno, no promover
+
+    // Encontrar los de lista de espera para esta categoría, ordenados por registeredAt (FIFO)
+    const waitlist = inscritos
+      .filter(p => p.status === 'waitlist' && p.categoria === categoria)
+      .sort((a, b) => {
+        const tA = a.registeredAt?.toMillis ? a.registeredAt.toMillis() : (a.registeredAt?.seconds || 0) * 1000;
+        const tB = b.registeredAt?.toMillis ? b.registeredAt.toMillis() : (b.registeredAt?.seconds || 0) * 1000;
+        return tA - tB;
+      });
+
+    if (waitlist.length === 0) return; // nadie en espera para esta categoría
+
+    const promoted = waitlist[0];
+    const updated  = inscritos.map(p =>
+      p.uid === promoted.uid ? { ...p, status: 'confirmed', promotedAt: firebase.firestore.Timestamp.now() } : p
+    );
+    await docRef.update({ inscritos: updated });
+
+    // Notificación para el admin (visible en panel)
+    db.collection('ladder_notifications').add({
+      type:        'promoted_from_waitlist',
+      sesionNum,
+      uid:         promoted.uid,
+      nombre:      promoted.nombre,
+      email:       promoted.email || '',
+      categoria,
+      message:     `${promoted.nombre} fue promovido de lista de espera a confirmado (${categoria} · Sesión ${sesionNum})`,
+      resolved:    false,
+      createdAt:   firebase.firestore.Timestamp.now(),
+    }).catch(() => {});
+
+    toast(`✓ ${promoted.nombre} promovido de lista de espera a confirmado (${categoria})`);
+  } catch (err) {
+    console.error('promoteWaitlist error:', err);
+  }
 }
 
 /* ══════════════════════════════════════════════════════
@@ -1206,13 +1450,31 @@ async function saveAdd() {
       return;
     }
 
+    // Verificar capacidad si se agrega como 'confirmed'
+    if (newPlayer.status === 'confirmed') {
+      const confirmedCount = existing.filter(p => p.status === 'confirmed' && p.categoria === categoria).length;
+      if (confirmedCount >= 10) {
+        // Categoría llena: preguntar qué hacer
+        const forceConfirmed = confirm(
+          `⚠️ "${categoria}" ya tiene ${confirmedCount}/10 confirmados.\n\n` +
+          `▶ Aceptar → Agregar como CONFIRMADO de todas formas (override)\n` +
+          `▶ Cancelar → Agregar en LISTA DE ESPERA (recomendado)`
+        );
+        if (!forceConfirmed) {
+          newPlayer.status = 'waitlist';  // ← cambia a lista de espera
+        }
+        // Si forceConfirmed === true, se guarda como confirmado (override)
+      }
+    }
+
     await docRef.set(
       { sesionNum, inscritos: [...existing, newPlayer] },
       { merge: true }
     );
 
     closeModal('modal-add');
-    toast(`✓ ${nombre} agregado a Sesión ${sesionNum}`);
+    const addedAs = newPlayer.status === 'waitlist' ? 'en lista de espera' : 'como confirmado';
+    toast(`✓ ${nombre} agregado a Sesión ${sesionNum} (${addedAs})`);
     // Switch to the session where the player was added
     if (sesionNum !== _currentSession) selectSession(sesionNum);
 
