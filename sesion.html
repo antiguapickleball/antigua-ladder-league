@@ -1037,6 +1037,16 @@ function renderRegContainer(user, inscritos) {
 
       <!-- LISTA DE ESPERA -->
       <div id="waitlist-btn-wrap" style="display:none">
+        <div class="field-group-reg" style="margin-bottom:10px">
+          <div class="dupr-label" style="margin-bottom:6px">
+            Tu número de teléfono <span style="color:var(--red)">*</span>
+          </div>
+          <input class="phone-input" id="waitlist-phone-input" type="tel"
+            placeholder="Ej: +502 5555-0000" autocomplete="tel"/>
+          <p style="font-size:.72rem;color:var(--muted);margin-top:4px;line-height:1.4">
+            Te contactamos por WhatsApp si se libera un lugar.
+          </p>
+        </div>
         <button class="btn-waitlist" id="btn-waitlist">⏳ Entrar en lista de espera (gratis)</button>
         <p style="font-size:.72rem;color:var(--muted);text-align:center;line-height:1.5;margin-top:6px">
           Sin costo. Eres notificado si se libera un lugar — tienes prioridad en orden de registro.
@@ -1056,10 +1066,12 @@ function renderRegContainer(user, inscritos) {
     }
   });
 
-  // Cargar teléfono
+  // Cargar teléfono (transferencia y lista de espera)
   loadUserPhone(user.uid).then(phone => {
-    const el = document.getElementById('phone-input');
-    if (el && phone) el.value = phone;
+    const el  = document.getElementById('phone-input');
+    const el2 = document.getElementById('waitlist-phone-input');
+    if (el  && phone) el.value  = phone;
+    if (el2 && phone) el2.value = phone;
   });
 
   document.getElementById('dupr-edit-btn').addEventListener('click', () => {
@@ -1436,6 +1448,7 @@ async function submitTransfer(user) {
 async function joinWaitlist(user) {
   const duprId = (document.getElementById('dupr-input')?.value||'').trim();
   const cat    = document.querySelector('input[name="categoria"]:checked')?.value;
+  const phone  = (document.getElementById('waitlist-phone-input')?.value||'').trim();
   const errEl  = document.getElementById('reg-form-error');
 
   if (!duprId || duprId.length < 6) {
@@ -1444,18 +1457,26 @@ async function joinWaitlist(user) {
   if (!cat) {
     errEl.textContent = '✕ Selecciona una categoría.'; errEl.style.display='block'; return;
   }
+  if (!phone || phone.replace(/\D/g,'').length < 8) {
+    errEl.textContent = '✕ Ingresa tu número de teléfono para poder contactarte.';
+    errEl.style.display='block';
+    document.getElementById('waitlist-phone-input')?.focus();
+    return;
+  }
 
   const btn = document.getElementById('btn-waitlist');
   btn.disabled = true; btn.textContent = 'Registrando…';
 
   try {
-    await saveRegistration(user, duprId, cat, null, 'waitlist');
+    await saveRegistration(user, duprId, cat, null, 'waitlist', { phone });
+    // Guardar teléfono en perfil
+    db.collection('users').doc(user.uid).set({ phone }, { merge: true }).catch(()=>{});
     _pendingDuprId    = duprId;
     _pendingCategoria = cat;
     // renderYaInscrito se activará via onSnapshot
   } catch (err) {
     console.error(err);
-    btn.disabled = false; btn.textContent = 'Entrar en lista de espera (gratis)';
+    btn.disabled = false; btn.textContent = '⏳ Entrar en lista de espera (gratis)';
     errEl.textContent = '✕ Error al registrar. Intenta de nuevo.'; errEl.style.display='block';
   }
 }
