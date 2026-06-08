@@ -620,10 +620,8 @@ function renderPending() {
       ? new Date(p.registeredAt.seconds*1000).toLocaleDateString('es-GT',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})
       : '—';
 
-    const boletaCell = p.boletaUrl
-      ? (p.boletaUrl.match(/\.pdf/i)
-          ? `<a href="${p.boletaUrl}" target="_blank" class="boleta-pdf">📄 PDF</a>`
-          : `<img src="${p.boletaUrl}" class="boleta-thumb" onclick="openLightbox('${p.boletaUrl}')" title="Ver boleta"/>`)
+    const boletaCell = p.boletaDocId
+      ? `<button class="btn-action btn-edit" onclick="viewBoleta('${p.boletaDocId}')">📎 Ver boleta</button>`
       : '<span style="color:var(--muted);font-size:.75rem">Sin boleta</span>';
 
     const waMsg  = encodeURIComponent(`Hola ${p.nombre}, tu inscripción en Ladder League ${sesLabels(p.sesionNum)} fue confirmada. ¡Nos vemos en cancha!`);
@@ -691,9 +689,29 @@ async function denyPending(sesionNum, uid) {
   } catch(err) { console.error(err); toast('✕ Error', true); }
 }
 
+// ── Ver boleta desde Firestore (base64) ──
+async function viewBoleta(docId) {
+  try {
+    const snap = await db.collection('ladder_boletas').doc(docId).get();
+    if (!snap.exists) { toast('Boleta no encontrada', true); return; }
+    const data = snap.data().data; // data:image/jpeg;base64,... o data:application/pdf;base64,...
+
+    if (data.startsWith('data:application/pdf')) {
+      // Abrir PDF en nueva pestaña
+      const win = window.open();
+      win.document.write(`<iframe src="${data}" style="width:100%;height:100%;border:none"></iframe>`);
+    } else {
+      openLightbox(data);
+    }
+  } catch(err) {
+    console.error(err);
+    toast('Error al cargar la boleta', true);
+  }
+}
+
 // ── Lightbox ──
-function openLightbox(url) {
-  document.getElementById('lightbox-img').src = url;
+function openLightbox(src) {
+  document.getElementById('lightbox-img').src = src;
   document.getElementById('lightbox').classList.add('open');
 }
 function closeLightbox() {
@@ -761,7 +779,7 @@ function renderTable(sesionNum) {
       <td>${p.categoria ? `<span class="cat-badge ${p.categoria}">${catLabels[p.categoria]||p.categoria}</span>` : '—'}</td>
       <td>
         <span class="status-badge ${p.status}">${statusLabels[p.status]||p.status}</span>
-        ${isPending && p.boletaUrl ? `<br><a href="${p.boletaUrl}" target="_blank" style="font-size:.68rem;color:var(--red)">Ver boleta</a>` : ''}
+        ${isPending && p.boletaDocId ? `<br><button onclick="viewBoleta('${p.boletaDocId}')" style="font-size:.68rem;color:var(--red);background:none;border:none;cursor:pointer;padding:0">Ver boleta</button>` : ''}
       </td>
       <td class="email">${p.email || '—'}</td>
       <td class="fecha">${fecha}</td>
