@@ -476,7 +476,7 @@ const SEMANAS = [
   { num: 6, fecha: '15 Ago', estado: 'pendiente'                      },
   { num: 7, fecha: '22 Ago', estado: 'pendiente'                      },
   { num: 8, fecha: '29 Ago', estado: 'pendiente'                      },
-  { num: 9, fecha: '5 Sep',  estado: 'gran-final', nota: 'Gran Final' },
+  { num: 9, fecha: '6 Sep',  estado: 'pendiente'                      },
 ];
 
 const COLLECTION = 'ladder_registrations';
@@ -529,7 +529,7 @@ APAuth.onReady(function(user) {
 function buildTabs() {
   const wrap = document.getElementById('session-tabs');
   SEMANAS.forEach(s => {
-    const lbl = s.estado === 'gran-final' ? 'Final' : `S${s.num}`;
+    const lbl = `S${s.num}`;
     const btn = document.createElement('button');
     btn.className  = 'session-tab' + (s.num === _currentSession ? ' active' : '');
     btn.dataset.num = s.num;
@@ -612,7 +612,7 @@ function renderPending() {
   const catLabels = { principiante:'Principiante', intermedio:'Intermedio', open:'Open' };
   const sesLabels = (n) => {
     const s = SEMANAS.find(x=>x.num===n);
-    return s ? (s.estado==='gran-final' ? 'Gran Final' : `Semana ${n} · ${s.fecha}`) : `S${n}`;
+    return s ? `Semana ${n} · ${s.fecha}` : `S${n}`;
   };
 
   tbody.innerHTML = pending.map(p => {
@@ -659,8 +659,7 @@ async function acceptPending(sesionNum, uid) {
 
     // WhatsApp automático si tiene teléfono
     if (player.phone) {
-      const sesLabel = SEMANAS.find(s=>s.num===sesionNum)?.estado==='gran-final'
-        ? 'Gran Final' : `Semana ${sesionNum}`;
+      const sesLabel = `Semana ${sesionNum}`;
       const msg = encodeURIComponent(`Hola ${player.nombre} 👋 Tu inscripción en *Antigua Ladder League – ${sesLabel}* fue *confirmada*. ¡Nos vemos en cancha! 🎾`);
       window.open(`https://wa.me/${player.phone.replace(/\D/g,'')}?text=${msg}`, '_blank');
     }
@@ -865,7 +864,7 @@ function openMove(sesionNum, uid) {
   select.innerHTML = SEMANAS
     .filter(s => s.num !== sesionNum)
     .map(s => {
-      const lbl = s.estado==='gran-final' ? 'Gran Final' : `Semana ${s.num}`;
+      const lbl = `Semana ${s.num}`;
       return `<option value="${s.num}">${lbl} · ${s.fecha}</option>`;
     }).join('');
 

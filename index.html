@@ -1299,7 +1299,7 @@ const SEMANAS = [
   { num: 6, fecha: '15 Ago', estado: 'pendiente'                      },
   { num: 7, fecha: '22 Ago', estado: 'pendiente'                      },
   { num: 8, fecha: '29 Ago', estado: 'pendiente'                      },
-  { num: 9, fecha: '5 Sep',  estado: 'gran-final', nota: 'Gran Final' },
+  { num: 9, fecha: '6 Sep',  estado: 'pendiente'                      },
 ];
 
 function renderStandings(cat) {
@@ -1341,20 +1341,20 @@ function renderStandings(cat) {
 }
 
 function renderCalendar() {
-  const labels = { jugada:'Jugada', proxima:'Próxima', cancelada:'Cancelada', pendiente:'Pendiente', 'gran-final':'Gran Final' };
+  const labels = { jugada:'Jugada', proxima:'Próxima', cancelada:'Cancelada', pendiente:'Pendiente' };
   document.getElementById('calendar-grid').innerHTML = SEMANAS.map(s => {
     const clickable = s.estado !== 'cancelada';
-    const horarios = s.estado !== 'cancelada' ? `
+    const horarios = clickable ? `
       <div class="cal-horarios">
         <div class="cal-h-row"><span class="cal-h-cat p">P</span> 8:00 – 9:30 am</div>
         <div class="cal-h-row"><span class="cal-h-cat i">I</span> 9:30 – 11:00 am</div>
         <div class="cal-h-row"><span class="cal-h-cat o">O</span> 11:00 am – 12:30 pm</div>
       </div>` : '';
     const inner = `
-      <div class="cal-num">${s.estado==='gran-final'?'Gran Final':`Semana ${s.num}`}</div>
+      <div class="cal-num">Semana ${s.num}</div>
       <div class="cal-date">${s.fecha}</div>
       <div class="cal-status">${labels[s.estado]||s.estado}</div>
-      ${s.nota && s.estado !== 'gran-final' ? `<div class="cal-note">${s.nota}</div>` : ''}
+      ${s.nota ? `<div class="cal-note">${s.nota}</div>` : ''}
       ${horarios}
       ${clickable ? `<div class="cal-link">Ver sesión →</div>` : ''}`;
     return clickable

@@ -541,7 +541,7 @@ const SEMANAS = [
   { num: 6, fecha: '15 Ago', estado: 'pendiente'                      },
   { num: 7, fecha: '22 Ago', estado: 'pendiente'                      },
   { num: 8, fecha: '29 Ago', estado: 'pendiente'                      },
-  { num: 9, fecha: '5 Sep',  estado: 'gran-final', nota: 'Gran Final' },
+  { num: 9, fecha: '6 Sep',  estado: 'pendiente'                      },
 ];
 
 const HORARIOS = [
@@ -584,13 +584,12 @@ const DOC_ID      = `t1_sesion_${NUM}`;
 const COLLECTION  = 'ladder_registrations';
 const estadoLabels = {
   proxima:'Próxima', pendiente:'Pendiente', jugada:'Jugada',
-  cancelada:'Cancelada', 'gran-final':'Gran Final'
+  cancelada:'Cancelada'
 };
 
 // ── Render hero ──
-const isGF = sesion.estado === 'gran-final';
-document.title = `${isGF ? 'Gran Final' : 'Semana ' + NUM} · Antigua Ladder League`;
-document.getElementById('hero-title').textContent = isGF ? 'Gran Final' : `Semana ${NUM}`;
+document.title = `Semana ${NUM} · Antigua Ladder League`;
+document.getElementById('hero-title').textContent = `Semana ${NUM}`;
 document.getElementById('hero-fecha').textContent = sesion.fecha;
 const badge = document.getElementById('hero-badge');
 badge.textContent = estadoLabels[sesion.estado] || sesion.estado;
@@ -1068,7 +1067,7 @@ function renderYaInscrito(container, user, reg, inscritos) {
           <select id="move-sesion-select" style="width:100%;font-family:'Barlow Condensed',sans-serif;font-size:.95rem;padding:9px 12px;border:2px solid var(--border);background:#fff;outline:none">
             <option value="">— Selecciona una sesión —</option>
             ${SEMANAS.filter(s => s.num !== NUM && s.estado !== 'cancelada' && s.estado !== 'jugada')
-                     .map(s => `<option value="${s.num}">${s.estado==='gran-final'?'Gran Final':'Semana '+s.num} · ${s.fecha}</option>`)
+                     .map(s => `<option value="${s.num}">Semana ${s.num} · ${s.fecha}</option>`)
                      .join('')}
           </select>
           <button class="btn-register" id="btn-move" style="margin-top:10px;width:100%">Mover inscripción</button>
@@ -1115,7 +1114,7 @@ function mountPayPalButtons(user) {
       errEl.style.display = 'none';
 
       const catLabel = CATEGORIAS.find(c=>c.id===cat)?.label || cat;
-      const sesLabel = sesion.estado==='gran-final' ? 'Gran Final' : `Semana ${NUM}`;
+      const sesLabel = `Semana ${NUM}`;
       return actions.order.create({
         purchase_units: [{
           description: `Antigua Ladder League ${sesLabel} ${sesion.fecha} ${catLabel}`,

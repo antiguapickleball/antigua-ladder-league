@@ -599,7 +599,7 @@
                 <div id="season-bar" style="position:absolute;top:0;left:0;bottom:0;background:var(--red);transition:width .8s ease;width:0%"></div>
               </div>
               <div style="display:flex;justify-content:space-between;font-size:.72rem;color:var(--muted);font-family:'Space Mono',monospace;">
-                <span>Jul 4</span><span>Ago 29 · Gran Final</span>
+                <span>Jul 4</span><span>Sep 6 · Semana 9</span>
               </div>
             </div>
           </div>
@@ -674,11 +674,11 @@
             </ul>
           </div>
           <div class="rules-card">
-            <h3>Gran Final</h3>
+            <h3>Ganadores de Temporada</h3>
             <ul class="rules-list">
-              <li>La Semana 9 (29 Agosto) es la Gran Final con formato especial de torneo.</li>
-              <li>Los 4 mejores de cada categoría clasifican al bracket eliminatorio.</li>
+              <li>Al finalizar las 9 sesiones se anunciará al ganador de cada categoría según puntos acumulados.</li>
               <li>Se entregan premios a los campeones de cada categoría.</li>
+              <li>Todas las sesiones tienen el mismo formato y valor de puntos.</li>
             </ul>
           </div>
         </div><!-- /tab-reglamento -->
@@ -752,7 +752,7 @@ const SEMANAS = [
   { num: 6, fecha: '15 Ago', estado: 'pendiente'                      },
   { num: 7, fecha: '22 Ago', estado: 'pendiente'                      },
   { num: 8, fecha: '29 Ago', estado: 'pendiente'                      },
-  { num: 9, fecha: '5 Sep',  estado: 'gran-final', nota: 'Gran Final' },
+  { num: 9, fecha: '6 Sep',  estado: 'pendiente'                      },
 ];
 
 // ── Mapeo nombre → categoría (para encontrar al usuario) ──
@@ -834,19 +834,18 @@ function renderProfile(user) {
 
 function renderUpcoming() {
   const upcoming = SEMANAS
-    .filter(s => s.estado === 'proxima' || s.estado === 'pendiente' || s.estado === 'gran-final')
+    .filter(s => s.estado === 'proxima' || s.estado === 'pendiente')
     .slice(0, 3);
-  const badgeLabels = { proxima: 'Próxima', pendiente: 'Pendiente', 'gran-final': 'Gran Final' };
+  const badgeLabels = { proxima: 'Próxima', pendiente: 'Pendiente' };
   if (!upcoming.length) {
     document.getElementById('upcoming-grid').innerHTML =
       `<div style="color:var(--muted);font-size:.88rem;grid-column:1/-1">No hay sesiones próximas.</div>`;
     return;
   }
   document.getElementById('upcoming-grid').innerHTML = upcoming.map(s => {
-    const isGF  = s.estado === 'gran-final';
-    const title = isGF ? 'Gran Final' : `Semana ${s.num}`;
+    const title = `Semana ${s.num}`;
     const sub   = isGF ? 'Formato eliminatorio · Club Antigua Pickleball' : 'Viernes 7:00 pm · Club Antigua Pickleball';
-    const canRegister = s.estado === 'proxima' || s.estado === 'gran-final';
+    const canRegister = s.estado === 'proxima' || s.estado === 'pendiente';
     return `<div class="upcoming-card ${s.estado}">
       <div class="upcoming-card-top">
         <div>
@@ -864,14 +863,14 @@ function renderUpcoming() {
 function renderSessionsTab(player) {
   const labels = {
     jugada:'Jugada', proxima:'Próxima', cancelada:'Cancelada',
-    pendiente:'Pendiente', 'gran-final':'Gran Final'
+    pendiente:'Pendiente'
   };
   document.getElementById('sessions-list').innerHTML = SEMANAS.map(s => {
     const isPlayed = s.estado === 'jugada';
     const isCancelled = s.estado === 'cancelada';
     const pg = isPlayed && player ? '—' : '—';
     const pp = isPlayed && player ? '—' : '—';
-    const numLabel = s.estado === 'gran-final' ? 'Final' : `Sem. ${s.num}`;
+    const numLabel = `Sem. ${s.num}`;
     const linkStart = !isCancelled ? `<a href="sesion.html?n=${s.num}" style="text-decoration:none;color:inherit;display:contents">` : '';
     const linkEnd   = !isCancelled ? '</a>' : '';
     return `<div class="session-row" style="${!isCancelled?'cursor:pointer':''}">
