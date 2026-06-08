@@ -1390,7 +1390,9 @@ document.addEventListener('DOMContentLoaded', () => {
       const profileURL = 'perfil.html';
 
       // Desktop chip
+      const isAdmin = user.role === 'admin';
       slot.innerHTML = `
+        ${isAdmin ? `<a href="admin.html" style="font-family:'Barlow Condensed',sans-serif;font-size:.75rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);text-decoration:none;padding:5px 10px;border:1px solid var(--border);margin-right:4px" title="Panel Admin">⚙ Admin</a>` : ''}
         <a class="nav-user" href="${profileURL}" title="${name}">
           <span class="nav-user-avatar">${initials}</span>${first}
         </a>`;

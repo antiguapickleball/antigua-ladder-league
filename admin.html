@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin · Antigua Ladder League</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,400;0,600;0,700;0,800;0,900;1,700&family=Barlow:wght@300;400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Barlow', sans-serif; background: #f0f0ee; color: #111113; -webkit-font-smoothing: antialiased; }
+    :root {
+      --red: #e4252e; --red-dark: #b81d24;
+      --dark: #111113; --text: #1c1c1e; --muted: #6b6b74;
+      --light: #f7f7f5; --border: #e2e2de; --court: #4a7a50;
+    }
+
+    /* NAV */
+    #nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      background: var(--dark); border-bottom: 1px solid #333;
+    }
+    .nav-inner {
+      display: flex; align-items: center; justify-content: space-between;
+      max-width: 1400px; margin: 0 auto; padding: 0 24px; height: 56px;
+    }
+    .nav-brand {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 1rem; font-weight: 900; letter-spacing: .12em; text-transform: uppercase;
+      color: var(--red); text-decoration: none; display: flex; align-items: center; gap: 10px;
+    }
+    .nav-brand span { color: rgba(255,255,255,.4); font-weight: 400; }
+    .nav-user-pill {
+      font-family: 'Space Mono', monospace; font-size: .65rem;
+      color: rgba(255,255,255,.5); display: flex; align-items: center; gap: 8px;
+    }
+    .nav-signout {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: .78rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+      color: rgba(255,255,255,.4); background: none; border: 1px solid rgba(255,255,255,.15);
+      padding: 4px 12px; cursor: pointer; transition: color .2s;
+    }
+    .nav-signout:hover { color: #fff; border-color: rgba(255,255,255,.4); }
+
+    /* PAGE */
+    .page-wrap { padding-top: 76px; padding-bottom: 80px; max-width: 1400px; margin: 0 auto; padding-left: 24px; padding-right: 24px; }
+
+    /* ACCESS DENIED */
+    #access-denied {
+      display: none; text-align: center;
+      padding: 80px 24px;
+    }
+    #access-denied h2 {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 2rem; font-weight: 900; text-transform: uppercase; color: var(--red); margin-bottom: 12px;
+    }
+
+    /* ADMIN HEADER */
+    .admin-header {
+      display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;
+      padding: 28px 0 20px;
+    }
+    .admin-title {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 1.8rem; font-weight: 900; text-transform: uppercase; letter-spacing: .04em; color: var(--dark);
+    }
+    .admin-subtitle { font-size: .85rem; color: var(--muted); margin-top: 2px; }
+
+    /* SESSION TABS */
+    .session-tabs {
+      display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 24px;
+      border-bottom: 2px solid var(--border); padding-bottom: 12px;
+    }
+    .session-tab {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: .82rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase;
+      padding: 7px 14px; border: 1.5px solid var(--border); background: #fff;
+      color: var(--muted); cursor: pointer; transition: all .15s; position: relative;
+    }
+    .session-tab:hover { border-color: #aaa; color: var(--dark); }
+    .session-tab.active { background: var(--red); color: #fff; border-color: var(--red); }
+    .session-tab .tab-count {
+      position: absolute; top: -6px; right: -6px;
+      background: var(--dark); color: #fff;
+      font-family: 'Space Mono', monospace; font-size: .55rem; font-weight: 700;
+      padding: 2px 5px; min-width: 16px; text-align: center;
+    }
+    .session-tab.active .tab-count { background: #fff; color: var(--red); }
+
+    /* PANEL */
+    #admin-panel { display: none; }
+
+    /* SESSION SUMMARY BAR */
+    .session-summary {
+      display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 20px;
+    }
+    .summary-chip {
+      font-family: 'Space Mono', monospace; font-size: .72rem;
+      padding: 8px 14px; border: 1px solid var(--border); background: #fff;
+      display: flex; flex-direction: column; gap: 2px;
+    }
+    .summary-chip strong { font-size: 1.4rem; font-family: 'Barlow Condensed', sans-serif; font-weight: 900; }
+    .summary-chip.red strong { color: var(--red); }
+    .summary-chip.green strong { color: var(--court); }
+    .summary-chip.gold strong { color: #b45309; }
+
+    /* TABLE */
+    .reg-table-wrap { overflow-x: auto; border: 1px solid var(--border); background: #fff; margin-bottom: 32px; }
+    table { width: 100%; border-collapse: collapse; font-size: .88rem; }
+    thead th {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: .75rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase;
+      padding: 10px 14px; background: var(--dark); color: rgba(255,255,255,.7);
+      text-align: left; white-space: nowrap;
+    }
+    tbody tr { border-bottom: 1px solid var(--border); transition: background .1s; }
+    tbody tr:last-child { border: none; }
+    tbody tr:hover { background: #fafaf8; }
+    tbody tr.waitlist-row { background: #fffbeb; }
+    tbody tr.waitlist-row:hover { background: #fef3c7; }
+    td { padding: 10px 14px; vertical-align: middle; }
+    td.num { font-family: 'Space Mono', monospace; font-size: .7rem; color: var(--muted); width: 36px; }
+    td.nombre { font-weight: 600; }
+    td.dupr { font-family: 'Space Mono', monospace; font-size: .75rem; }
+    td.email { font-size: .78rem; color: var(--muted); }
+    td.fecha { font-size: .75rem; color: var(--muted); white-space: nowrap; }
+    td.actions { white-space: nowrap; }
+
+    /* STATUS BADGE */
+    .status-badge {
+      display: inline-block; font-family: 'Barlow Condensed', sans-serif;
+      font-size: .7rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase;
+      padding: 2px 8px;
+    }
+    .status-badge.confirmed { background: #d1fae5; color: #065f46; }
+    .status-badge.waitlist  { background: #fef3c7; color: #92400e; }
+
+    /* CAT BADGE */
+    .cat-badge {
+      display: inline-block; font-family: 'Barlow Condensed', sans-serif;
+      font-size: .7rem; font-weight: 800; letter-spacing: .04em; text-transform: uppercase;
+      padding: 2px 7px;
+    }
+    .cat-badge.principiante { background: #d1fae5; color: #065f46; }
+    .cat-badge.intermedio   { background: #dbeafe; color: #1e40af; }
+    .cat-badge.open         { background: #ede9fe; color: #5b21b6; }
+
+    /* ACTION BUTTONS */
+    .btn-action {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: .72rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase;
+      padding: 5px 10px; cursor: pointer; border: 1px solid; transition: all .15s; margin-right: 4px;
+    }
+    .btn-edit   { background: #fff; color: var(--dark); border-color: var(--border); }
+    .btn-edit:hover { background: #f0f0ee; }
+    .btn-move   { background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; }
+    .btn-move:hover { background: #dbeafe; }
+    .btn-delete { background: #fef2f2; color: var(--red); border-color: #fecaca; }
+    .btn-delete:hover { background: #fee2e2; }
+
+    /* MODAL */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,.55);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 999; padding: 24px;
+    }
+    .modal {
+      background: #fff; max-width: 520px; width: 100%;
+      box-shadow: 0 20px 60px rgba(0,0,0,.2);
+    }
+    .modal-header {
+      padding: 18px 24px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .modal-title {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 1.1rem; font-weight: 900; text-transform: uppercase; letter-spacing: .06em;
+    }
+    .modal-close {
+      background: none; border: none; cursor: pointer; font-size: 1.4rem;
+      color: var(--muted); line-height: 1;
+    }
+    .modal-body { padding: 22px 24px; display: flex; flex-direction: column; gap: 16px; }
+    .field-group { display: flex; flex-direction: column; gap: 6px; }
+    .field-label {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: .75rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--muted);
+    }
+    .field-input, .field-select {
+      font-family: 'Barlow', sans-serif; font-size: .9rem;
+      padding: 9px 12px; border: 2px solid var(--border);
+      width: 100%; transition: border-color .15s; outline: none;
+    }
+    .field-input:focus, .field-select:focus { border-color: var(--red); }
+    .modal-footer { padding: 16px 24px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 10px; }
+    .btn-modal {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: .9rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase;
+      padding: 10px 20px; cursor: pointer; border: none; transition: opacity .15s;
+    }
+    .btn-modal:hover { opacity: .85; }
+    .btn-modal:disabled { opacity: .5; cursor: default; }
+    .btn-cancel-modal { background: #f0f0ee; color: var(--dark); border: 1px solid var(--border); }
+    .btn-save   { background: var(--dark); color: #fff; }
+    .btn-save-red { background: var(--red); color: #fff; }
+
+    /* EMPTY STATE */
+    .empty-state { padding: 48px 24px; text-align: center; color: var(--muted); font-size: .9rem; }
+
+    /* TOAST */
+    #toast {
+      position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(20px);
+      background: var(--dark); color: #fff; padding: 11px 22px;
+      font-family: 'Barlow Condensed', sans-serif; font-size: .95rem; font-weight: 700; letter-spacing: .04em;
+      pointer-events: none; opacity: 0; transition: opacity .25s, transform .25s; z-index: 9999;
+    }
+    #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    #toast.err { background: var(--red); }
+
+    /* LOADING */
+    #loading-state { padding: 60px; text-align: center; color: var(--muted); font-family: 'Space Mono', monospace; font-size: .8rem; }
+
+    @media (max-width: 600px) {
+      td.email, td.fecha { display: none; }
+      .summary-chip { font-size: .65rem; }
+    }
+  </style>
+</head>
+<body>
+
+<div id="nav">
+  <div class="nav-inner">
+    <a href="index.html" class="nav-brand">Antigua Ladder League <span>/ Admin</span></a>
+    <div class="nav-user-pill">
+      <span id="nav-username">—</span>
+      <button class="nav-signout" onclick="APAuth.signOut(); window.location.href='index.html'">Salir</button>
+    </div>
+  </div>
+</div>
+
+<div class="page-wrap">
+
+  <!-- Acceso denegado -->
+  <div id="access-denied">
+    <h2>Acceso restringido</h2>
+    <p style="color:var(--muted);font-size:.9rem">Esta página es solo para administradores.<br>
+      <a href="index.html" style="color:var(--red)">Volver al inicio</a>
+    </p>
+  </div>
+
+  <!-- Panel principal -->
+  <div id="admin-panel">
+
+    <div class="admin-header">
+      <div>
+        <div class="admin-title">Panel de Administración</div>
+        <div class="admin-subtitle">Temporada 1 · Antigua Ladder League</div>
+      </div>
+    </div>
+
+    <!-- Tabs por sesión -->
+    <div class="session-tabs" id="session-tabs"></div>
+
+    <!-- Chips de resumen -->
+    <div class="session-summary" id="session-summary"></div>
+
+    <!-- Tabla de inscritos -->
+    <div id="loading-state">Cargando datos…</div>
+    <div class="reg-table-wrap" id="table-wrap" style="display:none">
+      <table id="reg-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Jugador</th>
+            <th>DUPR ID</th>
+            <th>Categoría</th>
+            <th>Estado</th>
+            <th>Correo</th>
+            <th>Registro</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody id="reg-tbody"></tbody>
+      </table>
+    </div>
+
+  </div><!-- /admin-panel -->
+</div>
+
+<!-- MODAL EDITAR -->
+<div class="modal-overlay" id="modal-edit" style="display:none" onclick="if(event.target===this)closeModal('modal-edit')">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Editar Registro</span>
+      <button class="modal-close" onclick="closeModal('modal-edit')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="field-group">
+        <label class="field-label">Nombre</label>
+        <input class="field-input" id="edit-nombre" type="text"/>
+      </div>
+      <div class="field-group">
+        <label class="field-label">DUPR ID</label>
+        <input class="field-input" id="edit-dupr" type="text" maxlength="14"/>
+      </div>
+      <div class="field-group">
+        <label class="field-label">Categoría</label>
+        <select class="field-select" id="edit-categoria">
+          <option value="principiante">Principiante (2.0–3.0)</option>
+          <option value="intermedio">Intermedio (3.0–3.7)</option>
+          <option value="open">Open (3.7+)</option>
+        </select>
+      </div>
+      <div class="field-group">
+        <label class="field-label">Estado</label>
+        <select class="field-select" id="edit-status">
+          <option value="confirmed">Confirmado (pagó)</option>
+          <option value="waitlist">Lista de espera</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-modal btn-cancel-modal" onclick="closeModal('modal-edit')">Cancelar</button>
+      <button class="btn-modal btn-save" id="btn-save-edit" onclick="saveEdit()">Guardar cambios</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL MOVER A OTRA SESIÓN -->
+<div class="modal-overlay" id="modal-move" style="display:none" onclick="if(event.target===this)closeModal('modal-move')">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Mover a otra sesión</span>
+      <button class="modal-close" onclick="closeModal('modal-move')">×</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:.88rem;color:var(--muted);line-height:1.6" id="move-player-info"></p>
+      <div class="field-group">
+        <label class="field-label">Sesión destino</label>
+        <select class="field-select" id="move-target-session"></select>
+      </div>
+      <div class="field-group">
+        <label class="field-label">Estado en sesión destino</label>
+        <select class="field-select" id="move-target-status">
+          <option value="confirmed">Confirmado</option>
+          <option value="waitlist">Lista de espera</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-modal btn-cancel-modal" onclick="closeModal('modal-move')">Cancelar</button>
+      <button class="btn-modal btn-save" id="btn-save-move" onclick="saveMove()">Mover jugador</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CONFIRMAR BORRAR -->
+<div class="modal-overlay" id="modal-delete" style="display:none" onclick="if(event.target===this)closeModal('modal-delete')">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" style="color:var(--red)">Eliminar inscripción</span>
+      <button class="modal-close" onclick="closeModal('modal-delete')">×</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:.92rem;line-height:1.7" id="delete-confirm-text"></p>
+      <p style="font-size:.82rem;color:var(--muted)">Esta acción no se puede deshacer. Si el jugador ya pagó, el reembolso debe gestionarse manualmente en PayPal.</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-modal btn-cancel-modal" onclick="closeModal('modal-delete')">Cancelar</button>
+      <button class="btn-modal btn-save-red" id="btn-confirm-delete" onclick="confirmDelete()">Sí, eliminar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+<script src="js/auth-bridge-client.js"></script>
+<script>
+/* ══════════════════════════════════════════════════════
+   SESIONES
+══════════════════════════════════════════════════════ */
+const SEMANAS = [
+  { num: 1, fecha: '4 Jul',  estado: 'proxima'                               },
+  { num: 2, fecha: '11 Jul', estado: 'cancelada', nota: 'Torneo en Santuario' },
+  { num: 3, fecha: '18 Jul', estado: 'pendiente'                              },
+  { num: 4, fecha: '25 Jul', estado: 'pendiente'                              },
+  { num: 5, fecha: '1 Ago',  estado: 'pendiente'                              },
+  { num: 6, fecha: '8 Ago',  estado: 'pendiente'                              },
+  { num: 7, fecha: '15 Ago', estado: 'pendiente'                              },
+  { num: 8, fecha: '22 Ago', estado: 'pendiente'                              },
+  { num: 9, fecha: '29 Ago', estado: 'gran-final', nota: 'Gran Final'         },
+];
+
+const COLLECTION = 'ladder_registrations';
+
+/* ══════════════════════════════════════════════════════
+   FIREBASE
+══════════════════════════════════════════════════════ */
+firebase.initializeApp({
+  apiKey: "AIzaSyBBmUQR8AGdosXSGNK3galyBmFjkn6jOuM",
+  authDomain: "antigua-pickleball.firebaseapp.com",
+  projectId: "antigua-pickleball",
+  storageBucket: "antigua-pickleball.firebasestorage.app",
+  messagingSenderId: "270487643715",
+  appId: "1:270487643715:web:701b74a71253ac599056f6"
+});
+const db   = firebase.firestore();
+const auth = firebase.auth();
+
+/* ══════════════════════════════════════════════════════
+   STATE
+══════════════════════════════════════════════════════ */
+let _currentSession = 1;           // sesión seleccionada en tab
+let _allData        = {};          // { sesionNum: [inscritos...] }
+let _editTarget     = null;        // { sesionNum, uid, player }  ← registro en edición
+let _deleteTarget   = null;
+let _moveTarget     = null;
+let _unsubscribers  = [];          // listeners de Firestore
+
+/* ══════════════════════════════════════════════════════
+   INIT — verificar admin
+══════════════════════════════════════════════════════ */
+APAuth.onReady(function(user) {
+  if (!user || user.role !== 'admin') {
+    document.getElementById('access-denied').style.display = 'block';
+    return;
+  }
+
+  document.getElementById('admin-panel').style.display = 'block';
+  document.getElementById('nav-username').textContent = user.displayName || user.email || 'Admin';
+
+  auth.signInAnonymously().catch(() => {});
+
+  buildTabs();
+  subscribeAll();
+});
+
+/* ══════════════════════════════════════════════════════
+   TABS
+══════════════════════════════════════════════════════ */
+function buildTabs() {
+  const wrap = document.getElementById('session-tabs');
+  SEMANAS.forEach(s => {
+    const lbl = s.estado === 'gran-final' ? 'Final' : `S${s.num}`;
+    const btn = document.createElement('button');
+    btn.className  = 'session-tab' + (s.num === _currentSession ? ' active' : '');
+    btn.dataset.num = s.num;
+    btn.innerHTML  = `${lbl} <span style="font-size:.65rem;opacity:.6;margin-left:2px">${s.fecha}</span><span class="tab-count" id="tab-count-${s.num}">0</span>`;
+    btn.addEventListener('click', () => selectSession(s.num));
+    wrap.appendChild(btn);
+  });
+}
+
+function selectSession(num) {
+  _currentSession = num;
+  document.querySelectorAll('.session-tab').forEach(b => b.classList.toggle('active', +b.dataset.num === num));
+  renderTable(num);
+}
+
+/* ══════════════════════════════════════════════════════
+   FIRESTORE — suscribirse a todas las sesiones
+══════════════════════════════════════════════════════ */
+function subscribeAll() {
+  // Cancelar anteriores
+  _unsubscribers.forEach(fn => fn());
+  _unsubscribers = [];
+
+  SEMANAS.forEach(s => {
+    const docId = `t1_sesion_${s.num}`;
+    const unsub = db.collection(COLLECTION).doc(docId)
+      .onSnapshot(snap => {
+        const inscritos = snap.exists ? (snap.data().inscritos || []) : [];
+        _allData[s.num] = inscritos;
+
+        // Actualizar contador del tab
+        const confirmed = inscritos.filter(p => p.status === 'confirmed').length;
+        const total     = inscritos.length;
+        const badge     = document.getElementById(`tab-count-${s.num}`);
+        if (badge) badge.textContent = total;
+
+        // Actualizar tabla si es la sesión activa
+        if (s.num === _currentSession) renderTable(s.num);
+
+      }, err => console.error(`Error sesión ${s.num}:`, err));
+    _unsubscribers.push(unsub);
+  });
+
+  // Ocultar loading después de breve espera
+  setTimeout(() => {
+    document.getElementById('loading-state').style.display = 'none';
+    renderTable(_currentSession);
+  }, 1500);
+}
+
+/* ══════════════════════════════════════════════════════
+   RENDER TABLA
+══════════════════════════════════════════════════════ */
+function renderTable(sesionNum) {
+  const sesion    = SEMANAS.find(s => s.num === sesionNum);
+  const inscritos = (_allData[sesionNum] || [])
+    .slice()
+    .sort((a, b) => {
+      // confirmed primero, luego waitlist
+      if (a.status === b.status) return (a.registeredAt?.seconds||0) - (b.registeredAt?.seconds||0);
+      return a.status === 'confirmed' ? -1 : 1;
+    });
+
+  // Ocultar loading, mostrar tabla
+  document.getElementById('loading-state').style.display = 'none';
+  document.getElementById('table-wrap').style.display    = 'block';
+
+  // Summary chips
+  const confirmed = inscritos.filter(p => p.status === 'confirmed').length;
+  const waitlist  = inscritos.filter(p => p.status === 'waitlist').length;
+  const counts    = { principiante: 0, intermedio: 0, open: 0 };
+  inscritos.filter(p=>p.status==='confirmed').forEach(p => { if (counts[p.categoria]!==undefined) counts[p.categoria]++; });
+
+  document.getElementById('session-summary').innerHTML = `
+    <div class="summary-chip red"><strong>${confirmed}</strong>Confirmados</div>
+    <div class="summary-chip gold"><strong>${waitlist}</strong>En espera</div>
+    <div class="summary-chip"><strong>${counts.principiante}/10</strong>Principiante</div>
+    <div class="summary-chip"><strong>${counts.intermedio}/10</strong>Intermedio</div>
+    <div class="summary-chip green"><strong>${counts.open}/10</strong>Open</div>
+  `;
+
+  // Tabla
+  const tbody = document.getElementById('reg-tbody');
+  if (!inscritos.length) {
+    tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state">Nadie inscrito en esta sesión todavía.</div></td></tr>`;
+    return;
+  }
+
+  const catLabels = { principiante:'Principiante', intermedio:'Intermedio', open:'Open' };
+
+  tbody.innerHTML = inscritos.map((p, i) => {
+    const isWait = p.status === 'waitlist';
+    const fecha  = p.registeredAt
+      ? new Date(p.registeredAt.seconds*1000).toLocaleDateString('es-GT', {day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'})
+      : '—';
+    return `<tr class="${isWait?'waitlist-row':''}">
+      <td class="num">${i+1}</td>
+      <td class="nombre">${p.nombre || '—'}</td>
+      <td class="dupr">${p.duprId || '—'}</td>
+      <td>${p.categoria ? `<span class="cat-badge ${p.categoria}">${catLabels[p.categoria]||p.categoria}</span>` : '—'}</td>
+      <td><span class="status-badge ${p.status}">${isWait ? 'Espera' : 'Confirmado'}</span></td>
+      <td class="email">${p.email || '—'}</td>
+      <td class="fecha">${fecha}</td>
+      <td class="actions">
+        <button class="btn-action btn-edit"   onclick="openEdit(${sesionNum}, '${p.uid}')">Editar</button>
+        <button class="btn-action btn-move"   onclick="openMove(${sesionNum}, '${p.uid}')">Mover</button>
+        <button class="btn-action btn-delete" onclick="openDelete(${sesionNum}, '${p.uid}')">Borrar</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+/* ══════════════════════════════════════════════════════
+   MODAL: EDITAR
+══════════════════════════════════════════════════════ */
+function openEdit(sesionNum, uid) {
+  const player = (_allData[sesionNum] || []).find(p => p.uid === uid);
+  if (!player) return;
+  _editTarget = { sesionNum, uid, player };
+
+  document.getElementById('edit-nombre').value    = player.nombre    || '';
+  document.getElementById('edit-dupr').value      = player.duprId    || '';
+  document.getElementById('edit-categoria').value = player.categoria || 'principiante';
+  document.getElementById('edit-status').value    = player.status    || 'confirmed';
+
+  openModal('modal-edit');
+}
+
+async function saveEdit() {
+  if (!_editTarget) return;
+  const btn = document.getElementById('btn-save-edit');
+  btn.disabled = true; btn.textContent = 'Guardando…';
+
+  const { sesionNum, uid } = _editTarget;
+  const docId  = `t1_sesion_${sesionNum}`;
+  const docRef = db.collection(COLLECTION).doc(docId);
+
+  try {
+    const snap = await docRef.get();
+    const inscritos = snap.exists ? (snap.data().inscritos || []) : [];
+    const updated = inscritos.map(p => {
+      if (p.uid !== uid) return p;
+      return {
+        ...p,
+        nombre:    document.getElementById('edit-nombre').value.trim()    || p.nombre,
+        duprId:    document.getElementById('edit-dupr').value.trim()      || p.duprId,
+        categoria: document.getElementById('edit-categoria').value,
+        status:    document.getElementById('edit-status').value,
+      };
+    });
+    await docRef.update({ inscritos: updated });
+
+    // También actualizar duprId en el perfil del jugador
+    const newDupr = document.getElementById('edit-dupr').value.trim();
+    if (newDupr) {
+      db.collection('users').doc(uid).set({ duprId: newDupr }, { merge: true }).catch(() => {});
+    }
+
+    closeModal('modal-edit');
+    toast('✓ Registro actualizado');
+  } catch (err) {
+    console.error(err);
+    toast('✕ Error al guardar', true);
+  }
+  btn.disabled = false; btn.textContent = 'Guardar cambios';
+}
+
+/* ══════════════════════════════════════════════════════
+   MODAL: MOVER A OTRA SESIÓN
+══════════════════════════════════════════════════════ */
+function openMove(sesionNum, uid) {
+  const player = (_allData[sesionNum] || []).find(p => p.uid === uid);
+  if (!player) return;
+  _moveTarget = { sesionNum, uid, player };
+
+  document.getElementById('move-player-info').textContent =
+    `Mover a ${player.nombre} (${player.categoria || '—'}) de Sesión ${sesionNum} a:`;
+
+  // Opciones: todas las sesiones excepto la actual
+  const select = document.getElementById('move-target-session');
+  select.innerHTML = SEMANAS
+    .filter(s => s.num !== sesionNum)
+    .map(s => {
+      const lbl = s.estado==='gran-final' ? 'Gran Final' : `Semana ${s.num}`;
+      return `<option value="${s.num}">${lbl} · ${s.fecha}</option>`;
+    }).join('');
+
+  openModal('modal-move');
+}
+
+async function saveMove() {
+  if (!_moveTarget) return;
+  const btn = document.getElementById('btn-save-move');
+  btn.disabled = true; btn.textContent = 'Moviendo…';
+
+  const { sesionNum, uid, player } = _moveTarget;
+  const targetNum    = parseInt(document.getElementById('move-target-session').value);
+  const targetStatus = document.getElementById('move-target-status').value;
+
+  const srcDocId = `t1_sesion_${sesionNum}`;
+  const dstDocId = `t1_sesion_${targetNum}`;
+
+  try {
+    // 1. Quitar de sesión origen
+    const srcSnap = await db.collection(COLLECTION).doc(srcDocId).get();
+    const srcList = srcSnap.exists ? (srcSnap.data().inscritos || []) : [];
+    await db.collection(COLLECTION).doc(srcDocId).update({
+      inscritos: srcList.filter(p => p.uid !== uid)
+    });
+
+    // 2. Agregar a sesión destino
+    const dstRef = db.collection(COLLECTION).doc(dstDocId);
+    await dstRef.set({
+      sesionNum: targetNum,
+      inscritos: firebase.firestore.FieldValue.arrayUnion({
+        ...player,
+        status:    targetStatus,
+        movedFrom: sesionNum,
+        movedAt:   firebase.firestore.Timestamp.now(),
+      }),
+    }, { merge: true });
+
+    closeModal('modal-move');
+    toast(`✓ ${player.nombre} movido a Sesión ${targetNum}`);
+  } catch (err) {
+    console.error(err);
+    toast('✕ Error al mover', true);
+  }
+  btn.disabled = false; btn.textContent = 'Mover jugador';
+}
+
+/* ══════════════════════════════════════════════════════
+   MODAL: BORRAR
+══════════════════════════════════════════════════════ */
+function openDelete(sesionNum, uid) {
+  const player = (_allData[sesionNum] || []).find(p => p.uid === uid);
+  if (!player) return;
+  _deleteTarget = { sesionNum, uid, player };
+
+  document.getElementById('delete-confirm-text').innerHTML =
+    `¿Eliminar la inscripción de <strong>${player.nombre}</strong> en Sesión ${sesionNum}?`;
+
+  openModal('modal-delete');
+}
+
+async function confirmDelete() {
+  if (!_deleteTarget) return;
+  const btn = document.getElementById('btn-confirm-delete');
+  btn.disabled = true; btn.textContent = 'Eliminando…';
+
+  const { sesionNum, uid, player } = _deleteTarget;
+  const docId  = `t1_sesion_${sesionNum}`;
+  const docRef = db.collection(COLLECTION).doc(docId);
+
+  try {
+    const snap = await docRef.get();
+    const inscritos = snap.exists ? (snap.data().inscritos || []) : [];
+    await docRef.update({ inscritos: inscritos.filter(p => p.uid !== uid) });
+
+    closeModal('modal-delete');
+    toast(`✓ Inscripción de ${player.nombre} eliminada`);
+  } catch (err) {
+    console.error(err);
+    toast('✕ Error al eliminar', true);
+  }
+  btn.disabled = false; btn.textContent = 'Sí, eliminar';
+}
+
+/* ══════════════════════════════════════════════════════
+   UTILS
+══════════════════════════════════════════════════════ */
+function openModal(id) {
+  document.getElementById(id).style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+function closeModal(id) {
+  document.getElementById(id).style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+let _toastTimer;
+function toast(msg, isErr = false) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className   = 'show' + (isErr ? ' err' : '');
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => { el.className = ''; }, 3000);
+}
+
+// Cerrar modales con Escape
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    ['modal-edit','modal-move','modal-delete'].forEach(closeModal);
+  }
+});
+</script>
+</body>
+</html>

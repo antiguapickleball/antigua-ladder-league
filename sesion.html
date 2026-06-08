@@ -246,6 +246,63 @@
     /* LOADING SPINNER */
     .loading-dots { color: var(--muted); font-size: .85rem; font-family: 'Space Mono', monospace; }
 
+    /* CATEGORY FILTER TABS */
+    .cat-filter-tabs {
+      display: flex; flex-wrap: wrap; gap: 6px;
+      margin-bottom: 12px;
+    }
+    .cat-tab {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: .78rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+      padding: 5px 12px; border: 1.5px solid var(--border); background: #fff;
+      color: var(--muted); cursor: pointer; transition: all .15s;
+    }
+    .cat-tab.active, .cat-tab:hover { background: var(--red); color: #fff; border-color: var(--red); }
+
+    /* CATEGORY BADGES in inscrito rows */
+    .inscrito-cat-badge {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: .68rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase;
+      padding: 2px 7px;
+    }
+    .inscrito-cat-badge.principiante { background: #d1fae5; color: #065f46; }
+    .inscrito-cat-badge.intermedio   { background: #dbeafe; color: #1e40af; }
+    .inscrito-cat-badge.open         { background: #ede9fe; color: #5b21b6; }
+    .waitlist-row { opacity: .75; }
+
+    /* CATEGORY SELECTION in registration form */
+    .cat-select-label {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: .78rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase;
+      color: var(--muted); margin-bottom: 8px; margin-top: 16px;
+    }
+    .cat-options { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+    .cat-option {
+      display: flex; align-items: flex-start; gap: 12px;
+      border: 2px solid var(--border); padding: 12px 14px;
+      cursor: pointer; transition: border-color .15s, background .15s;
+    }
+    .cat-option input[type="radio"] { margin-top: 3px; flex-shrink: 0; accent-color: var(--red); }
+    .cat-option:has(input:checked) { border-color: var(--red); background: #fff5f5; }
+    .cat-option.cat-full { opacity: .6; cursor: default; background: var(--light); }
+    .cat-option-inner { display: flex; flex-direction: column; gap: 2px; }
+    .cat-option-top { display: flex; align-items: center; gap: 10px; }
+    .cat-option-name { font-family: 'Barlow Condensed', sans-serif; font-size: 1rem; font-weight: 800; color: var(--dark); }
+    .cat-option-cap { font-family: 'Space Mono', monospace; font-size: .65rem; color: var(--muted); }
+    .cat-option-cap.full { color: #b91c1c; font-weight: 700; }
+    .cat-option-rango { font-size: .78rem; color: var(--muted); }
+    .cat-option-wait { font-size: .72rem; color: #92400e; margin-top: 2px; }
+
+    /* WAITLIST BUTTON */
+    .btn-waitlist {
+      width: 100%; padding: 13px; font-family: 'Barlow Condensed', sans-serif;
+      font-size: 1rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase;
+      background: #fffbeb; color: #92400e; border: 2px solid #f59e0b; cursor: pointer;
+      transition: background .15s;
+    }
+    .btn-waitlist:hover { background: #fef3c7; }
+    .btn-waitlist:disabled { opacity: .5; cursor: default; }
+
     /* FOOTER */
     footer {
       background: #111; color: rgba(255,255,255,.4);
@@ -464,60 +521,47 @@ function loadInscritos(currentUser) {
     });
 }
 
-function renderInscritos(inscritos, currentUser) {
-  const count = inscritos.length;
-  document.getElementById('inscritos-count').textContent = `${count} inscrito${count !== 1 ? 's' : ''}`;
+// ══════════════════════════════════════════════════════
+//  CONFIG
+// ══════════════════════════════════════════════════════
+const PAYPAL_ENV    = 'sandbox';   // → 'production' para live
+const SESSION_PRICE = '10.00';
+const CAP_POR_CAT   = 10;          // máximo confirmados por categoría
 
-  if (!count) {
-    document.getElementById('inscritos-list').innerHTML =
-      `<div class="inscritos-empty">Nadie inscrito aún.<br>¡Sé el primero!</div>`;
-    return;
-  }
+const CATEGORIAS = [
+  { id: 'principiante', label: 'Principiante', rango: '2.0 – 3.0' },
+  { id: 'intermedio',   label: 'Intermedio',   rango: '3.0 – 3.7' },
+  { id: 'open',         label: 'Open',         rango: '3.7+' },
+];
 
-  document.getElementById('inscritos-list').innerHTML = inscritos
-    .sort((a, b) => (a.registeredAt?.seconds || 0) - (b.registeredAt?.seconds || 0))
-    .map((p, i) => {
-      const isMe     = currentUser && p.uid === currentUser.uid;
-      const initials = (p.nombre || '?').split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
-      const fechaStr = p.registeredAt
-        ? new Date(p.registeredAt.seconds * 1000).toLocaleDateString('es-GT', { month: 'short', day: 'numeric' })
-        : '';
-      return `<div class="inscrito-row">
-        <span class="inscrito-num">${i + 1}</span>
-        <div class="inscrito-avatar" style="${isMe ? '' : 'background:#aaa'}">${initials}</div>
-        <span class="inscrito-name ${isMe ? 'me' : ''}">${isMe ? '▶ ' : ''}${p.nombre}</span>
-        ${p.duprId ? `<span class="inscrito-dupr">${p.duprId}</span>` : ''}
-        <span class="inscrito-date">${fechaStr}</span>
-      </div>`;
-    }).join('');
-}
-
-// ── Estado del formulario de registro ──
-let _inscritos = [];
+// Estado global
+let _inscritos        = [];
 let _firebaseAuthReady = false;
+let _pendingDuprId    = '';
+let _pendingCategoria = '';
 
-function updateRegState(inscritos, user) {
-  _inscritos = inscritos;
-  // Solo mostrar formulario de registro si Firebase auth está listo
-  // (para evitar que escrituras sean rechazadas y revertidas)
-  if (_firebaseAuthReady) {
-    renderRegContainer(user, inscritos);
-  }
-  // Si no está listo aún, el timeout o onAuthStateChanged lo activará
+// ── Helpers de capacidad ──
+function getCounts(inscritos) {
+  const counts = { principiante: 0, intermedio: 0, open: 0 };
+  inscritos.forEach(p => {
+    if (p.status === 'confirmed' && counts[p.categoria] !== undefined)
+      counts[p.categoria]++;
+  });
+  return counts;
+}
+function getWaitCounts(inscritos) {
+  const counts = { principiante: 0, intermedio: 0, open: 0 };
+  inscritos.forEach(p => {
+    if (p.status === 'waitlist' && counts[p.categoria] !== undefined)
+      counts[p.categoria]++;
+  });
+  return counts;
+}
+function isFull(inscritos, cat) {
+  return getCounts(inscritos)[cat] >= CAP_POR_CAT;
 }
 
-// ══════════════════════════════════════════════════════
-//  CONFIGURACIÓN DE PAGO
-//  Cambiar PAYPAL_ENV a 'production' y CLIENT_ID al Live
-//  cuando estés listo para cobros reales.
-// ══════════════════════════════════════════════════════
-const PAYPAL_ENV    = 'sandbox';           // → cambiar a 'production' para live
-const SESSION_PRICE = '10.00';             // USD
-const SESSION_PRICE_DISPLAY = '$10 USD';
-
-// DUPR ID del usuario actual (se llena al cargar)
-let _pendingDuprId = '';
-
+// ── Cargar DUPR ID del perfil ──
 async function loadUserDuprId(uid) {
   try {
     const doc = await db.collection('users').doc(uid).get();
@@ -525,130 +569,286 @@ async function loadUserDuprId(uid) {
   } catch (_) { return ''; }
 }
 
-function renderRegContainer(user, inscritos) {
-  const container   = document.getElementById('reg-container');
-  const isCancelled = sesion.estado === 'cancelada';
-  const isPlayed    = sesion.estado === 'jugada';
+// ══════════════════════════════════════════════════════
+//  RENDER LISTA DE INSCRITOS (con filtros por categoría)
+// ══════════════════════════════════════════════════════
+function renderInscritos(inscritos, currentUser) {
+  const counts     = getCounts(inscritos);
+  const waitCounts = getWaitCounts(inscritos);
+  const total      = inscritos.filter(p => p.status === 'confirmed').length;
+  const totalEspera= inscritos.filter(p => p.status === 'waitlist').length;
 
-  if (isCancelled) {
-    container.innerHTML = `<div class="reg-msg info">Esta sesión fue cancelada.</div>`;
+  document.getElementById('inscritos-count').textContent =
+    `${total} inscrito${total !== 1 ? 's' : ''}${totalEspera ? ` · ${totalEspera} en espera` : ''}`;
+
+  const tabs = [
+    { id: 'todos',         label: `Todos (${total})` },
+    { id: 'principiante',  label: `Principiante (${counts.principiante}/10)` },
+    { id: 'intermedio',    label: `Intermedio (${counts.intermedio}/10)` },
+    { id: 'open',          label: `Open (${counts.open}/10)` },
+    ...(totalEspera ? [{ id: 'espera', label: `Espera (${totalEspera})` }] : []),
+  ];
+
+  const listEl = document.getElementById('inscritos-list');
+  listEl.innerHTML = `
+    <div class="cat-filter-tabs" id="cat-tabs">
+      ${tabs.map((t,i) => `
+        <button class="cat-tab${i===0?' active':''}" data-filter="${t.id}">${t.label}</button>
+      `).join('')}
+    </div>
+    <div id="inscritos-rows"></div>`;
+
+  listEl.querySelectorAll('.cat-tab').forEach(btn => {
+    btn.addEventListener('click', () => {
+      listEl.querySelectorAll('.cat-tab').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      renderRows(inscritos, currentUser, btn.dataset.filter);
+    });
+  });
+
+  renderRows(inscritos, currentUser, 'todos');
+}
+
+function renderRows(inscritos, currentUser, filter) {
+  const rowsEl = document.getElementById('inscritos-rows');
+  if (!rowsEl) return;
+
+  let filtered = inscritos.filter(p => {
+    if (filter === 'todos')   return p.status === 'confirmed';
+    if (filter === 'espera')  return p.status === 'waitlist';
+    return p.status === 'confirmed' && p.categoria === filter;
+  }).sort((a,b) => (a.registeredAt?.seconds||0) - (b.registeredAt?.seconds||0));
+
+  if (!filtered.length) {
+    rowsEl.innerHTML = `<div class="inscritos-empty">Nadie en esta categoría aún.</div>`;
     return;
   }
-  if (isPlayed) {
-    container.innerHTML = `<div class="reg-msg info">Esta sesión ya se jugó. Registro cerrado.</div>`;
-    return;
+
+  const catLabels = { principiante:'Principiante', intermedio:'Intermedio', open:'Open' };
+  rowsEl.innerHTML = filtered.map((p, i) => {
+    const isMe     = currentUser && p.uid === currentUser.uid;
+    const initials = (p.nombre||'?').split(' ').map(n=>n[0]).join('').toUpperCase().slice(0,2);
+    const fecha    = p.registeredAt
+      ? new Date(p.registeredAt.seconds*1000).toLocaleDateString('es-GT',{month:'short',day:'numeric'})
+      : '';
+    const isWait   = p.status === 'waitlist';
+    return `<div class="inscrito-row${isWait?' waitlist-row':''}">
+      <span class="inscrito-num">${i+1}</span>
+      <div class="inscrito-avatar" style="${isMe?'':'background:#aaa'}">${initials}</div>
+      <span class="inscrito-name ${isMe?'me':''}">${isMe?'▶ ':''}${p.nombre}</span>
+      ${p.duprId ? `<span class="inscrito-dupr">${p.duprId}</span>` : ''}
+      ${p.categoria ? `<span class="inscrito-cat-badge ${p.categoria}">${catLabels[p.categoria]||p.categoria}</span>` : ''}
+      ${isWait ? `<span style="font-family:'Space Mono',monospace;font-size:.58rem;color:#b45309;border:1px solid #fbbf24;padding:2px 6px;background:#fffbeb">Espera</span>` : ''}
+      <span class="inscrito-date">${fecha}</span>
+    </div>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════════════════════
+//  RENDER FORMULARIO DE REGISTRO
+// ══════════════════════════════════════════════════════
+function updateRegState(inscritos, user) {
+  _inscritos = inscritos;
+  if (_firebaseAuthReady) renderRegContainer(user, inscritos);
+}
+
+function renderRegContainer(user, inscritos) {
+  const container = document.getElementById('reg-container');
+  if (sesion.estado === 'cancelada') {
+    container.innerHTML = `<div class="reg-msg info">Esta sesión fue cancelada.</div>`; return;
+  }
+  if (sesion.estado === 'jugada') {
+    container.innerHTML = `<div class="reg-msg info">Esta sesión ya se jugó. Registro cerrado.</div>`; return;
   }
   if (!user) {
     container.innerHTML = `
       <div class="login-prompt">
-        <p>Para inscribirte necesitas iniciar sesión con tu cuenta de Antigua Pickleball y tener tu DUPR ID.</p>
+        <p>Inicia sesión con tu cuenta de Antigua Pickleball para inscribirte.</p>
         <a href="https://antigua-pickleball.com/login.html?redirect=${encodeURIComponent(window.location.href)}"
            class="btn-login-red">Ingresar a mi cuenta</a>
-      </div>`;
-    return;
+      </div>`; return;
   }
 
-  const yaInscrito = inscritos.find(p => p.uid === user.uid);
-  if (yaInscrito) {
-    const orderId = yaInscrito.paypalOrderId || '—';
-    container.innerHTML = `
-      <div class="reg-box">
-        <div class="reg-msg success">✓ Inscrito y pago confirmado.</div>
-        <div style="display:flex;flex-direction:column;gap:6px;font-size:.8rem;color:var(--muted)">
-          <span>DUPR ID: <strong style="color:var(--dark)">${yaInscrito.duprId || '—'}</strong></span>
-          <span>Pago: <strong style="color:var(--court)">${SESSION_PRICE_DISPLAY} ✓</strong></span>
-          <span style="font-family:'Space Mono',monospace;font-size:.65rem">PayPal: ${orderId.slice(0,18)}…</span>
-        </div>
-        <button class="btn-unregister" id="btn-cancel-reg">Cancelar inscripción</button>
-      </div>`;
-    document.getElementById('btn-cancel-reg').addEventListener('click', () => cancelRegistration(user));
-    return;
-  }
+  const yaReg = inscritos.find(p => p.uid === user.uid);
+  if (yaReg) { renderYaInscrito(container, user, yaReg, inscritos); return; }
 
-  // ── Formulario: DUPR ID + botón PayPal ──
+  // Formulario: DUPR (auto-fill) + categoría + PayPal
+  const counts = getCounts(inscritos);
   container.innerHTML = `
     <div class="reg-box">
+
       <div class="dupr-form">
-        <label class="dupr-label" for="dupr-input">Tu DUPR ID</label>
-        <input class="dupr-input" id="dupr-input" type="text" placeholder="Ej: 12345678"
-          maxlength="14" autocomplete="off" spellcheck="false"/>
-        <p class="dupr-hint">
-          Número de tu perfil en <a href="https://dupr.com" target="_blank">dupr.com</a>.
-          Obligatorio para participar.
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+          <label class="dupr-label">Tu DUPR ID</label>
+          <button id="dupr-edit-btn" style="font-family:'Space Mono',monospace;font-size:.6rem;background:none;border:none;color:var(--red);cursor:pointer;letter-spacing:.08em;text-transform:uppercase">Editar</button>
+        </div>
+        <input class="dupr-input" id="dupr-input" type="text"
+          placeholder="Cargando…" maxlength="14" readonly
+          autocomplete="off" spellcheck="false"/>
+        <p class="dupr-hint" id="dupr-hint">
+          Tu DUPR ID se carga de tu perfil. Si no es correcto, haz clic en "Editar".
         </p>
       </div>
 
-      <div id="dupr-error" class="reg-status-line err" style="display:none">
-        ✕ Ingresa un DUPR ID válido antes de pagar.
+      <div class="cat-select-label">Selecciona tu categoría</div>
+      <div class="cat-options" id="cat-options">
+        ${CATEGORIAS.map(c => {
+          const count = counts[c.id];
+          const full  = count >= CAP_POR_CAT;
+          return `<label class="cat-option${full?' cat-full':''}">
+            <input type="radio" name="categoria" value="${c.id}" ${full?'':''}/>
+            <div class="cat-option-inner">
+              <div class="cat-option-top">
+                <span class="cat-option-name">${c.label}</span>
+                <span class="cat-option-cap ${full?'full':''}">${count}/${CAP_POR_CAT}${full?' · LLENO':''}</span>
+              </div>
+              <span class="cat-option-rango">DUPR ${c.rango}</span>
+              ${full ? `<span class="cat-option-wait">Lista de espera disponible</span>` : ''}
+            </div>
+          </label>`;
+        }).join('')}
       </div>
 
-      <!-- Contenedor del botón PayPal — se monta con JS -->
+      <div id="reg-form-error" class="reg-status-line err" style="display:none"></div>
       <div id="paypal-button-container" style="min-height:50px"></div>
+      <div id="waitlist-btn-wrap" style="display:none">
+        <button class="btn-waitlist" id="btn-waitlist">Entrar en lista de espera (gratis)</button>
+        <p style="font-size:.72rem;color:var(--muted);text-align:center;line-height:1.5;margin-top:6px">
+          Sin costo. Si se libera un lugar, podrás confirmar y pagar.
+        </p>
+      </div>
 
-      <div style="display:flex;align-items:center;gap:8px;justify-content:center;margin-top:4px">
-        <img src="https://www.paypalobjects.com/webstatic/mktg/Logo/pp-logo-100px.png"
-             alt="PayPal" height="18" style="opacity:.5"/>
-        <span style="font-size:.72rem;color:var(--muted)">
-          Pago seguro · Tarjeta o cuenta PayPal
-        </span>
+      <div style="display:flex;align-items:center;gap:8px;justify-content:center;margin-top:4px" id="paypal-logo-row">
+        <img src="https://www.paypalobjects.com/webstatic/mktg/Logo/pp-logo-100px.png" alt="PayPal" height="16" style="opacity:.45"/>
+        <span style="font-size:.7rem;color:var(--muted)">Pago seguro · Tarjeta o PayPal</span>
       </div>
     </div>`;
 
-  // Pre-llenar DUPR ID guardado
+  // Cargar DUPR ID del perfil
   loadUserDuprId(user.uid).then(saved => {
     const input = document.getElementById('dupr-input');
-    if (input && saved) { input.value = saved; _pendingDuprId = saved; }
+    if (!input) return;
+    if (saved) {
+      input.value   = saved;
+      _pendingDuprId = saved;
+    } else {
+      input.value       = '';
+      input.readOnly    = false;
+      input.placeholder = 'Ej: 12345678';
+      const hint = document.getElementById('dupr-hint');
+      if (hint) hint.innerHTML = `Tu DUPR ID no está en tu perfil. Ingrésalo aquí. <a href="https://dupr.com" target="_blank">dupr.com</a>`;
+    }
   });
 
+  document.getElementById('dupr-edit-btn').addEventListener('click', () => {
+    const input = document.getElementById('dupr-input');
+    input.readOnly = false; input.focus(); input.select();
+  });
   document.getElementById('dupr-input').addEventListener('input', e => {
     _pendingDuprId = e.target.value.trim();
-    document.getElementById('dupr-error').style.display = 'none';
   });
 
-  // Montar botones PayPal
+  // Escuchar selección de categoría para mostrar PayPal o lista de espera
+  document.getElementById('cat-options').addEventListener('change', e => {
+    if (e.target.name !== 'categoria') return;
+    _pendingCategoria = e.target.value;
+    const full = isFull(_inscritos, _pendingCategoria);
+    document.getElementById('paypal-button-container').style.display = full ? 'none' : 'block';
+    document.getElementById('waitlist-btn-wrap').style.display       = full ? 'block' : 'none';
+    document.getElementById('paypal-logo-row').style.display         = full ? 'none' : 'flex';
+    document.getElementById('reg-form-error').style.display = 'none';
+  });
+
   mountPayPalButtons(user);
+
+  document.getElementById('btn-waitlist').addEventListener('click', () => joinWaitlist(user));
 }
 
+function renderYaInscrito(container, user, reg, inscritos) {
+  const isWait    = reg.status === 'waitlist';
+  const catLabel  = { principiante:'Principiante', intermedio:'Intermedio', open:'Open' }[reg.categoria] || reg.categoria;
+  const waitPos   = isWait
+    ? inscritos.filter(p => p.status==='waitlist' && p.categoria===reg.categoria)
+               .sort((a,b)=>(a.registeredAt?.seconds||0)-(b.registeredAt?.seconds||0))
+               .findIndex(p=>p.uid===user.uid) + 1
+    : null;
+
+  container.innerHTML = `
+    <div class="reg-box">
+      ${isWait
+        ? `<div class="reg-msg" style="border-color:#f59e0b;background:#fffbeb;color:#92400e">
+             ⏳ Estás en lista de espera — posición #${waitPos} en ${catLabel}.
+           </div>`
+        : `<div class="reg-msg success">✓ Inscrito y pago confirmado — ${catLabel}.</div>`
+      }
+      <div style="display:flex;flex-direction:column;gap:5px;font-size:.8rem;color:var(--muted)">
+        <span>DUPR ID: <strong style="color:var(--dark)">${reg.duprId||'—'}</strong></span>
+        <span>Categoría: <strong style="color:var(--dark)">${catLabel}</strong></span>
+        ${!isWait ? `<span>Pago: <strong style="color:var(--court)">$10 USD ✓</strong></span>` : ''}
+      </div>
+      ${isWait ? `
+        <div style="border-top:1px solid var(--border);padding-top:14px;margin-top:4px">
+          <div class="dupr-label" style="margin-bottom:8px">Mover a otra sesión disponible</div>
+          <select id="move-sesion-select" style="width:100%;font-family:'Barlow Condensed',sans-serif;font-size:.95rem;padding:9px 12px;border:2px solid var(--border);background:#fff;outline:none">
+            <option value="">— Selecciona una sesión —</option>
+            ${SEMANAS.filter(s => s.num !== NUM && s.estado !== 'cancelada' && s.estado !== 'jugada')
+                     .map(s => `<option value="${s.num}">${s.estado==='gran-final'?'Gran Final':'Semana '+s.num} · ${s.fecha}</option>`)
+                     .join('')}
+          </select>
+          <button class="btn-register" id="btn-move" style="margin-top:10px;width:100%">Mover inscripción</button>
+        </div>` : ''}
+      <button class="btn-unregister" id="btn-cancel-reg">${isWait?'Salir de lista de espera':'Cancelar inscripción'}</button>
+    </div>`;
+
+  document.getElementById('btn-cancel-reg').addEventListener('click', () => cancelRegistration(user));
+  if (isWait) {
+    document.getElementById('btn-move').addEventListener('click', () => moveToSession(user, reg));
+  }
+}
+
+// ══════════════════════════════════════════════════════
+//  PAYPAL
+// ══════════════════════════════════════════════════════
 function mountPayPalButtons(user) {
   paypal.Buttons({
-    style: {
-      layout: 'vertical',
-      color:  'black',
-      shape:  'rect',
-      label:  'pay',
-      height: 44,
-    },
+    style: { layout:'vertical', color:'black', shape:'rect', label:'pay', height:44 },
 
-    // ── Paso 1: crear orden en PayPal ──
     createOrder: (data, actions) => {
-      // Validar DUPR ID antes de abrir el popup de PayPal
-      const duprId = (document.getElementById('dupr-input')?.value || '').trim();
+      const duprId = (document.getElementById('dupr-input')?.value||'').trim();
+      const cat    = document.querySelector('input[name="categoria"]:checked')?.value;
+      const errEl  = document.getElementById('reg-form-error');
+
       if (!duprId || duprId.length < 6) {
-        document.getElementById('dupr-error').style.display = 'block';
+        errEl.textContent = '✕ Ingresa o confirma tu DUPR ID antes de pagar.';
+        errEl.style.display = 'block';
         return Promise.reject(new Error('DUPR ID requerido'));
       }
-      _pendingDuprId = duprId;
+      if (!cat) {
+        errEl.textContent = '✕ Selecciona una categoría antes de pagar.';
+        errEl.style.display = 'block';
+        return Promise.reject(new Error('Categoría requerida'));
+      }
+      if (isFull(_inscritos, cat)) {
+        errEl.textContent = '✕ Esta categoría está llena. Usa la lista de espera.';
+        errEl.style.display = 'block';
+        return Promise.reject(new Error('Categoría llena'));
+      }
 
-      const sessionLabel = sesion.estado === 'gran-final'
-        ? 'Gran Final'
-        : `Semana ${NUM}`;
+      _pendingDuprId    = duprId;
+      _pendingCategoria = cat;
+      errEl.style.display = 'none';
 
+      const catLabel = CATEGORIAS.find(c=>c.id===cat)?.label || cat;
+      const sesLabel = sesion.estado==='gran-final' ? 'Gran Final' : `Semana ${NUM}`;
       return actions.order.create({
         purchase_units: [{
-          description: `Antigua Ladder League ${sessionLabel} ${sesion.fecha}`,
-          amount: {
-            currency_code: 'USD',
-            value:         SESSION_PRICE,
-          },
+          description: `Antigua Ladder League ${sesLabel} ${sesion.fecha} ${catLabel}`,
+          amount: { currency_code:'USD', value: SESSION_PRICE },
         }],
       });
     },
 
-    // ── Paso 2: pago aprobado → capturar y registrar ──
     onApprove: async (data, actions) => {
-      // ⚠️ Capturar PRIMERO antes de tocar el DOM —
-      // si se reemplaza el contenedor antes, se destruye el iframe
-      // de PayPal y falla con "target window is closed".
       let order;
       try {
         order = await actions.order.capture();
@@ -659,100 +859,154 @@ function mountPayPalButtons(user) {
         return;
       }
 
-      // Solo actualizar el DOM DESPUÉS de que capture() haya terminado
       document.getElementById('paypal-button-container').innerHTML =
         `<div class="reg-msg info" style="text-align:center">⏳ Confirmando inscripción…</div>`;
 
-      const orderId = order.id;
-      const status  = order.status;
-      console.log('PayPal order captured:', orderId, status);
-
-      if (status !== 'COMPLETED') {
+      if (order.status !== 'COMPLETED') {
         document.getElementById('paypal-button-container').innerHTML =
-          `<div class="reg-msg error">✕ Pago no completado (estado: ${status}). Intenta de nuevo.</div>`;
+          `<div class="reg-msg error">✕ Pago no completado (${order.status}). Intenta de nuevo.</div>`;
         return;
       }
 
       try {
-        await saveRegistration(user, _pendingDuprId, orderId, order);
-
-        // Confirmación inmediata — no esperar el onSnapshot
-        const regBox = document.getElementById('reg-container');
-        if (regBox) regBox.innerHTML = `
+        await saveRegistration(user, _pendingDuprId, _pendingCategoria, order.id, 'confirmed');
+        const container = document.getElementById('reg-container');
+        const catLabel  = CATEGORIAS.find(c=>c.id===_pendingCategoria)?.label || _pendingCategoria;
+        if (container) container.innerHTML = `
           <div class="reg-box">
-            <div class="reg-msg success">✓ ¡Inscripción confirmada!</div>
-            <div style="display:flex;flex-direction:column;gap:6px;font-size:.82rem;color:var(--muted)">
-              <span>DUPR ID: <strong style="color:var(--dark)">${_pendingDuprId || '—'}</strong></span>
+            <div class="reg-msg success">✓ ¡Inscripción confirmada — ${catLabel}!</div>
+            <div style="display:flex;flex-direction:column;gap:5px;font-size:.82rem;color:var(--muted)">
+              <span>DUPR ID: <strong style="color:var(--dark)">${_pendingDuprId}</strong></span>
+              <span>Categoría: <strong style="color:var(--dark)">${catLabel}</strong></span>
               <span>Pago: <strong style="color:var(--court)">$10 USD ✓</strong></span>
-              <span style="font-family:'Space Mono',monospace;font-size:.65rem;word-break:break-all">
-                PayPal: ${orderId}
-              </span>
+              <span style="font-family:'Space Mono',monospace;font-size:.65rem;word-break:break-all">PayPal: ${order.id}</span>
             </div>
           </div>`;
-
       } catch (err) {
         console.error('Firestore save error:', err);
         document.getElementById('paypal-button-container').innerHTML =
           `<div class="reg-msg error">
-            ✕ Pago recibido (ID: <strong>${orderId.slice(0,14)}…</strong>) pero hubo un error al guardar.
-            Envía este ID por <a href="https://wa.me/50230912707?text=Ladder+pago+OK+orden+${orderId}" style="color:var(--red)">WhatsApp</a>.
+            ✕ Pago recibido (${order.id.slice(0,14)}…) pero error al guardar.
+            Envía el ID por <a href="https://wa.me/50230912707?text=Ladder+pago+${order.id}" style="color:var(--red)">WhatsApp</a>.
           </div>`;
       }
     },
 
     onError: (err) => {
-      console.error('PayPal error:', err);
-      // Solo mostrar error si no es un DUPR ID faltante (que ya se muestra arriba)
-      if (!err.message?.includes('DUPR')) {
-        const container = document.getElementById('paypal-button-container');
-        if (container) container.innerHTML =
-          `<div class="reg-msg error">✕ Error con PayPal. Intenta de nuevo.</div>`;
+      if (!err.message?.includes('requerido') && !err.message?.includes('llena')) {
+        const c = document.getElementById('paypal-button-container');
+        if (c) c.innerHTML = `<div class="reg-msg error">✕ Error con PayPal. Intenta de nuevo.</div>`;
       }
     },
-
-    onCancel: () => {
-      // El usuario cerró el popup — no hacer nada
-    },
-
+    onCancel: () => {},
   }).render('#paypal-button-container');
 }
 
-async function saveRegistration(user, duprId, paypalOrderId, orderData) {
+// ── Lista de espera (sin pago) ──
+async function joinWaitlist(user) {
+  const duprId = (document.getElementById('dupr-input')?.value||'').trim();
+  const cat    = document.querySelector('input[name="categoria"]:checked')?.value;
+  const errEl  = document.getElementById('reg-form-error');
+
+  if (!duprId || duprId.length < 6) {
+    errEl.textContent = '✕ Ingresa tu DUPR ID.'; errEl.style.display='block'; return;
+  }
+  if (!cat) {
+    errEl.textContent = '✕ Selecciona una categoría.'; errEl.style.display='block'; return;
+  }
+
+  const btn = document.getElementById('btn-waitlist');
+  btn.disabled = true; btn.textContent = 'Registrando…';
+
+  try {
+    await saveRegistration(user, duprId, cat, null, 'waitlist');
+    _pendingDuprId    = duprId;
+    _pendingCategoria = cat;
+    // renderYaInscrito se activará via onSnapshot
+  } catch (err) {
+    console.error(err);
+    btn.disabled = false; btn.textContent = 'Entrar en lista de espera (gratis)';
+    errEl.textContent = '✕ Error al registrar. Intenta de nuevo.'; errEl.style.display='block';
+  }
+}
+
+// ── Mover de lista de espera a otra sesión ──
+async function moveToSession(user, reg) {
+  const targetNum = parseInt(document.getElementById('move-sesion-select')?.value);
+  if (!targetNum) { alert('Selecciona una sesión de destino.'); return; }
+
+  const btn = document.getElementById('btn-move');
+  btn.disabled = true; btn.textContent = 'Moviendo…';
+
+  try {
+    // Quitar de sesión actual
+    const srcRef  = db.collection(COLLECTION).doc(DOC_ID);
+    const srcSnap = await srcRef.get();
+    const srcData = srcSnap.data()?.inscritos || [];
+    await srcRef.update({ inscritos: srcData.filter(p => p.uid !== user.uid) });
+
+    // Agregar a sesión destino como waitlist (no confirmado aún, no pagó)
+    const dstRef = db.collection(COLLECTION).doc(`t1_sesion_${targetNum}`);
+    await dstRef.set({
+      sesionNum: targetNum,
+      inscritos: firebase.firestore.FieldValue.arrayUnion({
+        ...reg,
+        sesionNum:    targetNum,
+        status:       'waitlist',
+        movedFrom:    NUM,
+        movedAt:      firebase.firestore.Timestamp.now(),
+      }),
+    }, { merge: true });
+
+  } catch (err) {
+    console.error(err);
+    btn.disabled = false; btn.textContent = 'Mover inscripción';
+    alert('Error al mover. Intenta de nuevo.');
+  }
+}
+
+async function saveRegistration(user, duprId, categoria, paypalOrderId, status) {
   const nombre = user.displayName || user.email.split('@')[0];
   const docRef = db.collection(COLLECTION).doc(DOC_ID);
 
   // Guardar DUPR ID en perfil del usuario para próximas sesiones
   db.collection('users').doc(user.uid).set({ duprId }, { merge: true }).catch(() => {});
 
+  const entry = {
+    uid:          user.uid,
+    nombre:       nombre,
+    email:        user.email || '',
+    duprId:       duprId,
+    categoria:    categoria,
+    status:       status,             // 'confirmed' | 'waitlist'
+    registeredAt: firebase.firestore.Timestamp.now(),
+    ...(status === 'confirmed' ? {
+      paypalOrderId: paypalOrderId,
+      paidUSD:       SESSION_PRICE,
+    } : {}),
+  };
+
   await docRef.set({
     sesionNum: NUM,
-    inscritos: firebase.firestore.FieldValue.arrayUnion({
-      uid:            user.uid,
-      nombre:         nombre,
-      email:          user.email || '',
-      duprId:         duprId,
-      paypalOrderId:  paypalOrderId,
-      paidUSD:        SESSION_PRICE,
-      registeredAt:   firebase.firestore.Timestamp.now(),
-    }),
+    inscritos: firebase.firestore.FieldValue.arrayUnion(entry),
   }, { merge: true });
 
-  // Guardar también el pago en una colección de auditoría
-  db.collection('ladder_payments').add({
-    uid:           user.uid,
-    nombre:        nombre,
-    email:         user.email || '',
-    sesionNum:     NUM,
-    docId:         DOC_ID,
-    paypalOrderId: paypalOrderId,
-    amount:        SESSION_PRICE,
-    currency:      'USD',
-    displayAmount: SESSION_PRICE_DISPLAY,
-    paidAt:        firebase.firestore.Timestamp.now(),
-    env:           PAYPAL_ENV,
-  }).catch(() => {});
-
-  // onSnapshot actualizará la lista de inscritos y el estado del botón automáticamente
+  // Auditoría de pagos (solo si pagó)
+  if (status === 'confirmed' && paypalOrderId) {
+    db.collection('ladder_payments').add({
+      uid:           user.uid,
+      nombre:        nombre,
+      email:         user.email || '',
+      sesionNum:     NUM,
+      docId:         DOC_ID,
+      categoria:     categoria,
+      paypalOrderId: paypalOrderId,
+      amount:        SESSION_PRICE,
+      currency:      'USD',
+      paidAt:        firebase.firestore.Timestamp.now(),
+      env:           PAYPAL_ENV,
+    }).catch(() => {});
+  }
 }
 
 async function cancelRegistration(user) {
@@ -785,7 +1039,10 @@ function renderNavChip(user) {
     const name     = user.displayName || user.email.split('@')[0];
     const first    = name.split(' ')[0];
     const initials = name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
-    slot.innerHTML = `<a class="nav-user" href="perfil.html"><span class="nav-user-avatar">${initials}</span>${first}</a>`;
+    const isAdmin = user.role === 'admin';
+    slot.innerHTML = `
+      ${isAdmin ? `<a href="admin.html" style="font-family:'Barlow Condensed',sans-serif;font-size:.75rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);text-decoration:none;padding:5px 10px;border:1px solid var(--border);margin-right:4px">⚙ Admin</a>` : ''}
+      <a class="nav-user" href="perfil.html"><span class="nav-user-avatar">${initials}</span>${first}</a>`;
   } else {
     const loginURL = `https://antigua-pickleball.com/login.html?redirect=${encodeURIComponent(window.location.href)}`;
     slot.innerHTML = `<a href="${loginURL}" class="nav-back">Ingresar</a>`;
