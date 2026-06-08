@@ -354,7 +354,11 @@
     </div>
 
     <!-- Tabs por sesión -->
-    <div class="session-tabs" id="session-tabs"></div>
+    <div style="display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:0">
+      <div class="session-tabs" id="session-tabs" style="margin-bottom:0;border-bottom:none;flex:1"></div>
+      <button class="btn-action btn-accept" style="padding:9px 18px;font-size:.82rem;margin-bottom:12px;white-space:nowrap" onclick="openAdd()">➕ Agregar jugador</button>
+    </div>
+    <div style="border-bottom:2px solid var(--border);margin-bottom:24px"></div>
 
     <!-- Chips de resumen -->
     <div class="session-summary" id="session-summary"></div>
@@ -465,6 +469,65 @@
     <div class="modal-footer">
       <button class="btn-modal btn-cancel-modal" onclick="closeModal('modal-delete')">Cancelar</button>
       <button class="btn-modal btn-save-red" id="btn-confirm-delete" onclick="confirmDelete()">Sí, eliminar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL AGREGAR JUGADOR MANUALMENTE -->
+<div class="modal-overlay" id="modal-add" style="display:none" onclick="if(event.target===this)closeModal('modal-add')">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-header">
+      <span class="modal-title">➕ Agregar jugador manualmente</span>
+      <button class="modal-close" onclick="closeModal('modal-add')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="field-group">
+        <label class="field-label">Sesión</label>
+        <select class="field-select" id="add-sesion"></select>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        <div class="field-group">
+          <label class="field-label">Nombre completo *</label>
+          <input class="field-input" id="add-nombre" type="text" placeholder="Ej. Carlos Pérez"/>
+        </div>
+        <div class="field-group">
+          <label class="field-label">DUPR ID</label>
+          <input class="field-input" id="add-dupr" type="text" maxlength="14" placeholder="Opcional"/>
+        </div>
+      </div>
+      <div class="field-group">
+        <label class="field-label">Correo electrónico</label>
+        <input class="field-input" id="add-email" type="email" placeholder="Opcional"/>
+      </div>
+      <div class="field-group">
+        <label class="field-label">Teléfono (WhatsApp)</label>
+        <input class="field-input" id="add-phone" type="tel" placeholder="Ej. 50212345678"/>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        <div class="field-group">
+          <label class="field-label">Categoría *</label>
+          <select class="field-select" id="add-categoria">
+            <option value="principiante">Principiante</option>
+            <option value="intermedio">Intermedio</option>
+            <option value="open">Open</option>
+          </select>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Estado *</label>
+          <select class="field-select" id="add-status">
+            <option value="confirmed">Confirmado (pagó)</option>
+            <option value="waitlist">Lista de espera</option>
+            <option value="pending_review">Por validar</option>
+          </select>
+        </div>
+      </div>
+      <p style="font-size:.78rem;color:var(--muted);line-height:1.6">
+        El jugador se agrega con UID único generado automáticamente. Podrá editarlo después desde la tabla.
+      </p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-modal btn-cancel-modal" onclick="closeModal('modal-add')">Cancelar</button>
+      <button class="btn-modal btn-save" id="btn-save-add" onclick="saveAdd()">Agregar jugador</button>
     </div>
   </div>
 </div>
@@ -1075,10 +1138,93 @@ async function applyPenalty(uid, nombre, sesionNum, delta, notifId) {
 // Agregar suscripción al flujo de arranque
 const _origReady = APAuth.onReady.bind(APAuth);
 
+/* ══════════════════════════════════════════════════════
+   MODAL: AGREGAR JUGADOR MANUALMENTE
+══════════════════════════════════════════════════════ */
+function openAdd() {
+  // Populate session selector with current session pre-selected
+  const sel = document.getElementById('add-sesion');
+  sel.innerHTML = SEMANAS.map(s =>
+    `<option value="${s.num}" ${s.num === _currentSession ? 'selected' : ''}>Semana ${s.num} · ${s.fecha}</option>`
+  ).join('');
+
+  // Clear fields
+  ['add-nombre','add-dupr','add-email','add-phone'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  document.getElementById('add-categoria').value = 'principiante';
+  document.getElementById('add-status').value    = 'confirmed';
+
+  openModal('modal-add');
+  setTimeout(() => document.getElementById('add-nombre').focus(), 100);
+}
+
+async function saveAdd() {
+  const nombre    = document.getElementById('add-nombre').value.trim();
+  const duprId    = document.getElementById('add-dupr').value.trim();
+  const email     = document.getElementById('add-email').value.trim();
+  const phone     = document.getElementById('add-phone').value.trim();
+  const categoria = document.getElementById('add-categoria').value;
+  const status    = document.getElementById('add-status').value;
+  const sesionNum = parseInt(document.getElementById('add-sesion').value);
+
+  if (!nombre) { toast('✕ El nombre es obligatorio', true); return; }
+
+  const btn = document.getElementById('btn-save-add');
+  btn.disabled = true; btn.textContent = 'Agregando…';
+
+  // Generate a unique manual UID
+  const uid = 'manual_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
+
+  const newPlayer = {
+    uid,
+    nombre,
+    duprId:      duprId  || '',
+    email:       email   || '',
+    phone:       phone   || '',
+    categoria,
+    status,
+    paymentMethod: 'manual',
+    registeredAt:  firebase.firestore.Timestamp.now(),
+    addedByAdmin:  true,
+  };
+
+  const docId  = `t1_sesion_${sesionNum}`;
+  const docRef = db.collection(COLLECTION).doc(docId);
+
+  try {
+    const snap     = await docRef.get();
+    const existing = snap.exists ? (snap.data().inscritos || []) : [];
+
+    // Check for duplicate name in same session+category
+    const dup = existing.find(p =>
+      p.nombre?.toLowerCase() === nombre.toLowerCase() && p.categoria === categoria
+    );
+    if (dup) {
+      toast(`✕ Ya existe "${nombre}" en ${categoria} · Sesión ${sesionNum}`, true);
+      btn.disabled = false; btn.textContent = 'Agregar jugador';
+      return;
+    }
+
+    await docRef.set(
+      { sesionNum, inscritos: [...existing, newPlayer] },
+      { merge: true }
+    );
+
+    closeModal('modal-add');
+    selectSession(sesionNum);   // switch to that session tab
+    toast(`✓ ${nombre} agregado a Sesión ${sesionNum}`);
+  } catch (err) {
+    console.error(err);
+    toast('✕ Error al agregar jugador', true);
+  }
+  btn.disabled = false; btn.textContent = 'Agregar jugador';
+}
+
 // Cerrar modales con Escape
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') {
-    ['modal-edit','modal-move','modal-delete'].forEach(closeModal);
+    ['modal-edit','modal-move','modal-delete','modal-add'].forEach(closeModal);
   }
 });
 </script>
