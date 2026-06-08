@@ -599,7 +599,7 @@
                 <div id="season-bar" style="position:absolute;top:0;left:0;bottom:0;background:var(--red);transition:width .8s ease;width:0%"></div>
               </div>
               <div style="display:flex;justify-content:space-between;font-size:.72rem;color:var(--muted);font-family:'Space Mono',monospace;">
-                <span>Jul 4</span><span>Sep 6 · Semana 9</span>
+                <span>Jul 4</span><span>Ago 29 · Semana 8</span>
               </div>
             </div>
           </div>
@@ -674,9 +674,18 @@
             </ul>
           </div>
           <div class="rules-card">
+            <h3>Política de cancelación</h3>
+            <ul class="rules-list">
+              <li><strong>48 h o más antes</strong> de tu horario: sin penalización. Puedes reagendar tu lugar a otra fecha desde tu perfil.</li>
+              <li><strong>Entre 24 h y 48 h antes</strong>: sin penalización. Solo puedes cancelar (no reagendar). Tu lugar pasa automáticamente al primero en lista de espera.</li>
+              <li><strong>Menos de 24 h antes</strong> (avisando antes del inicio): penalización de <strong>−1 posición</strong> en la tabla.</li>
+              <li><strong>No avisar y no llegar</strong>: penalización de <strong>−2 posiciones</strong> en la tabla.</li>
+            </ul>
+          </div>
+          <div class="rules-card">
             <h3>Ganadores de Temporada</h3>
             <ul class="rules-list">
-              <li>Al finalizar las 9 sesiones se anunciará al ganador de cada categoría según puntos acumulados.</li>
+              <li>Al finalizar las 8 sesiones se anunciará al ganador de cada categoría según puntos acumulados.</li>
               <li>Se entregan premios a los campeones de cada categoría.</li>
               <li>Todas las sesiones tienen el mismo formato y valor de puntos.</li>
             </ul>
@@ -752,7 +761,6 @@ const SEMANAS = [
   { num: 6, fecha: '15 Ago', estado: 'pendiente'                      },
   { num: 7, fecha: '22 Ago', estado: 'pendiente'                      },
   { num: 8, fecha: '29 Ago', estado: 'pendiente'                      },
-  { num: 9, fecha: '6 Sep',  estado: 'pendiente'                      },
 ];
 
 // ── Mapeo nombre → categoría (para encontrar al usuario) ──

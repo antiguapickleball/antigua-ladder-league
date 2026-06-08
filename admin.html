@@ -160,6 +160,15 @@
     .btn-move:hover { background: #dbeafe; }
     .btn-delete  { background: #fef2f2; color: var(--red); border-color: #fecaca; }
     .btn-delete:hover { background: #fee2e2; }
+    /* PENALTY BADGES */
+    .penalty-badge {
+      display:inline-block; font-family:'Space Mono',monospace; font-size:.65rem; font-weight:700;
+      padding:2px 7px; border-radius:3px;
+    }
+    .penalty-badge.p1 { background:#fee2e2; color:#991b1b; }
+    .penalty-badge.p2 { background:#fce7f3; color:#9d174d; }
+    .penalty-badge.slot { background:#dbeafe; color:#1e40af; }
+
     .btn-accept  { background: #d1fae5; color: #065f46; border-color: #6ee7b7; }
     .btn-accept:hover { background: #a7f3d0; }
     .btn-deny    { background: #fef2f2; color: #991b1b; border-color: #fca5a5; }
@@ -310,6 +319,17 @@
         <div class="admin-title">Panel de Administración</div>
         <div class="admin-subtitle">Temporada 1 · Antigua Ladder League</div>
       </div>
+    </div>
+
+    <!-- NOTIFICACIONES: lugar liberado / cancelación tardía -->
+    <div id="notif-section" style="display:none;margin-bottom:20px;border:2px solid #e0e7ff;background:#fff">
+      <div style="background:#eef2ff;padding:12px 20px;border-bottom:1px solid #c7d2fe;display:flex;align-items:center;gap:10px">
+        <span style="font-family:'Barlow Condensed',sans-serif;font-size:.95rem;font-weight:900;text-transform:uppercase;letter-spacing:.06em;color:#3730a3">
+          🔔 Avisos pendientes
+        </span>
+        <span id="notif-count-badge" style="background:#6366f1;color:#fff;font-family:'Space Mono',monospace;font-size:.7rem;padding:2px 8px;border-radius:99px">0</span>
+      </div>
+      <div id="notif-list" style="padding:12px 20px;display:flex;flex-direction:column;gap:10px"></div>
     </div>
 
     <!-- PENDIENTES DE VALIDACIÓN -->
@@ -476,7 +496,6 @@ const SEMANAS = [
   { num: 6, fecha: '15 Ago', estado: 'pendiente'                      },
   { num: 7, fecha: '22 Ago', estado: 'pendiente'                      },
   { num: 8, fecha: '29 Ago', estado: 'pendiente'                      },
-  { num: 9, fecha: '6 Sep',  estado: 'pendiente'                      },
 ];
 
 const COLLECTION = 'ladder_registrations';
@@ -521,6 +540,7 @@ APAuth.onReady(function(user) {
 
   buildTabs();
   subscribeAll();
+  subscribeNotifications();
 });
 
 /* ══════════════════════════════════════════════════════
@@ -969,6 +989,91 @@ function toast(msg, isErr = false) {
   clearTimeout(_toastTimer);
   _toastTimer = setTimeout(() => { el.className = ''; }, 3000);
 }
+
+/* ══════════════════════════════════════════════════════
+   NOTIFICACIONES (cancelaciones tardías + slots liberados)
+══════════════════════════════════════════════════════ */
+let _notifUnsub = null;
+function subscribeNotifications() {
+  if (_notifUnsub) _notifUnsub();
+  _notifUnsub = db.collection('ladder_notifications')
+    .where('resolved', '==', false)
+    .onSnapshot(snap => {
+      // Firestore puede no tener índice para 'resolved' aún — fallback
+      renderNotifications(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    }, () => {
+      // Sin índice — leer todo y filtrar en cliente
+      db.collection('ladder_notifications').get().then(snap => {
+        renderNotifications(snap.docs
+          .map(d => ({ id: d.id, ...d.data() }))
+          .filter(n => !n.resolved));
+      });
+    });
+}
+
+function renderNotifications(notifs) {
+  const section  = document.getElementById('notif-section');
+  const badge    = document.getElementById('notif-count-badge');
+  const listEl   = document.getElementById('notif-list');
+  if (!notifs.length) { section.style.display = 'none'; return; }
+  section.style.display = 'block';
+  badge.textContent = notifs.length;
+
+  const catLabels = { principiante:'Principiante', intermedio:'Intermedio', open:'Open' };
+  const sesLabel  = n => { const s = SEMANAS.find(x=>x.num===n); return s ? `Semana ${n} · ${s.fecha}` : `S${n}`; };
+
+  listEl.innerHTML = notifs.map(n => {
+    if (n.type === 'waitlist_slot_opened') {
+      const waMsg = encodeURIComponent(`Hola ${n.playerName} 👋 Se liberó un lugar en Antigua Ladder League ${sesLabel(n.sesionNum)} – ${catLabels[n.categoria]||n.categoria}. ¿Deseas confirmar tu inscripción y realizar el pago?`);
+      return `<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid #e0e7ff;flex-wrap:wrap">
+        <div>
+          <span class="penalty-badge slot">Lugar disponible</span>
+          <strong style="margin-left:8px">${n.playerName}</strong>
+          <span style="font-size:.8rem;color:var(--muted);margin-left:6px">${sesLabel(n.sesionNum)} · ${catLabels[n.categoria]||n.categoria}</span>
+        </div>
+        <div style="display:flex;gap:8px">
+          ${n.phone ? `<a href="https://wa.me/${n.phone.replace(/\D/g,'')}?text=${waMsg}" target="_blank" class="btn-action btn-wa">💬 Notificar por WA</a>` : ''}
+          <button class="btn-action btn-accept" onclick="resolveNotif('${n.id}')">✓ Resuelto</button>
+        </div>
+      </div>`;
+    }
+    if (n.type === 'late_cancel') {
+      return `<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid #e0e7ff;flex-wrap:wrap">
+        <div>
+          <span class="penalty-badge p1">Cancelación tardía</span>
+          <strong style="margin-left:8px">${n.playerName}</strong>
+          <span style="font-size:.8rem;color:var(--muted);margin-left:6px">${sesLabel(n.sesionNum)} · ${catLabels[n.categoria]||n.categoria}</span>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn-action" style="background:#fee2e2;color:#991b1b;border-color:#fca5a5"
+            onclick="applyPenalty('${n.playerUid}', '${n.playerName}', ${n.sesionNum}, -1, '${n.id}')">−1 posición</button>
+          <button class="btn-action btn-accept" onclick="resolveNotif('${n.id}')">Sin penalización</button>
+        </div>
+      </div>`;
+    }
+    return '';
+  }).join('');
+}
+
+async function resolveNotif(id) {
+  await db.collection('ladder_notifications').doc(id).update({ resolved: true }).catch(console.error);
+}
+
+async function applyPenalty(uid, nombre, sesionNum, delta, notifId) {
+  if (!confirm(`Aplicar ${delta} posición a ${nombre}. ¿Confirmar?`)) return;
+  try {
+    await db.collection('ladder_penalties').add({
+      uid, nombre, sesionNum, delta,
+      reason: delta === -1 ? 'late_cancel' : 'no_show',
+      appliedAt: firebase.firestore.Timestamp.now(),
+    });
+    if (notifId) await resolveNotif(notifId);
+    toast(`Penalización registrada para ${nombre}`);
+  } catch(err) { toast('Error', true); console.error(err); }
+}
+
+// Agregar suscripción al flujo de arranque
+const _origReady = APAuth.onReady.bind(APAuth);
 
 // Cerrar modales con Escape
 document.addEventListener('keydown', e => {

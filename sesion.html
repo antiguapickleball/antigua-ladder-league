@@ -541,7 +541,6 @@ const SEMANAS = [
   { num: 6, fecha: '15 Ago', estado: 'pendiente'                      },
   { num: 7, fecha: '22 Ago', estado: 'pendiente'                      },
   { num: 8, fecha: '29 Ago', estado: 'pendiente'                      },
-  { num: 9, fecha: '6 Sep',  estado: 'pendiente'                      },
 ];
 
 const HORARIOS = [
@@ -670,6 +669,25 @@ async function loadUserDuprId(uid) {
     const doc = await db.collection('users').doc(uid).get();
     return doc.exists ? (doc.data().duprId || '') : '';
   } catch (_) { return ''; }
+}
+
+// ══════════════════════════════════════════════════════
+//  LÓGICA DE TIEMPO PARA CANCELACIONES
+// ══════════════════════════════════════════════════════
+const HORA_INICIO = { principiante:[8,0], intermedio:[9,30], open:[11,0] };
+const MES_MAP     = { Ene:0,Feb:1,Mar:2,Abr:3,May:4,Jun:5,Jul:6,Ago:7,Sep:8,Oct:9,Nov:10,Dic:11 };
+
+function getSessionStart(sesionNum, categoria) {
+  const s = SEMANAS.find(x => x.num === sesionNum);
+  if (!s) return null;
+  const [day, mon] = s.fecha.split(' ');
+  const [hh, mm]   = HORA_INICIO[categoria] || [8, 0];
+  return new Date(2026, MES_MAP[mon], parseInt(day), hh, mm, 0);
+}
+function horasHastaInicio(sesionNum, categoria) {
+  const start = getSessionStart(sesionNum, categoria);
+  if (!start) return Infinity;
+  return (start - Date.now()) / 3_600_000;
 }
 
 // ── Cargar teléfono del perfil ──
@@ -1030,55 +1048,101 @@ function renderYaInscrito(container, user, reg, inscritos) {
   const isPending = reg.status === 'pending_review';
   const isDenied  = reg.status === 'denied';
   const catLabel  = { principiante:'Principiante', intermedio:'Intermedio', open:'Open' }[reg.categoria] || reg.categoria;
-  const waitPos   = isWait
+
+  // Ventana de cancelación (solo para confirmados y pending)
+  const horas   = (!isWait && !isDenied) ? horasHastaInicio(NUM, reg.categoria) : Infinity;
+  const puedeReagendar = horas >= 48;   // ≥48h: cancelar + reagendar
+  const soloCancelar   = horas >= 24 && horas < 48; // 24-48h: solo cancelar, libera espera
+  const cancelTardio   = horas >= 0  && horas < 24; // <24h antes: penaliza -1
+  const yaPaso         = horas < 0;
+
+  const waitPos = isWait
     ? inscritos.filter(p => p.status==='waitlist' && p.categoria===reg.categoria)
                .sort((a,b)=>(a.registeredAt?.seconds||0)-(b.registeredAt?.seconds||0))
                .findIndex(p=>p.uid===user.uid) + 1
     : null;
 
+  // Selector de reagendamiento
+  const moveSelector = `
+    <div style="border-top:1px solid var(--border);padding-top:14px;margin-top:4px">
+      <div class="dupr-label" style="margin-bottom:8px">Mover a otra sesión</div>
+      <select id="move-sesion-select" style="width:100%;font-family:'Barlow Condensed',sans-serif;font-size:.95rem;padding:9px 12px;border:2px solid var(--border);background:#fff;outline:none">
+        <option value="">— Selecciona una fecha —</option>
+        ${SEMANAS.filter(s => s.num !== NUM && s.estado !== 'cancelada' && s.estado !== 'jugada')
+                 .map(s => `<option value="${s.num}">Semana ${s.num} · ${s.fecha}</option>`)
+                 .join('')}
+      </select>
+      <button class="btn-register" id="btn-move" style="margin-top:10px;width:100%">Confirmar cambio de fecha</button>
+    </div>`;
+
+  // Aviso de penalización
+  let penaltyWarning = '';
+  if (cancelTardio && !isWait && !isPending) {
+    penaltyWarning = `<div style="background:#fef2f2;border:1px solid #fecaca;padding:10px 12px;font-size:.8rem;color:#991b1b;line-height:1.5;margin-top:4px">
+      ⚠️ Cancelar ahora (menos de 24 h) registra una cancelación tardía. El admin puede aplicar <strong>−1 posición</strong> en la tabla.
+    </div>`;
+  }
+
   container.innerHTML = `
     <div class="reg-box">
       ${isWait
         ? `<div class="reg-msg" style="border-color:#f59e0b;background:#fffbeb;color:#92400e">
-             ⏳ Estás en lista de espera — posición #${waitPos} en ${catLabel}.
+             ⏳ Lista de espera — posición #${waitPos} en ${catLabel}.
            </div>`
         : isPending
         ? `<div class="reg-msg pending">
-             🕐 Inscripción pendiente de validación.<br>
+             🕐 Pendiente de validación.<br>
              <span style="font-size:.8rem;font-family:'Barlow',sans-serif;font-weight:400">
                El admin revisará tu boleta y te confirmará por WhatsApp.
              </span>
            </div>`
         : isDenied
         ? `<div class="reg-msg error">
-             ✕ Inscripción no aprobada. Contacta al admin por <a href="https://wa.me/50230912707" style="color:var(--red)">WhatsApp</a>.
+             ✕ Inscripción no aprobada. Contacta al admin por
+             <a href="https://wa.me/50230912707" style="color:var(--red)">WhatsApp</a>.
            </div>`
-        : `<div class="reg-msg success">✓ Inscrito y pago confirmado — ${catLabel}.</div>`
+        : `<div class="reg-msg success">✓ Inscrito — ${catLabel}.</div>`
       }
+
       <div style="display:flex;flex-direction:column;gap:5px;font-size:.8rem;color:var(--muted)">
         <span>DUPR ID: <strong style="color:var(--dark)">${reg.duprId||'—'}</strong></span>
         <span>Categoría: <strong style="color:var(--dark)">${catLabel}</strong></span>
-        ${!isWait && !isPending && !isDenied ? `<span>Pago: <strong style="color:var(--court)">${reg.paymentMethod==='transfer'?'Q75 · Transferencia':'$10 USD · PayPal'} ✓</strong></span>` : ''}
-        ${isPending ? `<span>Método: <strong style="color:var(--dark)">Transferencia bancaria</strong></span>` : ''}
+        ${!isWait && !isPending && !isDenied
+          ? `<span>Pago: <strong style="color:var(--court)">${reg.paymentMethod==='transfer'?'Q75 · Transferencia':'$10 USD · PayPal'} ✓</strong></span>`
+          : ''}
+        ${isPending ? `<span>Método: <strong>Transferencia bancaria</strong></span>` : ''}
+        ${(!yaPaso && !isWait && !isDenied) ? `<span style="color:${cancelTardio?'#b91c1c':''}">${
+          puedeReagendar ? '✓ Puedes cancelar o reagendar sin penalización' :
+          soloCancelar   ? '⚠️ Solo puedes cancelar (no reagendar) — sin penalización' :
+          cancelTardio   ? '⚠️ Menos de 24 h — cancelación tardía' :
+          ''
+        }</span>` : ''}
       </div>
-      ${isWait ? `
-        <div style="border-top:1px solid var(--border);padding-top:14px;margin-top:4px">
-          <div class="dupr-label" style="margin-bottom:8px">Mover a otra sesión disponible</div>
-          <select id="move-sesion-select" style="width:100%;font-family:'Barlow Condensed',sans-serif;font-size:.95rem;padding:9px 12px;border:2px solid var(--border);background:#fff;outline:none">
-            <option value="">— Selecciona una sesión —</option>
-            ${SEMANAS.filter(s => s.num !== NUM && s.estado !== 'cancelada' && s.estado !== 'jugada')
-                     .map(s => `<option value="${s.num}">Semana ${s.num} · ${s.fecha}</option>`)
-                     .join('')}
-          </select>
-          <button class="btn-register" id="btn-move" style="margin-top:10px;width:100%">Mover inscripción</button>
-        </div>` : ''}
-      <button class="btn-unregister" id="btn-cancel-reg">${isWait?'Salir de lista de espera':'Cancelar inscripción'}</button>
+
+      ${penaltyWarning}
+
+      ${/* Opciones según ventana */ ''}
+      ${isWait
+        ? moveSelector   // waitlist siempre puede moverse
+        : puedeReagendar && !isPending && !isDenied
+        ? moveSelector   // ≥48h: también puede reagendar
+        : ''}
+
+      ${!isDenied && !yaPaso
+        ? `<button class="btn-unregister" id="btn-cancel-reg">
+             ${isWait ? 'Salir de lista de espera' :
+               isPending ? 'Cancelar solicitud' :
+               cancelTardio ? 'Cancelar (cancelación tardía)' :
+               'Cancelar inscripción'}
+           </button>`
+        : ''}
     </div>`;
 
-  document.getElementById('btn-cancel-reg').addEventListener('click', () => cancelRegistration(user));
-  if (isWait) {
-    document.getElementById('btn-move').addEventListener('click', () => moveToSession(user, reg));
-  }
+  const btnCancel = document.getElementById('btn-cancel-reg');
+  if (btnCancel) btnCancel.addEventListener('click', () => cancelRegistration(user, reg, horas));
+
+  const btnMove = document.getElementById('btn-move');
+  if (btnMove) btnMove.addEventListener('click', () => moveToSession(user, reg));
 }
 
 // ══════════════════════════════════════════════════════
@@ -1351,23 +1415,66 @@ async function saveRegistration(user, duprId, categoria, paypalOrderId, status, 
   }
 }
 
-async function cancelRegistration(user) {
+async function cancelRegistration(user, reg, horas) {
   const btn = document.getElementById('btn-cancel-reg');
-  if (!confirm('¿Confirmas que deseas cancelar tu inscripción en esta sesión?')) return;
-  btn.disabled    = true;
-  btn.textContent = 'Cancelando…';
+  const isLate = horas !== undefined && horas < 24 && horas >= 0;
+  const msg = isLate
+    ? '⚠️ Cancelar ahora puede generar una penalización de −1 posición en la tabla.\n\n¿Confirmas la cancelación?'
+    : '¿Confirmas que deseas cancelar tu inscripción en esta sesión?';
+  if (!confirm(msg)) return;
+  btn.disabled = true; btn.textContent = 'Cancelando…';
 
   try {
-    const docRef  = db.collection(COLLECTION).doc(DOC_ID);
-    const snap    = await docRef.get();
+    const docRef = db.collection(COLLECTION).doc(DOC_ID);
+    const snap   = await docRef.get();
     if (!snap.exists) return;
-    const current = snap.data().inscritos || [];
-    const updated = current.filter(p => p.uid !== user.uid);
+    const inscritos = snap.data().inscritos || [];
+    const categoria = reg?.categoria;
+
+    // Quitar al jugador
+    let updated = inscritos.filter(p => p.uid !== user.uid);
+
+    // Si canceló en ventana 24-48h: promover primer jugador en espera de misma categoría
+    if (horas !== undefined && horas >= 24 && horas < 48 && categoria) {
+      const waitlisted = inscritos
+        .filter(p => p.status === 'waitlist' && p.categoria === categoria)
+        .sort((a,b) => (a.registeredAt?.seconds||0) - (b.registeredAt?.seconds||0));
+
+      if (waitlisted.length > 0) {
+        const primero = waitlisted[0];
+        // Marcar como "slot_available" para que el admin lo confirme
+        updated = updated.map(p =>
+          p.uid === primero.uid ? { ...p, status: 'slot_available', slotOpenedAt: new Date().toISOString() } : p
+        );
+        // Registrar el evento para que el admin lo vea
+        db.collection('ladder_notifications').add({
+          type:       'waitlist_slot_opened',
+          sesionNum:  NUM,
+          categoria:  categoria,
+          playerUid:  primero.uid,
+          playerName: primero.nombre,
+          phone:      primero.phone || '',
+          openedAt:   firebase.firestore.Timestamp.now(),
+        }).catch(() => {});
+      }
+    }
+
+    // Si fue cancelación tardía: registrar para que admin pueda penalizar
+    if (isLate) {
+      db.collection('ladder_notifications').add({
+        type:       'late_cancel',
+        sesionNum:  NUM,
+        categoria:  reg?.categoria,
+        playerUid:  user.uid,
+        playerName: user.displayName || user.email,
+        canceledAt: firebase.firestore.Timestamp.now(),
+      }).catch(() => {});
+    }
+
     await docRef.update({ inscritos: updated });
-    // onSnapshot actualizará la UI
+
   } catch (err) {
-    btn.disabled    = false;
-    btn.textContent = 'Cancelar inscripción';
+    btn.disabled = false; btn.textContent = 'Cancelar inscripción';
     alert('Error al cancelar. Intenta de nuevo.');
     console.error(err);
   }
