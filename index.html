@@ -607,6 +607,12 @@
       opacity: 0; transition: opacity .2s;
     }
     .cal-card:hover .cal-link { opacity: 1; }
+    .cal-horarios { display:flex; flex-direction:column; gap:3px; margin-top:8px; border-top:1px solid var(--border); padding-top:8px; }
+    .cal-h-row { font-size:.72rem; color:var(--muted); display:flex; align-items:center; gap:6px; font-family:'Space Mono',monospace; }
+    .cal-h-cat { font-family:'Barlow Condensed',sans-serif; font-size:.65rem; font-weight:900; padding:1px 5px; }
+    .cal-h-cat.p { background:#d1fae5; color:#065f46; }
+    .cal-h-cat.i { background:#dbeafe; color:#1e40af; }
+    .cal-h-cat.o { background:#ede9fe; color:#5b21b6; }
 
     /* ════════════════════════════════════════════
        POLÍTICA
@@ -1285,15 +1291,15 @@ const JUGADORES = {
 };
 
 const SEMANAS = [
-  { num: 1, fecha: '4 Jul',  estado: 'proxima'                           },
-  { num: 2, fecha: '11 Jul', estado: 'cancelada', nota: 'Torneo en Santuario' },
-  { num: 3, fecha: '18 Jul', estado: 'pendiente'                         },
-  { num: 4, fecha: '25 Jul', estado: 'pendiente'                         },
-  { num: 5, fecha: '1 Ago',  estado: 'pendiente'                         },
-  { num: 6, fecha: '8 Ago',  estado: 'pendiente'                         },
-  { num: 7, fecha: '15 Ago', estado: 'pendiente'                         },
-  { num: 8, fecha: '22 Ago', estado: 'pendiente'                         },
-  { num: 9, fecha: '29 Ago', estado: 'gran-final', nota: 'Gran Final'    },
+  { num: 1, fecha: '4 Jul',  estado: 'proxima'                        },
+  { num: 2, fecha: '18 Jul', estado: 'pendiente'                      },
+  { num: 3, fecha: '25 Jul', estado: 'pendiente'                      },
+  { num: 4, fecha: '1 Ago',  estado: 'pendiente'                      },
+  { num: 5, fecha: '8 Ago',  estado: 'pendiente'                      },
+  { num: 6, fecha: '15 Ago', estado: 'pendiente'                      },
+  { num: 7, fecha: '22 Ago', estado: 'pendiente'                      },
+  { num: 8, fecha: '29 Ago', estado: 'pendiente'                      },
+  { num: 9, fecha: '5 Sep',  estado: 'gran-final', nota: 'Gran Final' },
 ];
 
 function renderStandings(cat) {
@@ -1338,11 +1344,18 @@ function renderCalendar() {
   const labels = { jugada:'Jugada', proxima:'Próxima', cancelada:'Cancelada', pendiente:'Pendiente', 'gran-final':'Gran Final' };
   document.getElementById('calendar-grid').innerHTML = SEMANAS.map(s => {
     const clickable = s.estado !== 'cancelada';
+    const horarios = s.estado !== 'cancelada' ? `
+      <div class="cal-horarios">
+        <div class="cal-h-row"><span class="cal-h-cat p">P</span> 8:00 – 9:30 am</div>
+        <div class="cal-h-row"><span class="cal-h-cat i">I</span> 9:30 – 11:00 am</div>
+        <div class="cal-h-row"><span class="cal-h-cat o">O</span> 11:00 am – 12:30 pm</div>
+      </div>` : '';
     const inner = `
       <div class="cal-num">${s.estado==='gran-final'?'Gran Final':`Semana ${s.num}`}</div>
       <div class="cal-date">${s.fecha}</div>
       <div class="cal-status">${labels[s.estado]||s.estado}</div>
       ${s.nota && s.estado !== 'gran-final' ? `<div class="cal-note">${s.nota}</div>` : ''}
+      ${horarios}
       ${clickable ? `<div class="cal-link">Ver sesión →</div>` : ''}`;
     return clickable
       ? `<a href="sesion.html?n=${s.num}" class="cal-card ${s.estado}" style="text-decoration:none;color:inherit">${inner}</a>`

@@ -115,6 +115,27 @@
       padding: 5px 12px; border: 1.5px solid; align-self: flex-start;
       margin-top: 20px;
     }
+    /* HORARIOS EN HERO */
+    .session-horarios {
+      display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px;
+    }
+    .horario-row {
+      display: flex; align-items: center; gap: 8px;
+      background: rgba(255,255,255,.07); padding: 6px 12px;
+      border: 1px solid rgba(255,255,255,.12);
+    }
+    .horario-cat {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: .72rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase;
+      padding: 2px 8px;
+    }
+    .horario-cat.principiante { background: #d1fae5; color: #065f46; }
+    .horario-cat.intermedio   { background: #dbeafe; color: #1e40af; }
+    .horario-cat.open         { background: #ede9fe; color: #5b21b6; }
+    .horario-time {
+      font-family: 'Space Mono', monospace; font-size: .68rem; color: rgba(255,255,255,.65);
+    }
+
     .session-estado-badge.proxima   { color: var(--red); border-color: var(--red); background: rgba(228,37,46,.1); }
     .session-estado-badge.pendiente { color: rgba(255,255,255,.5); border-color: rgba(255,255,255,.3); }
     .session-estado-badge.jugada    { color: #86efac; border-color: #86efac; background: rgba(134,239,172,.1); }
@@ -407,10 +428,6 @@
             <span class="session-meta-value" id="hero-fecha">—</span>
           </div>
           <div class="session-meta-item">
-            <span class="session-meta-label">Hora</span>
-            <span class="session-meta-value">Viernes 7:00 pm</span>
-          </div>
-          <div class="session-meta-item">
             <span class="session-meta-label">Lugar</span>
             <span class="session-meta-value">Club Antigua Pickleball</span>
           </div>
@@ -418,6 +435,12 @@
             <span class="session-meta-label">Formato</span>
             <span class="session-meta-value">Round Robin · 90 min</span>
           </div>
+        </div>
+        <!-- Horarios por categoría -->
+        <div class="session-horarios" id="hero-horarios">
+          <div class="horario-row"><span class="horario-cat principiante">Principiante</span><span class="horario-time">8:00 – 9:30 am</span></div>
+          <div class="horario-row"><span class="horario-cat intermedio">Intermedio</span><span class="horario-time">9:30 – 11:00 am</span></div>
+          <div class="horario-row"><span class="horario-cat open">Open</span><span class="horario-time">11:00 am – 12:30 pm</span></div>
         </div>
         <div class="session-estado-badge" id="hero-badge">—</div>
       </div>
@@ -510,15 +533,21 @@
    DATOS DE SESIONES — mismo que index.html
 ══════════════════════════════════════════════════════ */
 const SEMANAS = [
-  { num: 1, fecha: '4 Jul',  estado: 'proxima'                               },
-  { num: 2, fecha: '11 Jul', estado: 'cancelada', nota: 'Torneo en Santuario' },
-  { num: 3, fecha: '18 Jul', estado: 'pendiente'                              },
-  { num: 4, fecha: '25 Jul', estado: 'pendiente'                              },
-  { num: 5, fecha: '1 Ago',  estado: 'pendiente'                              },
-  { num: 6, fecha: '8 Ago',  estado: 'pendiente'                              },
-  { num: 7, fecha: '15 Ago', estado: 'pendiente'                              },
-  { num: 8, fecha: '22 Ago', estado: 'pendiente'                              },
-  { num: 9, fecha: '29 Ago', estado: 'gran-final', nota: 'Gran Final'         },
+  { num: 1, fecha: '4 Jul',  estado: 'proxima'                        },
+  { num: 2, fecha: '18 Jul', estado: 'pendiente'                      },
+  { num: 3, fecha: '25 Jul', estado: 'pendiente'                      },
+  { num: 4, fecha: '1 Ago',  estado: 'pendiente'                      },
+  { num: 5, fecha: '8 Ago',  estado: 'pendiente'                      },
+  { num: 6, fecha: '15 Ago', estado: 'pendiente'                      },
+  { num: 7, fecha: '22 Ago', estado: 'pendiente'                      },
+  { num: 8, fecha: '29 Ago', estado: 'pendiente'                      },
+  { num: 9, fecha: '5 Sep',  estado: 'gran-final', nota: 'Gran Final' },
+];
+
+const HORARIOS = [
+  { categoria: 'principiante', label: 'Principiante', hora: '8:00 – 9:30 am'   },
+  { categoria: 'intermedio',   label: 'Intermedio',   hora: '9:30 – 11:00 am'  },
+  { categoria: 'open',         label: 'Open',         hora: '11:00 am – 12:30 pm' },
 ];
 
 /* ══════════════════════════════════════════════════════
