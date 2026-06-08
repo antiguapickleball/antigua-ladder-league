@@ -2217,6 +2217,31 @@ async function loadAndRenderFixture(sesionNum, categoria) {
   }
 }
 
+async function generateRound2(sesionNum, categoria) {
+  const docId = `t1_sesion_${sesionNum}_${categoria}`;
+  const snap = await db.collection('ladder_fixtures').doc(docId).get().catch(e=>{toast('✕ '+e.message,true);return null;});
+  if (!snap || !snap.exists) return;
+  const fx = snap.data();
+
+  // Use same court groups as R1 (admin can manually edit if needed)
+  const cAuids = fx.courtA || [];
+  const cBuids = fx.courtB || [];
+
+  const r2A = genMatches(cAuids, matchesForGroup(cAuids.length)).map((m,i) => ({...m, id:`r2_A_m${i+1}`, court:'A', round:2}));
+  const r2B = genMatches(cBuids, matchesForGroup(cBuids.length)).map((m,i) => ({...m, id:`r2_B_m${i+1}`, court:'B', round:2}));
+
+  const updatedRounds = [...(fx.rounds||[]), {num:2, matchesA:r2A, matchesB:r2B}];
+
+  await db.collection('ladder_fixtures').doc(docId).update({
+    rounds: updatedRounds,
+    r2generated: true,
+    status: 'r2_active',
+  });
+
+  toast('✓ Ronda 2 generada');
+  loadAndRenderFixture(parseInt(sesionNum), categoria);
+}
+
 function renderFixtureHTML(fx, sesionNum, categoria) {
   const pn = fx.playerNames || {};
   const isS1 = fx.isSession1;
@@ -2270,7 +2295,28 @@ function renderFixtureHTML(fx, sesionNum, categoria) {
     html += `</div>`;
   });
 
-  html += `<div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border);display:flex;gap:8px;flex-wrap:wrap">
+  // Botón Generar Ronda 2 — aparece cuando R1 está completa y R2 aún no existe
+  if (fx.format === '2courts' && fx.totalRounds === 2 && !fx.r2generated) {
+    const r1 = (fx.rounds||[])[0];
+    const r1Complete = r1 &&
+      (r1.matchesA||[]).length > 0 && (r1.matchesA||[]).every(m=>m.score) &&
+      (r1.matchesB||[]).length > 0 && (r1.matchesB||[]).every(m=>m.score);
+    if (r1Complete) {
+      html += `<div style="margin:20px 0;padding:16px;background:#f0fdf4;border:2px solid #6ee7b7;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+        <div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:1rem;text-transform:uppercase;color:#065f46">✓ Ronda 1 completa</div>
+          <div style="font-size:.82rem;color:#065f46;margin-top:2px">Los grupos se mantienen igual para Ronda 2. Puedes ajustar manualmente desde "Editar" si necesitas mover un jugador.</div>
+        </div>
+        <button class="btn-modal btn-save" onclick="generateRound2('${sesionNum}','${categoria}')" style="background:#065f46;white-space:nowrap">▶ Generar Ronda 2</button>
+      </div>`;
+    } else {
+      html += `<div style="margin:16px 0;padding:12px 16px;background:#fafaf8;border:1px solid var(--border);font-size:.82rem;color:var(--muted)">
+        Completa todos los resultados de Ronda 1 para generar Ronda 2.
+      </div>`;
+    }
+  }
+
+  html += `<div style="margin-top:8px;padding-top:14px;border-top:1px solid var(--border);display:flex;gap:8px;flex-wrap:wrap">
     <button class="btn-action btn-delete" onclick="if(confirm('¿Regenerar? Se borrarán los resultados guardados.'))doGenerateFixture(${sesionNum},'${categoria}')">↺ Regenerar</button>
     <button class="btn-action btn-delete" onclick="deleteCurrentFixture()">🗑 Borrar fixture</button>
   </div>`;
