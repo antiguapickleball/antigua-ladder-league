@@ -2479,12 +2479,15 @@ function renderMatchRow(m, pn, court, isS1, sesionNum, categoria, roundNum) {
     <div class="match-score">
       <input class="score-input" type="number" min="0" max="15" placeholder="—"
         id="sc1_${m.id}" value="${s?s.s1:''}"
-        onblur="trySaveScore('${esc}','${m.id}')"/>
+        onkeydown="if(event.key==='Enter')trySaveScore('${esc}','${m.id}')"/>
       <span class="score-sep">–</span>
       <input class="score-input" type="number" min="0" max="15" placeholder="—"
         id="sc2_${m.id}" value="${s?s.s2:''}"
-        onblur="trySaveScore('${esc}','${m.id}')"/>
-      ${s ? `<span style="color:var(--court);font-size:.8rem;margin-left:4px">✓</span>` : ''}
+        onkeydown="if(event.key==='Enter')trySaveScore('${esc}','${m.id}')"/>
+      ${s
+        ? `<button class="btn-action" onclick="trySaveScore('${esc}','${m.id}')" style="padding:3px 10px;font-size:.72rem;background:#f0fdf4;color:#065f46;border-color:#6ee7b7;min-width:52px">✓ OK</button>`
+        : `<button class="btn-action" onclick="trySaveScore('${esc}','${m.id}')" style="padding:3px 10px;font-size:.72rem;min-width:52px">Guardar</button>`
+      }
     </div>
   </div>`;
 }
