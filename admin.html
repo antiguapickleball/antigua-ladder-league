@@ -2415,8 +2415,10 @@ async function doGenerateFixture(sesionNum, categoria) {
     // 2 courts: top 5 by ladder ranking → Court A, rest → Court B
     // For session 1 or when no ranking: use registration order
     const sorted = await sortByRanking(confirmed, sesionNum);
-    // Cancha A: máx 5, pero Cancha B necesita mínimo 4
-    const courtASize = Math.min(5, n - 4);
+    // Cancha A: top ranked (no nuevos, no penalizados), máx 5, Cancha B mínimo 4
+    const maxA = Math.min(5, n - 4);
+    const rankedCount = sorted.filter(p => !p._isNew && !p._forcedB).length;
+    const courtASize = Math.min(maxA, rankedCount); // nuevos siempre van a B
     const cAuids = sorted.slice(0, courtASize).map(p => p.uid);
     const cBuids = sorted.slice(courtASize).map(p => p.uid);
     const r1A = genMatches(cAuids, matchesForGroup(cAuids.length)).map((m,i) => ({...m, id:`r1_A_m${i+1}`, court:'A', round:1}));
@@ -2455,31 +2457,51 @@ async function doGenerateFixture(sesionNum, categoria) {
   openFixtureForCat(sesionNum, categoria);
 }
 
-// Sort confirmed players: penalized → force B, then by ladder ranking, new players last
+// Sort confirmed players for court assignment:
+// 1. Penalized (forceB) → always Court B
+// 2. New players (no DUPR ID or no published scores) → always Court B
+// 3. Ranked players → Court A by avg desc (top courtASize slots)
 async function sortByRanking(confirmed, sesionNum) {
-  if (sesionNum === 1) return confirmed; // Session 1: no ranking, use as-is
+  if (sesionNum === 1) return confirmed; // Session 1: no ranking yet, use as-is
 
   try {
-    // Load ladder scores for each player
+    // Load published ladder_scores — keyed by DUPR ID
     const snap = await db.collection('ladder_scores').get();
-    const scores = {};
-    snap.docs.forEach(d => { scores[d.id] = d.data().avg || 0; });
 
-    // Load active penalties (force_b)
+    // Compute avg per DUPR ID from sessions (drop worst, same logic as global ladder)
+    const scoreByDupr = {};
+    snap.docs.forEach(d => {
+      const data = d.data();
+      const allScores = Object.values(data.sessions || {}).map(s => s.score || 0);
+      const n = allScores.length;
+      if (n === 0) return;
+      const sorted = [...allScores].sort((a, b) => a - b);
+      const used = n >= 7 ? sorted.slice(2) : n >= 3 ? sorted.slice(1) : sorted;
+      const avg = used.reduce((a, b) => a + b, 0) / used.length;
+      scoreByDupr[d.id] = avg;
+    });
+
+    // Load active penalties (forceB)
     const penSnap = await db.collection('ladder_penalties')
       .where('activeSesion', '==', sesionNum)
-      .where('resolved', '==', false).get().catch(() => ({ docs:[] }));
+      .where('resolved', '==', false).get().catch(() => ({ docs: [] }));
     const forcedB = new Set(penSnap.docs.map(d => d.data().uid));
 
-    const withScore = confirmed.map(p => ({
-      ...p,
-      _score: scores[p.uid] || 0,
-      _forcedB: forcedB.has(p.uid),
-    }));
+    const withScore = confirmed.map(p => {
+      const duprId = (p.duprId || '').trim();
+      const hasRanking = duprId && scoreByDupr[duprId] !== undefined;
+      return {
+        ...p,
+        _score:    hasRanking ? scoreByDupr[duprId] : -1,
+        _isNew:    !hasRanking,   // new player → always Court B
+        _forcedB:  forcedB.has(p.uid),
+      };
+    });
 
-    // Sort: non-penalized first by score desc, then penalized
+    // Sort: ranked (non-penalized) desc → new players → penalized
     withScore.sort((a, b) => {
       if (a._forcedB !== b._forcedB) return a._forcedB ? 1 : -1;
+      if (a._isNew !== b._isNew)     return a._isNew   ? 1 : -1;
       return b._score - a._score;
     });
 
