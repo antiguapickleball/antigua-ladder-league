@@ -2243,7 +2243,7 @@ async function computeGlobalLadder() {
     }
     const avg = usedScores.length > 0 ? usedScores.reduce((a,b)=>a+b,0)/usedScores.length : 0;
 
-    return { uid: key, nombre: data.nombre, sesiones: n, avg, status, sessions, allScores };
+    return { uid: key, nombre: data.nombre, duprId: data.duprId || null, sesiones: n, avg, status, sessions, allScores };
   }).filter(Boolean);
 
   playerRows.sort((a,b) => {
@@ -2274,6 +2274,7 @@ function renderLadderHTML(rows) {
           <th style="padding:8px 10px;text-align:center">Sesiones</th>
           <th style="padding:8px 12px;text-align:center;white-space:nowrap">⭐ Promedio</th>
           <th style="padding:8px 12px;text-align:left">Estado</th>
+          <th style="padding:8px 8px;text-align:center;font-size:.7rem">DUPR ID</th>
         </tr>
       </thead>
       <tbody>
@@ -2312,6 +2313,11 @@ function renderLadderHTML(rows) {
                 ? `<span style="background:#d1fae5;color:#065f46;padding:2px 8px;font-family:'Barlow Condensed',sans-serif;font-weight:800;text-transform:uppercase;letter-spacing:.04em">Compitiendo</span>`
                 : `<span style="color:#9ca3af;font-size:.75rem">${r.status}</span>`
               }</td>
+              <td style="padding:4px 8px;text-align:center">
+                <button onclick="promptSetDuprId('${r.uid}','${(r.duprId||'').replace(/'/g,"&#39;")}','${r.nombre.replace(/'/g,"&#39;")}')"
+                  style="font-size:.65rem;padding:2px 6px;background:#f3f4f6;border:1px solid #d1d5db;cursor:pointer;border-radius:3px;color:#374151"
+                  title="Asignar / corregir DUPR ID">${r.duprId ? `<span style="font-family:monospace">${r.duprId}</span>` : '＋ DUPR'}</button>
+              </td>
             </tr>`;
           }).join('');
         })()}
@@ -2349,6 +2355,72 @@ async function deleteSessionFixtures(sesionNum) {
     toast(`✓ Fixtures de Sesión ${sesionNum} eliminados`);
     document.getElementById('fixture-panel').style.display = 'none';
   } catch(e) { toast('✕ Error: ' + e.message, true); }
+}
+
+async function promptSetDuprId(currentKey, currentDuprId, nombre) {
+  const newDupr = window.prompt(
+    `Asignar DUPR ID a "${nombre}"\n\nDUPR ID actual: ${currentDuprId || '(ninguno)'}\nIntroduce el DUPR ID correcto:`,
+    currentDuprId || ''
+  );
+  if (newDupr === null) return; // cancelled
+  const trimmed = newDupr.trim();
+  if (!trimmed) { toast('DUPR ID no puede estar vacío', true); return; }
+  if (trimmed === currentKey) { toast('Sin cambios', false); return; }
+
+  toast('Actualizando…');
+  try {
+    // 1. Read current doc
+    const oldRef = db.collection('ladder_scores').doc(currentKey);
+    const oldSnap = await oldRef.get();
+    if (!oldSnap.exists) { toast('Doc no encontrado', true); return; }
+    const oldData = oldSnap.data();
+
+    // 2. Check if target doc already exists (merge case)
+    const newRef = db.collection('ladder_scores').doc(trimmed);
+    const newSnap = await newRef.get();
+    let mergedSessions = { ...(oldData.sessions || {}) };
+    if (newSnap.exists) {
+      // Merge sessions from both docs
+      mergedSessions = { ...(newSnap.data().sessions || {}), ...mergedSessions };
+    }
+
+    // 3. Write merged doc under new key
+    await newRef.set({
+      nombre: oldData.nombre || nombre,
+      duprId: trimmed,
+      uid: oldData.uid || currentKey,
+      sessions: mergedSessions,
+    });
+
+    // 4. Delete old doc (if key changed)
+    if (currentKey !== trimmed) await oldRef.delete();
+
+    // 5. Update duprId in all registration docs for this player
+    const regSnap = await db.collection('ladder_registrations').get();
+    const batch = db.batch();
+    regSnap.docs.forEach(d => {
+      const inscritos = d.data().inscritos || [];
+      const updated = inscritos.map(p => {
+        // Match by old duprId or by uid if no duprId
+        if ((p.duprId && p.duprId.trim() === currentKey) ||
+            (!p.duprId && p.uid === currentKey) ||
+            (p.uid === (oldData.uid || currentKey))) {
+          return { ...p, duprId: trimmed };
+        }
+        return p;
+      });
+      if (JSON.stringify(updated) !== JSON.stringify(inscritos)) {
+        batch.update(d.ref, { inscritos: updated });
+      }
+    });
+    await batch.commit();
+
+    toast(`✓ DUPR ID actualizado a ${trimmed}. Recarga la tabla.`);
+    loadLadderTable();
+  } catch(e) {
+    console.error(e);
+    toast('Error: ' + (e.message || e), true);
+  }
 }
 
 async function republishAllSessions() {
