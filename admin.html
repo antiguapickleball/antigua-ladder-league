@@ -2572,10 +2572,12 @@ async function doGenerateFixture(sesionNum, categoria) {
     // 2 courts: top 5 by ladder ranking → Court A, rest → Court B
     // For session 1 or when no ranking: use registration order
     const sorted = await sortByRanking(confirmed, sesionNum);
-    // Cancha A: top ranked (no nuevos, no penalizados), máx 5, Cancha B mínimo 4
+    // Cancha A: top players by score (incl. players with <3 sessions), máx 5, Cancha B mínimo 4
+    // Truly new players (_score=-1) sort to the bottom so they naturally land in Court B
     const maxA = Math.min(5, n - 4);
-    const rankedCount = sorted.filter(p => !p._isNew && !p._forcedB).length;
-    const courtASize = Math.min(maxA, rankedCount); // nuevos siempre van a B
+    // Don't assign penalized or truly new players to Court A
+    const eligibleForA = sorted.filter(p => !p._isNew && !p._forcedB).length;
+    const courtASize = Math.min(maxA, eligibleForA);
     const cAuids = sorted.slice(0, courtASize).map(p => p.uid);
     const cBuids = sorted.slice(courtASize).map(p => p.uid);
     const r1A = genMatches(cAuids, matchesForGroup(cAuids.length)).map((m,i) => ({...m, id:`r1_A_m${i+1}`, court:'A', round:1}));
@@ -2625,7 +2627,8 @@ async function sortByRanking(confirmed, sesionNum) {
     // Load published ladder_scores — keyed by DUPR ID
     const snap = await db.collection('ladder_scores').get();
 
-    // Compute avg per DUPR ID from sessions (drop worst, same logic as global ladder)
+    // Compute avg per DUPR ID from published sessions (ALL players, no minimum sessions)
+    // Drop worst score only if 3+ sessions, drop 2 worst if 7+
     const scoreByDupr = {};
     snap.docs.forEach(d => {
       const data = d.data();
@@ -2633,6 +2636,7 @@ async function sortByRanking(confirmed, sesionNum) {
       const n = allScores.length;
       if (n === 0) return;
       const sorted = [...allScores].sort((a, b) => a - b);
+      // Use all scores if < 3 sessions, drop 1 if 3-6, drop 2 if 7+
       const used = n >= 7 ? sorted.slice(2) : n >= 3 ? sorted.slice(1) : sorted;
       const avg = used.reduce((a, b) => a + b, 0) / used.length;
       scoreByDupr[d.id] = avg;
@@ -2646,20 +2650,19 @@ async function sortByRanking(confirmed, sesionNum) {
 
     const withScore = confirmed.map(p => {
       const duprId = (p.duprId || '').trim();
-      const hasRanking = duprId && scoreByDupr[duprId] !== undefined;
+      const hasAnyScore = duprId && scoreByDupr[duprId] !== undefined;
       return {
         ...p,
-        _score:    hasRanking ? scoreByDupr[duprId] : -1,
-        _isNew:    !hasRanking,   // new player → always Court B
-        _forcedB:  forcedB.has(p.uid),
+        _score:   hasAnyScore ? scoreByDupr[duprId] : -1,
+        _isNew:   !hasAnyScore,   // truly new: zero published sessions → always Court B
+        _forcedB: forcedB.has(p.uid),
       };
     });
 
-    // Sort: ranked (non-penalized) desc → new players → penalized
+    // Sort: penalized last → by score desc (new players score = -1, go to bottom naturally)
     withScore.sort((a, b) => {
       if (a._forcedB !== b._forcedB) return a._forcedB ? 1 : -1;
-      if (a._isNew !== b._isNew)     return a._isNew   ? 1 : -1;
-      return b._score - a._score;
+      return b._score - a._score;  // -1 for new players puts them at bottom
     });
 
     return withScore;
