@@ -2415,8 +2415,10 @@ async function doGenerateFixture(sesionNum, categoria) {
     // 2 courts: top 5 by ladder ranking → Court A, rest → Court B
     // For session 1 or when no ranking: use registration order
     const sorted = await sortByRanking(confirmed, sesionNum);
-    const cAuids = sorted.slice(0,5).map(p => p.uid);
-    const cBuids = sorted.slice(5).map(p => p.uid);
+    // Cancha A: máx 5, pero Cancha B necesita mínimo 4
+    const courtASize = Math.min(5, n - 4);
+    const cAuids = sorted.slice(0, courtASize).map(p => p.uid);
+    const cBuids = sorted.slice(courtASize).map(p => p.uid);
     const r1A = genMatches(cAuids, matchesForGroup(cAuids.length)).map((m,i) => ({...m, id:`r1_A_m${i+1}`, court:'A', round:1}));
     const r1B = genMatches(cBuids, matchesForGroup(cBuids.length)).map((m,i) => ({...m, id:`r1_B_m${i+1}`, court:'B', round:1}));
     fixture = {
