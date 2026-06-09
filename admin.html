@@ -728,6 +728,12 @@
       </div>
     </div>
       <div style="border-top:1px solid var(--border);padding-top:14px;margin-top:4px">
+        <div style="font-size:.78rem;font-weight:700;color:#92400e;margin-bottom:6px">🧹 LIMPIAR DUPLICADOS</div>
+        <div style="font-size:.78rem;color:var(--muted);margin-bottom:10px">Fusiona docs de ladder_scores que tengan el mismo DUPR ID (corrige jugadores duplicados en el ranking).</div>
+        <button class="btn-modal" style="background:#fff7ed;color:#92400e;border-color:#fdba74" onclick="deduplicateLadderScores()">🧹 Fusionar duplicados por DUPR ID</button>
+        <span id="dedup-status" style="margin-left:10px;font-size:.78rem;color:var(--muted)"></span>
+      </div>
+      <div style="border-top:1px solid var(--border);padding-top:14px;margin-top:4px">
         <div style="font-size:.78rem;font-weight:700;color:#92400e;margin-bottom:6px">🧪 DATOS DE PRUEBA</div>
         <div style="font-size:.78rem;color:var(--muted);margin-bottom:10px">Agrega 8 jugadores aleatorios + Victor Mora a la Sesión 5 Open (confirmados).</div>
         <button class="btn-modal" style="background:#fff7ed;color:#92400e;border-color:#fdba74" onclick="seedS5Open()">🧪 Seed S5 Open (8 aleatorios + Victor)</button>
@@ -2328,6 +2334,93 @@ async function deleteSessionFixtures(sesionNum) {
     toast(`✓ Fixtures de Sesión ${sesionNum} eliminados`);
     document.getElementById('fixture-panel').style.display = 'none';
   } catch(e) { toast('✕ Error: ' + e.message, true); }
+}
+
+async function deduplicateLadderScores() {
+  const status = document.getElementById('dedup-status');
+  status.textContent = 'Leyendo registros…';
+  try {
+    // Step 1: build uid→duprId map from all registrations
+    const regSnap = await db.collection('ladder_registrations').get();
+    const uidToDupr = {};
+    const uidToName = {};
+    regSnap.docs.forEach(d => {
+      (d.data().inscritos || []).forEach(p => {
+        if (p.uid && p.duprId) uidToDupr[p.uid] = p.duprId.trim();
+        if (p.uid && p.nombre && !uidToName[p.uid]) uidToName[p.uid] = p.nombre;
+      });
+    });
+
+    status.textContent = 'Leyendo ladder_scores…';
+    const scoresSnap = await db.collection('ladder_scores').get();
+
+    // Step 2: group docs by canonical key (duprId if known, else docId)
+    const canonical = {}; // canonicalKey -> { nombre, duprId, uid, sessions, docsToDelete: [] }
+    scoresSnap.docs.forEach(doc => {
+      const data = doc.data();
+      const storedDupr = (data.duprId || '').trim();
+      // Try to resolve duprId from registrations if not stored
+      const resolvedDupr = storedDupr || uidToDupr[data.uid || ''] || '';
+      const key = resolvedDupr || doc.id;
+
+      if (!canonical[key]) {
+        canonical[key] = {
+          nombre: data.nombre || uidToName[data.uid || ''] || key,
+          duprId: resolvedDupr || null,
+          uid: data.uid || doc.id,
+          sessions: { ...(data.sessions || {}) },
+          primaryDocId: key,
+          extraDocIds: [],
+        };
+      } else {
+        // Merge sessions into canonical
+        Object.assign(canonical[key].sessions, data.sessions || {});
+        if (data.nombre && data.nombre !== doc.id) canonical[key].nombre = data.nombre;
+        if (resolvedDupr && !canonical[key].duprId) canonical[key].duprId = resolvedDupr;
+        // If this doc's id differs from canonical key, it's a stale dup to delete
+        if (doc.id !== key) canonical[key].extraDocIds.push(doc.id);
+        else canonical[key].extraDocIds.push(doc.id); // will overwrite with merged data
+      }
+      // If this doc is keyed by uid but should be keyed by duprId, mark old doc for deletion
+      if (doc.id !== key) canonical[key].extraDocIds.push(doc.id);
+    });
+
+    // Remove duplicate entries from extraDocIds
+    Object.values(canonical).forEach(c => {
+      c.extraDocIds = [...new Set(c.extraDocIds)].filter(id => id !== c.primaryDocId);
+    });
+
+    const mergeTargets = Object.values(canonical).filter(c => c.extraDocIds.length > 0);
+    status.textContent = `Encontrados ${mergeTargets.length} jugadores con duplicados…`;
+
+    if (!mergeTargets.length) {
+      status.innerHTML = `<span style="color:#065f46">✓ Sin duplicados — todo limpio</span>`;
+      return;
+    }
+
+    let merged = 0, deleted = 0;
+    for (const c of mergeTargets) {
+      // Write merged doc under canonical key
+      await db.collection('ladder_scores').doc(c.primaryDocId).set({
+        nombre: c.nombre,
+        duprId: c.duprId || null,
+        uid: c.uid,
+        sessions: c.sessions,
+      });
+      merged++;
+      // Delete stale docs
+      for (const oldId of c.extraDocIds) {
+        await db.collection('ladder_scores').doc(oldId).delete();
+        deleted++;
+      }
+    }
+
+    status.innerHTML = `<span style="color:#065f46">✓ ${merged} fusionados, ${deleted} docs eliminados</span>`;
+    toast(`✓ Duplicados limpios: ${merged} jugadores fusionados`);
+  } catch(e) {
+    console.error(e);
+    status.innerHTML = `<span style="color:var(--red)">✕ Error: ${e.message||e}</span>`;
+  }
 }
 
 async function seedS5Open() {
