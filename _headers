@@ -1,0 +1,17 @@
+# Cache static assets aggressively — reduces repeat bandwidth on Netlify
+
+/img/*
+  Cache-Control: public, max-age=2592000, immutable
+
+/logo.png
+  Cache-Control: public, max-age=2592000, immutable
+
+/js/*
+  Cache-Control: public, max-age=86400
+
+# HTML pages: short cache so updates deploy instantly
+/*.html
+  Cache-Control: public, max-age=0, must-revalidate
+
+/
+  Cache-Control: public, max-age=0, must-revalidate
