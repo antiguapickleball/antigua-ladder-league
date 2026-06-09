@@ -729,8 +729,8 @@
     </div>
       <div style="border-top:1px solid var(--border);padding-top:14px;margin-top:4px">
         <div style="font-size:.78rem;font-weight:700;color:#92400e;margin-bottom:6px">🧪 DATOS DE PRUEBA</div>
-        <div style="font-size:.78rem;color:var(--muted);margin-bottom:10px">Copia los 5 confirmados de Open S1 y los 5 de Principiante S1 a las sesiones 2, 3 y 4.</div>
-        <button class="btn-modal" style="background:#fff7ed;color:#92400e;border-color:#fdba74" onclick="seedTestSessions()">🧪 Copiar jugadores S1 → S2/S3/S4</button>
+        <div style="font-size:.78rem;color:var(--muted);margin-bottom:10px">Agrega 8 jugadores aleatorios + Victor Mora a la Sesión 5 Open (confirmados).</div>
+        <button class="btn-modal" style="background:#fff7ed;color:#92400e;border-color:#fdba74" onclick="seedS5Open()">🧪 Seed S5 Open (8 aleatorios + Victor)</button>
         <span id="seed-status" style="margin-left:10px;font-size:.78rem;color:var(--muted)"></span>
       </div>
     </div>
@@ -2033,8 +2033,17 @@ async function publishSession(sesionNum, categoria) {
   // Write to ladder_scores — one set per player with merge
   const now = firebase.firestore.Timestamp.now();
 
-  for (const [uid, data] of Object.entries(playerStats)) {
+  // Ensure anonymous auth before writing
+  if (!auth.currentUser) {
+    await auth.signInAnonymously();
+  }
+
+  const entries = Object.entries(playerStats);
+  console.log(`[publish] Writing ${entries.length} players to ladder_scores`);
+
+  for (const [uid, data] of entries) {
     const docKey = data.duprId || uid;
+    if (!docKey) { console.warn('[publish] Skipping player with no duprId or uid', data); continue; }
     const ref = db.collection('ladder_scores').doc(docKey);
 
     // Build session entries
@@ -2050,13 +2059,15 @@ async function publishSession(sesionNum, categoria) {
       };
     });
 
-    await ref.set({
-      nombre: data.nombre,
-      duprId: data.duprId || null,
-      uid,
-      sessions: sessionsData,
-    }, { merge: true });
+    console.log(`[publish] Writing ${docKey} (${data.nombre})`);
+    // Timeout protection: if a single write hangs > 15s, throw
+    await Promise.race([
+      ref.set({ nombre: data.nombre, duprId: data.duprId || null, uid, sessions: sessionsData }, { merge: true }),
+      new Promise((_, reject) => setTimeout(() => reject(new Error(`Timeout escribiendo ${data.nombre}`)), 15000))
+    ]);
+    console.log(`[publish] OK ${docKey}`);
   }
+  console.log('[publish] Done');
 }
 
 async function openDeletePublishedSession() {
@@ -2108,7 +2119,45 @@ async function openDeletePublishedSession() {
 
 async function computeGlobalLadder() {
   const snap = await db.collection('ladder_fixtures').get();
-  const allPlayers = {}; // uid -> { nombre, bySession: { 'sn_cat': {pts,pj,court} } }
+  const allPlayers = {}; // canonicalKey -> { nombre, duprId, bySession: { 'sn_cat': ... } }
+  // duprId → canonicalKey map so players with same DUPR ID merge
+  const duprToKey = {};
+  // uid → canonicalKey map for players without a DUPR ID
+  const uidToKey  = {};
+
+  // Also load duprId from registrations to resolve uid→duprId
+  const regSnap = await db.collection('ladder_registrations').get();
+  const uidToDupr = {}; // uid -> duprId
+  const uidToName = {}; // uid -> nombre (first seen)
+  regSnap.docs.forEach(d => {
+    (d.data().inscritos || []).forEach(p => {
+      if (p.uid) {
+        if (p.duprId) uidToDupr[p.uid] = p.duprId.trim();
+        if (p.nombre && !uidToName[p.uid]) uidToName[p.uid] = p.nombre;
+      }
+    });
+  });
+
+  const getKey = (uid, nombre) => {
+    const duprId = uidToDupr[uid];
+    if (duprId) {
+      if (!duprToKey[duprId]) {
+        duprToKey[duprId] = duprId; // use duprId as canonical key
+        allPlayers[duprId] = { nombre: uidToName[uid] || nombre || uid, duprId, bySession: {} };
+      }
+      // Update nombre if we have a better one
+      if ((uidToName[uid] || nombre) && allPlayers[duprToKey[duprId]].nombre === duprId) {
+        allPlayers[duprToKey[duprId]].nombre = uidToName[uid] || nombre;
+      }
+      return duprToKey[duprId];
+    }
+    // No duprId — key by uid
+    if (!uidToKey[uid]) {
+      uidToKey[uid] = uid;
+      allPlayers[uid] = { nombre: uidToName[uid] || nombre || uid, duprId: null, bySession: {} };
+    }
+    return uidToKey[uid];
+  };
 
   snap.docs.forEach(doc => {
     const fx = doc.data();
@@ -2123,15 +2172,15 @@ async function computeGlobalLadder() {
       const courtFactor = (!isS1 && court === 'A') ? 1.5 : 1.0;
       Object.entries(stats).forEach(([uid, s]) => {
         if (s.pj === 0) return;
-        if (!allPlayers[uid]) allPlayers[uid] = { nombre: pn[uid]||uid, bySession: {} };
-        const key = `${sn}_${cat}`;
-        if (!allPlayers[uid].bySession[key]) {
-          allPlayers[uid].bySession[key] = { pts:0, pj:0, court:court||'—', sesionNum:sn, categoria:cat, maxPts, courtFactor };
+        const key = getKey(uid, pn[uid]);
+        const sessionKey = `${sn}_${cat}`;
+        if (!allPlayers[key].bySession[sessionKey]) {
+          allPlayers[key].bySession[sessionKey] = { pts:0, pj:0, court:court||'—', sesionNum:sn, categoria:cat, maxPts, courtFactor };
         }
-        allPlayers[uid].bySession[key].pts += s.pts;
-        allPlayers[uid].bySession[key].pj  += s.pj;
-        allPlayers[uid].bySession[key].maxPts = maxPts;
-        allPlayers[uid].bySession[key].courtFactor = courtFactor;
+        allPlayers[key].bySession[sessionKey].pts += s.pts;
+        allPlayers[key].bySession[sessionKey].pj  += s.pj;
+        allPlayers[key].bySession[sessionKey].maxPts = maxPts;
+        allPlayers[key].bySession[sessionKey].courtFactor = courtFactor;
       });
     };
 
@@ -2152,7 +2201,7 @@ async function computeGlobalLadder() {
   });
 
   // Build per-player summary
-  const playerRows = Object.entries(allPlayers).map(([uid, data]) => {
+  const playerRows = Object.entries(allPlayers).map(([key, data]) => {
     const sessions = Object.values(data.bySession).map(s => ({
       ...s,
       ladderScore: s.pj > 0 ? (s.pts / (s.pj * (s.maxPts||2))) * (s.courtFactor||1.0) : 0,
@@ -2173,7 +2222,7 @@ async function computeGlobalLadder() {
     }
     const avg = usedScores.length > 0 ? usedScores.reduce((a,b)=>a+b,0)/usedScores.length : 0;
 
-    return { uid, nombre: data.nombre, sesiones: n, avg, status, sessions, allScores };
+    return { uid: key, nombre: data.nombre, sesiones: n, avg, status, sessions, allScores };
   }).filter(Boolean);
 
   playerRows.sort((a,b) => {
@@ -2281,38 +2330,44 @@ async function deleteSessionFixtures(sesionNum) {
   } catch(e) { toast('✕ Error: ' + e.message, true); }
 }
 
-async function seedTestSessions() {
+async function seedS5Open() {
   const status = document.getElementById('seed-status');
-  status.textContent = 'Cargando S1…';
+  status.textContent = 'Generando…';
   try {
-    const s1snap = await db.collection('ladder_registrations').doc('t1_sesion_1').get();
-    const s1 = s1snap.exists ? (s1snap.data().inscritos || []) : [];
-    const openPlayers  = s1.filter(p => p.status === 'confirmed' && p.categoria === 'open').slice(0, 5);
-    const principPlayers = s1.filter(p => p.status === 'confirmed' && p.categoria === 'principiante').slice(0, 5);
-
-    if (!openPlayers.length && !principPlayers.length) {
-      status.textContent = '✕ No hay jugadores confirmados en S1';
+    const now = firebase.firestore.Timestamp.now();
+    const names = ['Alejandro García','Marcos Soto','Diego Herrera','Andrés Vega',
+                   'Felipe Ruiz','Tomás Mora','Nicolás Pérez','Sebastián Castro'];
+    const randomPlayers = names.map((nombre, i) => ({
+      uid: 'seed_s5_' + i,
+      nombre,
+      duprId: 'SEED' + String(1000 + i),
+      categoria: 'open',
+      status: 'confirmed',
+      registeredAt: now,
+      sesionNum: 5,
+    }));
+    const victorMora = {
+      uid: 'victor_mora_uid', // same uid used in previous sessions if any
+      nombre: 'Victor Mora',
+      duprId: 'VICTOR01',    // must match whatever is in ladder_scores
+      categoria: 'open',
+      status: 'confirmed',
+      registeredAt: now,
+      sesionNum: 5,
+    };
+    // Load existing S5 to check for duplicates
+    const ref = db.collection('ladder_registrations').doc('t1_sesion_5');
+    const snap = await ref.get();
+    const existing = snap.exists ? (snap.data().inscritos || []) : [];
+    const existingUids = new Set(existing.map(p => p.uid));
+    const toAdd = [...randomPlayers, victorMora].filter(p => !existingUids.has(p.uid));
+    if (!toAdd.length) {
+      status.innerHTML = `<span style="color:#92400e">Ya están todos en S5</span>`;
       return;
     }
-
-    const now = firebase.firestore.Timestamp.now();
-    const toSeed = [...openPlayers, ...principPlayers].map(p => ({ ...p, registeredAt: now, status: 'confirmed' }));
-
-    for (const sn of [2, 3, 4]) {
-      status.textContent = `Escribiendo S${sn}…`;
-      const ref  = db.collection('ladder_registrations').doc(`t1_sesion_${sn}`);
-      const snap = await ref.get();
-      const existing    = snap.exists ? (snap.data().inscritos || []) : [];
-      const existingUids = new Set(existing.map(p => p.uid));
-      const newPlayers  = toSeed.filter(p => !existingUids.has(p.uid));
-      if (newPlayers.length) {
-        await ref.set({ inscritos: firebase.firestore.FieldValue.arrayUnion(...newPlayers) }, { merge: true });
-      }
-    }
-
-    status.innerHTML = `<span style="color:#065f46">✓ Listo — ${openPlayers.length} Open + ${principPlayers.length} Principiante agregados a S2/S3/S4</span>`;
-    toast('✓ Jugadores de prueba agregados a S2, S3 y S4');
-    // Reload data
+    await ref.set({ inscritos: firebase.firestore.FieldValue.arrayUnion(...toAdd) }, { merge: true });
+    status.innerHTML = `<span style="color:#065f46">✓ ${toAdd.length} jugadores agregados a S5 Open</span>`;
+    toast('✓ S5 Open seeded con ' + toAdd.length + ' jugadores');
     if (typeof loadAllData === 'function') loadAllData();
   } catch(e) {
     console.error(e);
