@@ -2207,36 +2207,44 @@ function renderLadderHTML(rows) {
         </tr>
       </thead>
       <tbody>
-        ${rows.map((r, i) => {
-          const isComp = r.status==='compitiendo';
-          const scoresBySn = {};
-          r.sessions.forEach(s => { scoresBySn[s.sesionNum] = s; });
-          const minScore = r.allScores.length > 0 ? Math.min(...r.allScores) : null;
-          const minScore2 = r.allScores.length >= 7 ? [...r.allScores].sort((a,b)=>a-b)[1] : null;
-
-          return `<tr style="border-bottom:1px solid var(--border);${isComp&&i===0?'background:#f0fdf4;':''}${!isComp?'opacity:.7':''}">
-            <td style="padding:8px 12px;font-family:'Space Mono',monospace;font-size:.7rem;color:var(--muted)">${isComp?i+1:'—'}</td>
-            <td style="padding:8px 12px;font-weight:${isComp?'700':'400'}">${r.nombre}</td>
-            ${allSessions.map(sn => {
-              const s = scoresBySn[sn];
-              if (!s) return `<td style="padding:8px 10px;text-align:center;color:#d1d5db">—</td>`;
-              const ls = s.ladderScore;
-              // Mark dropped scores (worst)
-              const isDrop = (ls === minScore && r.allScores.length >= 4) ||
-                             (ls === minScore2 && r.allScores.length >= 7);
-              return `<td style="padding:8px 10px;text-align:center;font-family:'Space Mono',monospace;font-size:.78rem;${isDrop?'text-decoration:line-through;color:#9ca3af':''}">
-                ${ls.toFixed(2)}
-                <div style="font-size:.6rem;color:#9ca3af">${s.court==='A'?'⬆A':s.court==='B'?'⬇B':'1C'}</div>
-              </td>`;
-            }).join('')}
-            <td style="padding:8px 10px;text-align:center;font-family:'Space Mono',monospace;font-size:.78rem">${r.sesiones}</td>
-            <td style="padding:8px 12px;text-align:center;font-family:'Space Mono',monospace;font-size:.88rem;font-weight:900;color:${isComp?'#065f46':'var(--muted)'}">${r.avg.toFixed(2)}</td>
-            <td style="padding:8px 12px;font-size:.75rem">${isComp
-              ? `<span style="background:#d1fae5;color:#065f46;padding:2px 8px;font-family:'Barlow Condensed',sans-serif;font-weight:800;text-transform:uppercase;letter-spacing:.04em">Compitiendo</span>`
-              : `<span style="color:#92400e;font-size:.75rem">${r.status}</span>`
-            }</td>
-          </tr>`;
-        }).join('')}
+        ${(() => {
+          const anyComp = rows.some(r => r.status === 'compitiendo');
+          let rankedPos = 0; // contador solo de rankeados
+          let lastRankedPos = 0; // último puesto rankeado asignado
+          return rows.map((r) => {
+            const isComp = r.status === 'compitiendo';
+            if (isComp) { rankedPos++; lastRankedPos = rankedPos; }
+            // Si nadie compite aún, numeramos a todos igual pero en gris
+            const displayPos = anyComp ? lastRankedPos : (rows.indexOf(r) + 1);
+            const scoresBySn = {};
+            r.sessions.forEach(s => { scoresBySn[s.sesionNum] = s; });
+            const minScore  = r.allScores.length > 0 ? Math.min(...r.allScores) : null;
+            const minScore2 = r.allScores.length >= 7 ? [...r.allScores].sort((a,b)=>a-b)[1] : null;
+            const rowBg = !isComp ? 'background:#f9fafb;' : (rankedPos===1 ? 'background:#f0fdf4;' : '');
+            const textColor = !isComp ? 'color:#9ca3af;' : '';
+            return `<tr style="border-bottom:1px solid var(--border);${rowBg}${textColor}">
+              <td style="padding:8px 12px;font-family:'Space Mono',monospace;font-size:.7rem;${isComp?'color:#065f46;font-weight:700':'color:#9ca3af'}">${displayPos}</td>
+              <td style="padding:8px 12px;font-weight:${isComp?'700':'400'}">${r.nombre}</td>
+              ${allSessions.map(sn => {
+                const s = scoresBySn[sn];
+                if (!s) return `<td style="padding:8px 10px;text-align:center;color:#d1d5db">—</td>`;
+                const ls = s.ladderScore;
+                const isDrop = (ls === minScore && r.allScores.length >= 4) ||
+                               (ls === minScore2 && r.allScores.length >= 7);
+                return `<td style="padding:8px 10px;text-align:center;font-family:'Space Mono',monospace;font-size:.78rem;${isDrop?'text-decoration:line-through;color:#9ca3af':''}">
+                  ${ls.toFixed(2)}
+                  <div style="font-size:.6rem;color:#9ca3af">${s.court==='A'?'⬆A':s.court==='B'?'⬇B':'1C'}</div>
+                </td>`;
+              }).join('')}
+              <td style="padding:8px 10px;text-align:center;font-family:'Space Mono',monospace;font-size:.78rem">${r.sesiones}</td>
+              <td style="padding:8px 12px;text-align:center;font-family:'Space Mono',monospace;font-size:.88rem;font-weight:900;color:${isComp?'#065f46':'#9ca3af'}">${r.avg.toFixed(2)}</td>
+              <td style="padding:8px 12px;font-size:.75rem">${isComp
+                ? `<span style="background:#d1fae5;color:#065f46;padding:2px 8px;font-family:'Barlow Condensed',sans-serif;font-weight:800;text-transform:uppercase;letter-spacing:.04em">Compitiendo</span>`
+                : `<span style="color:#9ca3af;font-size:.75rem">${r.status}</span>`
+              }</td>
+            </tr>`;
+          }).join('');
+        })()}
       </tbody>
     </table>
     <div style="margin-top:10px;font-size:.72rem;color:var(--muted)">

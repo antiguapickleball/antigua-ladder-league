@@ -1368,21 +1368,27 @@ async function loadPublicRanking(cat) {
         </tr></thead>
         <tbody>`;
 
+    const anyComp = rows.some(r => r.status === 'compitiendo');
+    let rankedPos = 0;
+    let lastRankedPos = 0;
     rows.forEach((r, i) => {
       const isComp = r.status === 'compitiendo';
-      html += `<tr class="${isComp && i === 0 ? 'row-top1' : ''}${!isComp ? ' style="opacity:.7"' : ''}">
-        <td class="td-rank">${isComp ? i + 1 : '—'}</td>
-        <td class="td-name" style="font-weight:${isComp ? '700' : '400'}">${r.nombre || r.docId}</td>
+      if (isComp) { rankedPos++; lastRankedPos = rankedPos; }
+      const displayPos = anyComp ? lastRankedPos : (i + 1);
+      const rowBg = !isComp ? 'background:#f9fafb;' : (rankedPos === 1 ? 'background:#fef2f2;' : '');
+      html += `<tr style="${rowBg}">
+        <td class="td-rank" style="${isComp ? 'color:var(--red);font-weight:700' : 'color:#9ca3af'}">${displayPos}</td>
+        <td class="td-name" style="font-weight:${isComp ? '700' : '400'};${!isComp ? 'color:#9ca3af' : ''}">${r.nombre || r.docId}</td>
         ${sortedKeys.map(k => {
           const s = r.scoreByKey[k];
           if (!s) return `<td class="td-mono" style="color:#d1d5db">—</td>`;
-          return `<td class="td-mono td-pct"${s.dropped ? ' style="text-decoration:line-through;color:#9ca3af"' : ''}>${s.score.toFixed(2)}</td>`;
+          return `<td class="td-mono td-pct"${s.dropped ? ' style="text-decoration:line-through;color:#9ca3af"' : (!isComp ? ' style="color:#9ca3af"' : '')}>${s.score.toFixed(2)}</td>`;
         }).join('')}
-        <td class="td-mono">${r.catSessions.length}</td>
-        <td class="td-pct" style="font-weight:900;color:${isComp ? 'var(--red)' : 'var(--muted)'}">${r.avg.toFixed(2)}</td>
+        <td class="td-mono" style="${!isComp ? 'color:#9ca3af' : ''}">${r.catSessions.length}</td>
+        <td class="td-pct" style="font-weight:900;color:${isComp ? 'var(--red)' : '#9ca3af'}">${r.avg.toFixed(2)}</td>
         <td style="font-size:.75rem">${isComp
           ? `<span style="background:#fdecea;color:var(--red);padding:2px 8px;font-family:'Barlow Condensed',sans-serif;font-weight:800;text-transform:uppercase;font-size:.72rem;letter-spacing:.04em">Compitiendo</span>`
-          : `<span style="color:#92400e;font-size:.75rem">${r.status}</span>`
+          : `<span style="color:#9ca3af;font-size:.75rem">${r.status}</span>`
         }</td>
       </tr>`;
     });
