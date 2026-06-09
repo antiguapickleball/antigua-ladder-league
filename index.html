@@ -1293,8 +1293,24 @@ async function loadPublicRanking(cat) {
       return;
     }
 
-    // Filter players for current category
-    const allDocs = snap.docs.map(d => ({ docId: d.id, ...d.data() }));
+    // Deduplicate by duprId — merge docs that share the same duprId
+    const mergedMap = {}; // canonicalId -> merged doc
+    snap.docs.forEach(d => {
+      const data = d.data();
+      const duprId = (data.duprId || '').trim();
+      const canonicalId = duprId || d.id;
+      if (!mergedMap[canonicalId]) {
+        mergedMap[canonicalId] = { docId: canonicalId, ...data, sessions: { ...(data.sessions || {}) } };
+      } else {
+        // Merge sessions from duplicate into canonical
+        Object.assign(mergedMap[canonicalId].sessions, data.sessions || {});
+        // Keep the most recent/complete nombre (prefer non-uid string)
+        if (data.nombre && data.nombre !== d.id && mergedMap[canonicalId].nombre === canonicalId) {
+          mergedMap[canonicalId].nombre = data.nombre;
+        }
+      }
+    });
+    const allDocs = Object.values(mergedMap);
     const filtered = allDocs.filter(p => {
       const sessions = Object.values(p.sessions || {});
       return sessions.some(s => s.categoria === _activeCat);
