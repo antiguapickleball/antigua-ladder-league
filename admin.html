@@ -728,6 +728,12 @@
       </div>
     </div>
       <div style="border-top:1px solid var(--border);padding-top:14px;margin-top:4px">
+        <div style="font-size:.78rem;font-weight:700;color:#92400e;margin-bottom:6px">🔄 REPUBLICAR TODO EL RANKING</div>
+        <div style="font-size:.78rem;color:var(--muted);margin-bottom:10px">Borra ladder_scores y lo reconstruye desde los fixtures usando DUPR IDs correctos. Elimina duplicados permanentemente.</div>
+        <button class="btn-modal" style="background:#fff7ed;color:#92400e;border-color:#fdba74" onclick="republishAllSessions()">🔄 Republicar todo (limpia duplicados)</button>
+        <span id="republish-status" style="margin-left:10px;font-size:.78rem;color:var(--muted)"></span>
+      </div>
+      <div style="border-top:1px solid var(--border);padding-top:14px;margin-top:4px">
         <div style="font-size:.78rem;font-weight:700;color:#92400e;margin-bottom:6px">🧹 LIMPIAR DUPLICADOS</div>
         <div style="font-size:.78rem;color:var(--muted);margin-bottom:10px">Fusiona docs de ladder_scores que tengan el mismo DUPR ID (corrige jugadores duplicados en el ranking).</div>
         <button class="btn-modal" style="background:#fff7ed;color:#92400e;border-color:#fdba74" onclick="deduplicateLadderScores()">🧹 Fusionar duplicados por DUPR ID</button>
@@ -1999,10 +2005,19 @@ async function publishSession(sesionNum, categoria) {
     const fx = doc.data();
     const pn = fx.playerNames || {};
 
-    // Build uid -> duprId map from _allData
+    // Build uid -> duprId map: prefer _allData (already in memory), fallback to Firestore
     const duprMap = {};
     const inscritos = _allData[sesionNum] || [];
-    inscritos.forEach(p => { if (p.uid && p.duprId) duprMap[p.uid] = p.duprId; });
+    inscritos.forEach(p => { if (p.uid && p.duprId) duprMap[p.uid] = p.duprId.trim(); });
+    if (!inscritos.length) {
+      // Called from republishAllSessions — _allData may not be loaded, read directly
+      try {
+        const regDoc = await db.collection('ladder_registrations').doc(`t1_sesion_${sesionNum}`).get();
+        (regDoc.exists ? regDoc.data().inscritos || [] : []).forEach(p => {
+          if (p.uid && p.duprId) duprMap[p.uid] = p.duprId.trim();
+        });
+      } catch(e) { console.warn('Could not load registrations for duprMap', e); }
+    }
 
     const processMatches = (matches, uids, court) => {
       const stats = computeStandings(matches, uids, court, isS1);
@@ -2334,6 +2349,47 @@ async function deleteSessionFixtures(sesionNum) {
     toast(`✓ Fixtures de Sesión ${sesionNum} eliminados`);
     document.getElementById('fixture-panel').style.display = 'none';
   } catch(e) { toast('✕ Error: ' + e.message, true); }
+}
+
+async function republishAllSessions() {
+  const status = document.getElementById('republish-status');
+  if (!confirm('¿Borrar y reconstruir todo el ranking desde los fixtures? Los scores publicados se recalcularán.')) return;
+  try {
+    status.textContent = 'Borrando ladder_scores…';
+    // Step 1: delete all existing ladder_scores docs
+    const existing = await db.collection('ladder_scores').get();
+    await Promise.all(existing.docs.map(d => d.ref.delete()));
+
+    // Step 2: find all fixture docs that have scored matches
+    status.textContent = 'Leyendo fixtures…';
+    const fxSnap = await db.collection('ladder_fixtures').get();
+
+    // Gather all unique sesionNum+categoria combos
+    const combos = new Set();
+    fxSnap.docs.forEach(d => {
+      const fx = d.data();
+      if (fx.sesionNum && fx.categoria) combos.add(`${fx.sesionNum}__${fx.categoria}`);
+    });
+
+    const list = [...combos].sort();
+    let done = 0;
+    for (const combo of list) {
+      const [snStr, cat] = combo.split('__');
+      const sn = parseInt(snStr);
+      status.textContent = `Publicando S${sn} ${cat}… (${++done}/${list.length})`;
+      try {
+        await publishSession(sn, cat);
+      } catch(e) {
+        console.warn(`Error publishing S${sn} ${cat}:`, e);
+      }
+    }
+
+    status.innerHTML = `<span style="color:#065f46">✓ ${list.length} jornadas republicadas — duplicados eliminados</span>`;
+    toast('✓ Ranking reconstruido desde cero');
+  } catch(e) {
+    console.error(e);
+    status.innerHTML = `<span style="color:var(--red)">✕ Error: ${e.message||e}</span>`;
+  }
 }
 
 async function deduplicateLadderScores() {
