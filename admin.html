@@ -2576,12 +2576,12 @@ async function loadAndRenderFixture(sesionNum, categoria) {
     console.log('[fixture] rendering HTML...');
     inner.innerHTML = renderFixtureHTML(fx, sesionNum, categoria);
     console.log('[fixture] render done');
-    // Refresh category section badges
+    // Refresh category section badges (awaited so scroll restore happens after)
     const counts = {};
     ['principiante','intermedio','open'].forEach(c => {
       counts[c] = (_allData[sesionNum]||[]).filter(p=>p.status==='confirmed'&&p.categoria===c).length;
     });
-    renderFixtureCatSection(sesionNum, counts);
+    await renderFixtureCatSection(sesionNum, counts);
   } catch(err) {
     console.error('loadAndRenderFixture error:', err);
     inner.innerHTML = `<div style="padding:20px;color:var(--red);font-size:.85rem">
@@ -2640,7 +2640,7 @@ async function generateRound2(sesionNum, categoria) {
   toast('✓ Ronda 2 generada — grupos actualizados');
   const _sy = window.scrollY;
   await loadAndRenderFixture(parseInt(sesionNum), categoria);
-  window.scrollTo({ top: _sy, behavior: 'instant' });
+  requestAnimationFrame(() => requestAnimationFrame(() => window.scrollTo({ top: _sy, behavior: 'instant' })));
 }
 
 function renderFixtureHTML(fx, sesionNum, categoria) {
@@ -2819,7 +2819,7 @@ async function trySaveScore(sesionNum, categoria, roundNum, court, matchId) {
   await db.collection('ladder_fixtures').doc(docId).update({rounds:updatedRounds});
   const scrollY = window.scrollY;
   await loadAndRenderFixture(parseInt(sesionNum), categoria);
-  window.scrollTo({ top: scrollY, behavior: 'instant' });
+  requestAnimationFrame(() => requestAnimationFrame(() => window.scrollTo({ top: scrollY, behavior: 'instant' })));
 }
 
 // ── Standings computation ──
