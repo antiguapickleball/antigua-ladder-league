@@ -1364,11 +1364,7 @@ async function loadPublicRanking(cat) {
       catSessions.forEach((s, i) => { scoreByKey[s.key] = { ...s, dropped: droppedScores.has(i) }; });
 
       return { ...p, catSessions, allScores, avg, scoreByKey, status: n >= 3 ? 'compitiendo' : `Necesita ${3-n} sesión${3-n>1?'es':''} más` };
-    }).sort((a, b) => {
-      if ((a.status === 'compitiendo') !== (b.status === 'compitiendo'))
-        return a.status === 'compitiendo' ? -1 : 1;
-      return b.avg - a.avg;
-    });
+    }).sort((a, b) => b.avg - a.avg);
 
     const catLabel = { principiante: 'Principiante', intermedio: 'Intermedio', open: 'Open' }[_activeCat] || _activeCat;
 

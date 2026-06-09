@@ -2246,11 +2246,8 @@ async function computeGlobalLadder() {
     return { uid: key, nombre: data.nombre, duprId: data.duprId || null, sesiones: n, avg, status, sessions, allScores };
   }).filter(Boolean);
 
-  playerRows.sort((a,b) => {
-    if ((a.status==='compitiendo') !== (b.status==='compitiendo'))
-      return a.status==='compitiendo' ? -1 : 1;
-    return b.avg - a.avg;
-  });
+  // Sort purely by avg — ranked and unranked mixed together by performance
+  playerRows.sort((a,b) => b.avg - a.avg);
 
   return playerRows;
 }
@@ -2358,14 +2355,24 @@ async function deleteSessionFixtures(sesionNum) {
 }
 
 async function promptSetDuprId(currentKey, currentDuprId, nombre) {
+  // Ask for nombre first
+  const newNombre = window.prompt(
+    `Editar jugador\nDoc key actual: ${currentKey}\n\n1/2 — Nombre para el ranking:`,
+    nombre
+  );
+  if (newNombre === null) return; // cancelled
+
   const newDupr = window.prompt(
-    `Asignar DUPR ID a "${nombre}"\n\nDUPR ID actual: ${currentDuprId || '(ninguno)'}\nIntroduce el DUPR ID correcto:`,
+    `2/2 — DUPR ID de ${newNombre || nombre}\n\nDUPR ID actual: ${currentDuprId || '(ninguno)'}\nDejar igual → escribe el mismo valor o deja vacío para no cambiar:`,
     currentDuprId || ''
   );
   if (newDupr === null) return; // cancelled
-  const trimmed = newDupr.trim();
-  if (!trimmed) { toast('DUPR ID no puede estar vacío', true); return; }
-  if (trimmed === currentKey) { toast('Sin cambios', false); return; }
+
+  const trimmedNombre = (newNombre || nombre).trim();
+  const trimmed = newDupr.trim() || currentDuprId || currentKey; // keep existing if blank
+  const keyChanged = trimmed !== currentKey;
+  const nombreChanged = trimmedNombre !== nombre;
+  if (!keyChanged && !nombreChanged) { toast('Sin cambios', false); return; }
 
   toast('Actualizando…');
   try {
@@ -2386,14 +2393,14 @@ async function promptSetDuprId(currentKey, currentDuprId, nombre) {
 
     // 3. Write merged doc under new key
     await newRef.set({
-      nombre: oldData.nombre || nombre,
+      nombre: trimmedNombre,
       duprId: trimmed,
       uid: oldData.uid || currentKey,
       sessions: mergedSessions,
     });
 
     // 4. Delete old doc (if key changed)
-    if (currentKey !== trimmed) await oldRef.delete();
+    if (keyChanged) await oldRef.delete();
 
     // 5. Update duprId in all registration docs for this player
     const regSnap = await db.collection('ladder_registrations').get();
