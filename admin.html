@@ -1129,6 +1129,7 @@ function renderWaitlist() {
       <td class="fecha">${fecha}</td>
       <td class="actions">
         <button class="btn-action btn-accept" onclick="manualPromote(${p.sesionNum},'${p.uid}')">↑ Promover</button>
+        <button class="btn-action btn-move"   onclick="openMove(${p.sesionNum},'${p.uid}')">↔ Sesión</button>
         <button class="btn-action btn-edit"   onclick="openEdit(${p.sesionNum},'${p.uid}');closeWaitlistPanelFocus()">Editar</button>
         <button class="btn-action btn-delete" onclick="openDelete(${p.sesionNum},'${p.uid}')">Borrar</button>
       </td>
