@@ -400,6 +400,14 @@
         <button id="ladder-tab-calc" onclick="switchLadderTab('calc')" style="font-family:'Barlow Condensed',sans-serif;font-size:.8rem;font-weight:900;text-transform:uppercase;letter-spacing:.06em;padding:10px 18px;border:none;border-bottom:3px solid #065f46;background:transparent;color:#065f46;cursor:pointer">Calcular (preview)</button>
         <button id="ladder-tab-pub" onclick="switchLadderTab('pub')" style="font-family:'Barlow Condensed',sans-serif;font-size:.8rem;font-weight:900;text-transform:uppercase;letter-spacing:.06em;padding:10px 18px;border:none;border-bottom:3px solid transparent;background:transparent;color:#6b7280;cursor:pointer">Publicado</button>
       </div>
+      <!-- Category filter -->
+      <div style="padding:10px 20px 0;background:#f0fdf4;display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+        <span style="font-size:.72rem;font-weight:700;color:#065f46;text-transform:uppercase;letter-spacing:.04em">Categoría:</span>
+        <button id="lf-all" onclick="setLadderFilter('all')" style="font-family:'Barlow Condensed',sans-serif;font-size:.75rem;font-weight:800;text-transform:uppercase;padding:4px 12px;border:1.5px solid #065f46;background:#065f46;color:#fff;cursor:pointer">Todas</button>
+        <button id="lf-open" onclick="setLadderFilter('open')" style="font-family:'Barlow Condensed',sans-serif;font-size:.75rem;font-weight:800;text-transform:uppercase;padding:4px 12px;border:1.5px solid #6ee7b7;background:transparent;color:#065f46;cursor:pointer">Open</button>
+        <button id="lf-intermedio" onclick="setLadderFilter('intermedio')" style="font-family:'Barlow Condensed',sans-serif;font-size:.75rem;font-weight:800;text-transform:uppercase;padding:4px 12px;border:1.5px solid #6ee7b7;background:transparent;color:#065f46;cursor:pointer">Intermedio</button>
+        <button id="lf-principiante" onclick="setLadderFilter('principiante')" style="font-family:'Barlow Condensed',sans-serif;font-size:.75rem;font-weight:800;text-transform:uppercase;padding:4px 12px;border:1.5px solid #6ee7b7;background:transparent;color:#065f46;cursor:pointer">Principiante</button>
+      </div>
       <div id="ladder-inner" style="padding:20px">
         <div style="color:var(--muted);font-size:.85rem">Haz clic en "↺ Actualizar" para cargar la tabla.</div>
       </div>
@@ -1862,12 +1870,47 @@ function toggleLadderPanel() {
   }
 }
 
+let _ladderFilter = 'all';
+let _ladderRowsCache = null;
+
+function setLadderFilter(cat) {
+  _ladderFilter = cat;
+  ['all','open','intermedio','principiante'].forEach(c => {
+    const btn = document.getElementById('lf-' + c);
+    if (!btn) return;
+    const active = c === cat;
+    btn.style.background = active ? '#065f46' : 'transparent';
+    btn.style.color = active ? '#fff' : '#065f46';
+  });
+  if (_ladderRowsCache) renderFilteredLadder();
+}
+
+function renderFilteredLadder() {
+  const inner = document.getElementById('ladder-inner');
+  let rows = _ladderRowsCache;
+  if (_ladderFilter !== 'all') {
+    rows = rows.map(r => {
+      const sessions = r.sessions.filter(s => s.categoria === _ladderFilter);
+      if (!sessions.length) return null;
+      const allScores = sessions.map(s => s.ladderScore);
+      const n = allScores.length;
+      let usedScores;
+      if (n < 3) { usedScores = allScores; }
+      else { const sorted = [...allScores].sort((a,b)=>a-b); usedScores = n>=7?sorted.slice(2):sorted.slice(1); }
+      const avg = usedScores.length ? usedScores.reduce((a,b)=>a+b,0)/usedScores.length : 0;
+      const status = n >= 3 ? 'compitiendo' : `Necesita ${3-n} sesión${3-n>1?'es':''} más`;
+      return { ...r, sessions, allScores, sesiones: n, avg, status };
+    }).filter(Boolean).sort((a,b) => b.avg - a.avg);
+  }
+  inner.innerHTML = renderLadderHTML(rows);
+}
+
 async function loadLadderTable() {
   const inner = document.getElementById('ladder-inner');
   inner.innerHTML = '<div style="color:var(--muted);font-size:.82rem;font-family:\'Space Mono\',monospace;padding:8px 0">Calculando…</div>';
   try {
-    const rows = await computeGlobalLadder();
-    inner.innerHTML = renderLadderHTML(rows);
+    _ladderRowsCache = await computeGlobalLadder();
+    renderFilteredLadder();
   } catch(e) {
     console.error(e);
     inner.innerHTML = '<div style="color:var(--red);font-size:.85rem">Error al cargar la tabla: ' + (e.message||e) + '</div>';

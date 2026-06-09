@@ -1295,6 +1295,8 @@ async function loadPublicRanking(cat) {
 
     // Deduplicate by duprId — merge docs that share the same duprId
     const mergedMap = {}; // canonicalId -> merged doc
+    // Helper: a "real" name has a space or is longer than 12 chars without digits
+    const isRealName = n => n && (n.includes(' ') || (n.length > 3 && !/^[a-z0-9_\-]{4,}$/i.test(n)));
     snap.docs.forEach(d => {
       const data = d.data();
       const duprId = (data.duprId || '').trim();
@@ -1302,11 +1304,18 @@ async function loadPublicRanking(cat) {
       if (!mergedMap[canonicalId]) {
         mergedMap[canonicalId] = { docId: canonicalId, ...data, sessions: { ...(data.sessions || {}) } };
       } else {
-        // Merge sessions from duplicate into canonical
-        Object.assign(mergedMap[canonicalId].sessions, data.sessions || {});
-        // Keep the most recent/complete nombre (prefer non-uid string)
-        if (data.nombre && data.nombre !== d.id && mergedMap[canonicalId].nombre === canonicalId) {
-          mergedMap[canonicalId].nombre = data.nombre;
+        // Merge sessions — canonical doc sessions take priority (newer publish wins per key)
+        const merged = { ...(data.sessions || {}), ...mergedMap[canonicalId].sessions };
+        mergedMap[canonicalId].sessions = merged;
+        // Prefer the nombre from the doc whose id === canonicalId (the duprId-keyed doc)
+        // OR prefer any real-looking name over a uid-like string
+        const currentNombre = mergedMap[canonicalId].nombre || '';
+        const newNombre = data.nombre || '';
+        if (d.id === canonicalId) {
+          // This IS the canonical doc — its nombre wins
+          if (newNombre) mergedMap[canonicalId].nombre = newNombre;
+        } else if (isRealName(newNombre) && !isRealName(currentNombre)) {
+          mergedMap[canonicalId].nombre = newNombre;
         }
       }
     });
