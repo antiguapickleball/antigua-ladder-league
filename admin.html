@@ -2534,8 +2534,9 @@ function openFixtureForCat(sesionNum, cat) {
   const panel = document.getElementById('fixture-panel');
   const lbl   = document.getElementById('fixture-panel-cat-label');
   if (lbl) lbl.textContent = catLabels[cat] || cat;
+  const wasHidden = panel.style.display !== 'block';
   panel.style.display = 'block';
-  panel.scrollIntoView({ behavior:'smooth', block:'start' });
+  if (wasHidden) panel.scrollIntoView({ behavior:'smooth', block:'start' });
   loadAndRenderFixture(sesionNum, cat);
 }
 
@@ -2637,7 +2638,9 @@ async function generateRound2(sesionNum, categoria) {
   });
 
   toast('✓ Ronda 2 generada — grupos actualizados');
-  loadAndRenderFixture(parseInt(sesionNum), categoria);
+  const _sy = window.scrollY;
+  await loadAndRenderFixture(parseInt(sesionNum), categoria);
+  window.scrollTo({ top: _sy, behavior: 'instant' });
 }
 
 function renderFixtureHTML(fx, sesionNum, categoria) {
@@ -2814,7 +2817,9 @@ async function trySaveScore(sesionNum, categoria, roundNum, court, matchId) {
 
   if (!updated) { toast('No se encontró el partido', true); return; }
   await db.collection('ladder_fixtures').doc(docId).update({rounds:updatedRounds});
-  loadAndRenderFixture(parseInt(sesionNum), categoria);
+  const scrollY = window.scrollY;
+  await loadAndRenderFixture(parseInt(sesionNum), categoria);
+  window.scrollTo({ top: scrollY, behavior: 'instant' });
 }
 
 // ── Standings computation ──
