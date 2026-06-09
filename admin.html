@@ -727,6 +727,13 @@
         </div>
       </div>
     </div>
+      <div style="border-top:1px solid var(--border);padding-top:14px;margin-top:4px">
+        <div style="font-size:.78rem;font-weight:700;color:#92400e;margin-bottom:6px">🧪 DATOS DE PRUEBA</div>
+        <div style="font-size:.78rem;color:var(--muted);margin-bottom:10px">Copia los 5 confirmados de Open S1 y los 5 de Principiante S1 a las sesiones 2, 3 y 4.</div>
+        <button class="btn-modal" style="background:#fff7ed;color:#92400e;border-color:#fdba74" onclick="seedTestSessions()">🧪 Copiar jugadores S1 → S2/S3/S4</button>
+        <span id="seed-status" style="margin-left:10px;font-size:.78rem;color:var(--muted)"></span>
+      </div>
+    </div>
     <div class="modal-footer">
       <button class="btn-modal btn-cancel-modal" onclick="closeModal('modal-danger')">Cerrar</button>
     </div>
@@ -2263,6 +2270,45 @@ async function deleteSessionFixtures(sesionNum) {
     toast(`✓ Fixtures de Sesión ${sesionNum} eliminados`);
     document.getElementById('fixture-panel').style.display = 'none';
   } catch(e) { toast('✕ Error: ' + e.message, true); }
+}
+
+async function seedTestSessions() {
+  const status = document.getElementById('seed-status');
+  status.textContent = 'Cargando S1…';
+  try {
+    const s1snap = await db.collection('ladder_registrations').doc('t1_sesion_1').get();
+    const s1 = s1snap.exists ? (s1snap.data().inscritos || []) : [];
+    const openPlayers  = s1.filter(p => p.status === 'confirmed' && p.categoria === 'open').slice(0, 5);
+    const principPlayers = s1.filter(p => p.status === 'confirmed' && p.categoria === 'principiante').slice(0, 5);
+
+    if (!openPlayers.length && !principPlayers.length) {
+      status.textContent = '✕ No hay jugadores confirmados en S1';
+      return;
+    }
+
+    const now = firebase.firestore.Timestamp.now();
+    const toSeed = [...openPlayers, ...principPlayers].map(p => ({ ...p, registeredAt: now, status: 'confirmed' }));
+
+    for (const sn of [2, 3, 4]) {
+      status.textContent = `Escribiendo S${sn}…`;
+      const ref  = db.collection('ladder_registrations').doc(`t1_sesion_${sn}`);
+      const snap = await ref.get();
+      const existing    = snap.exists ? (snap.data().inscritos || []) : [];
+      const existingUids = new Set(existing.map(p => p.uid));
+      const newPlayers  = toSeed.filter(p => !existingUids.has(p.uid));
+      if (newPlayers.length) {
+        await ref.set({ inscritos: firebase.firestore.FieldValue.arrayUnion(...newPlayers) }, { merge: true });
+      }
+    }
+
+    status.innerHTML = `<span style="color:#065f46">✓ Listo — ${openPlayers.length} Open + ${principPlayers.length} Principiante agregados a S2/S3/S4</span>`;
+    toast('✓ Jugadores de prueba agregados a S2, S3 y S4');
+    // Reload data
+    if (typeof loadAllData === 'function') loadAllData();
+  } catch(e) {
+    console.error(e);
+    status.innerHTML = `<span style="color:var(--red)">✕ Error: ${e.message||e}</span>`;
+  }
 }
 
 async function resetLeague() {
