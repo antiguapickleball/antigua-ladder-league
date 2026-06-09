@@ -2492,11 +2492,15 @@ async function renderFixtureCatSection(sesionNum, counts) {
       const allR2 = fx?.format === '2courts'
         ? (r2?.matchesA||[]).every(m=>m.score) && (r2?.matchesB||[]).every(m=>m.score) && (r2?.matchesA||[]).length > 0
         : (r2?.matches||[]).every(m=>m.score) && (r2?.matches||[]).length > 0;
+      // R2 existe si fue generada (2courts) o ya venía pre-generada (1court ≤5 jugadores)
+      const r2exists = fx?.r2generated || (fx?.format === '1court' && (fx?.rounds||[]).length >= 2);
 
-      if (fx?.r2generated && allR2) {
+      if (r2exists && allR2) {
         badge = `<span style="background:#dcfce7;color:#065f46;padding:2px 8px;font-size:.7rem;font-family:'Space Mono',monospace">✓ Completa</span>`;
-      } else if (fx?.r2generated) {
+      } else if (r2exists && allR1) {
         badge = `<span style="background:#ede9fe;color:#6d28d9;padding:2px 8px;font-size:.7rem;font-family:'Space Mono',monospace">▶ R2 en curso</span>`;
+      } else if (r2exists) {
+        badge = `<span style="background:#dbeafe;color:#1d4ed8;padding:2px 8px;font-size:.7rem;font-family:'Space Mono',monospace">▶ R1 en curso</span>`;
       } else if (allR1 && fx?.totalRounds === 2) {
         badge = `<span style="background:#fef3c7;color:#92400e;padding:2px 8px;font-size:.7rem;font-family:'Space Mono',monospace">⚡ R1 lista → generar R2</span>`;
       } else if (allR1) {
