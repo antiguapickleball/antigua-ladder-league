@@ -2039,7 +2039,23 @@ async function markSessionJugada(sesionNumOverride) {
   const sesion = SEMANAS.find(s => s.num === sn);
   if (!sesion) { toast('Sesión no encontrada', true); return; }
   if (sesion.estado === 'jugada') { toast(`S${sn} ya está marcada como Jugada`); return; }
-  if (!confirm(`¿Marcar Sesión ${sn} como "Jugada"? Esto la mostrará como finalizada en el calendario.`)) return;
+
+  // Verify all 3 categories are published before allowing
+  const snap = await db.collection('ladder_scores').get();
+  const publishedCats = new Set();
+  snap.docs.forEach(d => {
+    Object.values(d.data().sessions || {}).forEach(s => {
+      if (s.sesionNum === sn) publishedCats.add(s.categoria);
+    });
+  });
+  const missing = ['principiante','intermedio','open'].filter(c => !publishedCats.has(c));
+  if (missing.length) {
+    const labels = { principiante:'Principiante', intermedio:'Intermedio', open:'Open' };
+    toast(`Faltan por publicar: ${missing.map(c => labels[c]).join(', ')}`, true);
+    return;
+  }
+
+  if (!confirm(`¿Marcar Sesión ${sn} como "Jugada"? Las 3 categorías están publicadas.`)) return;
   const updated = SEMANAS.map(s => s.num === sn ? { ...s, estado: 'jugada' } : s);
   await db.collection(CONFIG_DOC).doc(CONFIG_SEMANAS_ID).set({ semanas: updated });
   SEMANAS = updated;
