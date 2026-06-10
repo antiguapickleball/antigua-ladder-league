@@ -748,10 +748,21 @@
         <span id="dedup-status" style="margin-left:10px;font-size:.78rem;color:var(--muted)"></span>
       </div>
       <div style="border-top:1px solid var(--border);padding-top:14px;margin-top:4px">
-        <div style="font-size:.78rem;font-weight:700;color:#92400e;margin-bottom:6px">🧪 DATOS DE PRUEBA</div>
-        <div style="font-size:.78rem;color:var(--muted);margin-bottom:10px">Agrega 8 jugadores aleatorios + Victor Mora a la Sesión 5 Open (confirmados).</div>
-        <button class="btn-modal" style="background:#fff7ed;color:#92400e;border-color:#fdba74" onclick="seedS5Open()">🧪 Seed S5 Open (8 aleatorios + Victor)</button>
-        <span id="seed-status" style="margin-left:10px;font-size:.78rem;color:var(--muted)"></span>
+        <div style="font-size:.78rem;font-weight:700;color:#92400e;margin-bottom:6px">🧪 SEED JUGADORES DE PRUEBA</div>
+        <div style="font-size:.78rem;color:var(--muted);margin-bottom:8px">Copia jugadores ya inscritos en otras sesiones a la sesión destino.</div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px">
+          <select id="seed-dest-sesion" style="font-size:.78rem;padding:4px 8px;border:1px solid #fdba74">
+            <option value="">— sesión destino —</option>
+          </select>
+          <select id="seed-dest-cat" style="font-size:.78rem;padding:4px 8px;border:1px solid #fdba74">
+            <option value="open">Open</option>
+            <option value="intermedio">Intermedio</option>
+            <option value="principiante">Principiante</option>
+          </select>
+          <input id="seed-dest-count" type="number" min="1" max="12" value="7" style="width:50px;font-size:.78rem;padding:4px 8px;border:1px solid #fdba74" placeholder="#">
+          <button class="btn-modal" style="background:#fff7ed;color:#92400e;border-color:#fdba74" onclick="seedPlayersToSession()">🧪 Seed jugadores</button>
+        </div>
+        <span id="seed-status" style="font-size:.78rem;color:var(--muted)"></span>
       </div>
     </div>
     <div class="modal-footer">
@@ -1632,6 +1643,14 @@ async function promoteWaitlist(sesionNum, categoria) {
 function openModal(id) {
   document.getElementById(id).style.display = 'flex';
   document.body.style.overflow = 'hidden';
+  if (id === 'modal-danger') {
+    // Populate seed session selector
+    const sel = document.getElementById('seed-dest-sesion');
+    if (sel) {
+      sel.innerHTML = '<option value="">— sesión destino —</option>' +
+        SEMANAS.map(s => `<option value="${s.num}">Sesión ${s.num} (${s.fecha||''})</option>`).join('');
+    }
+  }
 }
 function closeModal(id) {
   document.getElementById(id).style.display = 'none';
@@ -2601,44 +2620,58 @@ async function deduplicateLadderScores() {
   }
 }
 
-async function seedS5Open() {
+async function seedPlayersToSession() {
   const status = document.getElementById('seed-status');
-  status.textContent = 'Generando…';
+  const destSn = parseInt(document.getElementById('seed-dest-sesion').value);
+  const destCat = document.getElementById('seed-dest-cat').value;
+  const count = parseInt(document.getElementById('seed-dest-count').value) || 7;
+
+  if (!destSn) { status.textContent = '✕ Selecciona sesión destino'; return; }
+
+  status.textContent = 'Leyendo inscripciones…';
   try {
     const now = firebase.firestore.Timestamp.now();
-    const names = ['Alejandro García','Marcos Soto','Diego Herrera','Andrés Vega',
-                   'Felipe Ruiz','Tomás Mora','Nicolás Pérez','Sebastián Castro'];
-    const randomPlayers = names.map((nombre, i) => ({
-      uid: 'seed_s5_' + i,
-      nombre,
-      duprId: 'SEED' + String(1000 + i),
-      categoria: 'open',
-      status: 'confirmed',
-      registeredAt: now,
-      sesionNum: 5,
-    }));
-    const victorMora = {
-      uid: 'victor_mora_uid', // same uid used in previous sessions if any
-      nombre: 'Victor Mora',
-      duprId: 'VICTOR01',    // must match whatever is in ladder_scores
-      categoria: 'open',
-      status: 'confirmed',
-      registeredAt: now,
-      sesionNum: 5,
-    };
-    // Load existing S5 to check for duplicates
-    const ref = db.collection('ladder_registrations').doc('t1_sesion_5');
+
+    // Collect confirmed players of the same category from OTHER sessions
+    const allSnaps = await db.collection('ladder_registrations').get();
+    const candidateMap = {}; // uid -> player (deduplicate)
+    allSnaps.docs.forEach(d => {
+      const sn = parseInt((d.id.match(/\d+$/) || [])[0]);
+      if (sn === destSn) return; // skip destination session
+      (d.data().inscritos || []).forEach(p => {
+        if (p.status === 'confirmed' && p.categoria === destCat && p.uid) {
+          candidateMap[p.uid] = p;
+        }
+      });
+    });
+
+    const candidates = Object.values(candidateMap);
+    if (!candidates.length) {
+      status.innerHTML = `<span style="color:#92400e">No hay jugadores confirmados de ${destCat} en otras sesiones</span>`;
+      return;
+    }
+
+    // Shuffle and pick 'count'
+    const shuffled = candidates.sort(() => Math.random() - 0.5).slice(0, count);
+
+    // Load existing dest session to avoid duplicates
+    const ref = db.collection('ladder_registrations').doc(`t1_sesion_${destSn}`);
     const snap = await ref.get();
     const existing = snap.exists ? (snap.data().inscritos || []) : [];
     const existingUids = new Set(existing.map(p => p.uid));
-    const toAdd = [...randomPlayers, victorMora].filter(p => !existingUids.has(p.uid));
+
+    const toAdd = shuffled
+      .filter(p => !existingUids.has(p.uid))
+      .map(p => ({ ...p, registeredAt: now, sesionNum: destSn, status: 'confirmed' }));
+
     if (!toAdd.length) {
-      status.innerHTML = `<span style="color:#92400e">Ya están todos en S5</span>`;
+      status.innerHTML = `<span style="color:#92400e">Todos esos jugadores ya están en S${destSn}</span>`;
       return;
     }
+
     await ref.set({ inscritos: firebase.firestore.FieldValue.arrayUnion(...toAdd) }, { merge: true });
-    status.innerHTML = `<span style="color:#065f46">✓ ${toAdd.length} jugadores agregados a S5 Open</span>`;
-    toast('✓ S5 Open seeded con ' + toAdd.length + ' jugadores');
+    status.innerHTML = `<span style="color:#065f46">✓ ${toAdd.length} jugadores agregados a S${destSn} ${destCat}</span>`;
+    toast(`✓ ${toAdd.length} jugadores seeded en S${destSn} ${destCat}`);
     if (typeof loadAllData === 'function') loadAllData();
   } catch(e) {
     console.error(e);
