@@ -427,6 +427,7 @@
           </select>
           <button onclick="confirmPublishSession()" style="font-family:'Barlow Condensed',sans-serif;font-size:.78rem;font-weight:900;text-transform:uppercase;letter-spacing:.06em;padding:7px 14px;background:#065f46;color:#fff;border:none;cursor:pointer">📤 Publicar</button>
           <button onclick="openDeletePublishedSession()" style="font-family:'Barlow Condensed',sans-serif;font-size:.78rem;font-weight:900;text-transform:uppercase;letter-spacing:.06em;padding:7px 14px;background:#fef2f2;color:#991b1b;border:1.5px solid #fca5a5;cursor:pointer">🗑 Borrar del ranking</button>
+          <button onclick="markSessionJugada()" style="font-family:'Barlow Condensed',sans-serif;font-size:.78rem;font-weight:900;text-transform:uppercase;letter-spacing:.06em;padding:7px 14px;background:#1d4ed8;color:#fff;border:none;cursor:pointer">✅ Marcar como Jugada</button>
         </div>
         <div id="publish-status" style="margin-top:8px;font-size:.78rem;color:var(--muted)"></div>
       </div>
@@ -2032,6 +2033,21 @@ async function populatePublishSessionSelect() {
   sel.innerHTML = '<option value="">— sesión —</option>' + sorted.map(n => `<option value="${n}">Sesión ${n}</option>`).join('');
 }
 
+async function markSessionJugada(sesionNumOverride) {
+  const sn = sesionNumOverride || parseInt(document.getElementById('publish-session-select')?.value);
+  if (!sn) { toast('Selecciona una jornada primero', true); return; }
+  const sesion = SEMANAS.find(s => s.num === sn);
+  if (!sesion) { toast('Sesión no encontrada', true); return; }
+  if (sesion.estado === 'jugada') { toast(`S${sn} ya está marcada como Jugada`); return; }
+  if (!confirm(`¿Marcar Sesión ${sn} como "Jugada"? Esto la mostrará como finalizada en el calendario.`)) return;
+  const updated = SEMANAS.map(s => s.num === sn ? { ...s, estado: 'jugada' } : s);
+  await db.collection(CONFIG_DOC).doc(CONFIG_SEMANAS_ID).set({ semanas: updated });
+  SEMANAS = updated;
+  toast(`✓ Sesión ${sn} marcada como Jugada`);
+  buildTabs();
+  populatePublishSessionSelect();
+}
+
 async function confirmPublishSession() {
   const sel    = document.getElementById('publish-session-select');
   const catSel = document.getElementById('publish-cat-select');
@@ -2047,11 +2063,32 @@ async function confirmPublishSession() {
     await publishSession(sesionNum, cat);
     status.innerHTML = `<span style="color:#065f46">✓ J${sesionNum} · ${catLabel} publicada</span>`;
     toast(`✓ J${sesionNum} · ${catLabel} publicada al ranking`);
+    // Auto-detect: if all 3 cats now published, suggest marking session as jugada
+    await checkAndSuggestJugada(sesionNum, status);
   } catch(e) {
     console.error(e);
     status.innerHTML = `<span style="color:var(--red)">✕ Error: ${e.message||e}</span>`;
     toast('✕ Error al publicar: ' + (e.message||e), true);
   }
+}
+
+async function checkAndSuggestJugada(sesionNum, statusEl) {
+  try {
+    const snap = await db.collection('ladder_scores').get();
+    const publishedCats = new Set();
+    snap.docs.forEach(d => {
+      Object.values(d.data().sessions || {}).forEach(s => {
+        if (s.sesionNum === sesionNum) publishedCats.add(s.categoria);
+      });
+    });
+    const allCats = ['principiante','intermedio','open'];
+    const allPublished = allCats.every(c => publishedCats.has(c));
+    const sesion = SEMANAS.find(s => s.num === sesionNum);
+    if (allPublished && sesion && sesion.estado !== 'jugada') {
+      statusEl.innerHTML += ` &nbsp;<span style="color:#1d4ed8;font-weight:700">· Las 3 categorías publicadas</span>
+        <button onclick="markSessionJugada(${sesionNum})" style="margin-left:8px;font-size:.72rem;padding:3px 10px;background:#1d4ed8;color:#fff;border:none;cursor:pointer;font-family:'Barlow Condensed',sans-serif;font-weight:800;text-transform:uppercase">✅ Marcar S${sesionNum} como Jugada</button>`;
+    }
+  } catch(e) { /* silently ignore */ }
 }
 
 async function publishSession(sesionNum, categoria) {
