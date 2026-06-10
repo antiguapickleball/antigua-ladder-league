@@ -1475,12 +1475,16 @@ function renderCalendar() {
         <div class="cal-h-row"><span class="cal-h-cat i">I</span> 9:40 – 11:20 am</div>
         <div class="cal-h-row"><span class="cal-h-cat o">O</span> 11:20 am – 1:00 pm</div>
       </div>` : '';
+    const cuposHtml = (s.estado === 'proxima' || s.estado === 'pendiente')
+      ? `<div id="cupos-s${s.num}" class="cal-cupos" style="margin-top:6px;font-size:.68rem;color:#6b7280">Cargando cupos…</div>`
+      : '';
     const inner = `
       <div class="cal-num">Semana ${s.num}</div>
       <div class="cal-date">${s.fecha}</div>
       <div class="cal-status">${labels[s.estado]||s.estado}</div>
       ${s.nota ? `<div class="cal-note">${s.nota}</div>` : ''}
       ${horarios}
+      ${cuposHtml}
       ${clickable ? `<div class="cal-link">Ver sesión →</div>` : ''}`;
     return clickable
       ? `<a href="sesion.html?n=${s.num}" class="cal-card ${s.estado}" style="text-decoration:none;color:inherit">${inner}</a>`
@@ -1488,10 +1492,39 @@ function renderCalendar() {
   }).join('');
 }
 
+async function loadCalendarCupos() {
+  const CAP = 10;
+  const cats = ['principiante','intermedio','open'];
+  const catLabel = { principiante:'P', intermedio:'I', open:'O' };
+  const sesionesAbiertas = SEMANAS.filter(s => s.estado === 'proxima' || s.estado === 'pendiente');
+  for (const s of sesionesAbiertas) {
+    const el = document.getElementById(`cupos-s${s.num}`);
+    if (!el) continue;
+    try {
+      const snap = await db.collection('ladder_registrations').doc(`t1_sesion_${s.num}`).get();
+      const inscritos = snap.exists ? (snap.data().inscritos || []) : [];
+      const counts = {};
+      cats.forEach(c => {
+        counts[c] = inscritos.filter(p => p.status === 'confirmed' && p.categoria === c).length;
+      });
+      el.innerHTML = cats.map(c => {
+        const libre = CAP - counts[c];
+        const color = libre <= 0 ? '#ef4444' : libre <= 3 ? '#f59e0b' : '#10b981';
+        return `<span style="margin-right:6px"><span style="font-weight:700;color:${color}">${catLabel[c]}</span> ${libre > 0 ? libre + ' libre' + (libre > 1 ? 's' : '') : '<span style=\'color:#ef4444\'>Lleno</span>'}</span>`;
+      }).join('');
+    } catch(e) {
+      el.textContent = '';
+    }
+  }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   // Wait for anonymous auth before reading Firestore
   firebase.auth().onAuthStateChanged(user => {
-    if (user) loadPublicRanking(_activeCat || 'principiante');
+    if (user) {
+      loadPublicRanking(_activeCat || 'principiante');
+      loadCalendarCupos();
+    }
   });
   renderCalendar();
 
