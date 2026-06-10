@@ -471,6 +471,13 @@
     </div>
   </div>
 
+  <!-- Navegación entre sesiones -->
+  <div id="session-nav" style="background:#f9fafb;border-bottom:1px solid #e5e7eb;padding:8px 0">
+    <div class="container" style="display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap">
+      <!-- se rellena por JS -->
+    </div>
+  </div>
+
   <div class="container">
     <div class="session-grid">
 
@@ -499,7 +506,6 @@
               <li>Partidos a 11 puntos (win by 2). Mínimo 4 partidos garantizados por jugador.</li>
               <li>Todos juegan contra jugadores de nivel similar — el sistema de rotación balancea la competencia.</li>
               <li>Los puntos ganados suman a tu marcador acumulado de la temporada.</li>
-              <li>Traer tu propia pala. Pelotas proporcionadas por la organización.</li>
             </ul>
           </div>
         </div>
@@ -626,8 +632,28 @@ const estadoLabels = {
 
 let sesion = null; // se asigna en startPage después de cargar config
 
+function renderSessionNav() {
+  const nav = document.querySelector('#session-nav .container');
+  if (!nav || !SEMANAS.length) return;
+  const visibles = SEMANAS.filter(s => s.estado !== 'cancelada');
+  nav.innerHTML = visibles.map(s => {
+    const isCurrent = s.num === NUM;
+    const label = estadoLabels[s.estado] || s.estado;
+    return `<a href="sesion.html?n=${s.num}" style="
+      font-family:'Barlow Condensed',sans-serif;font-size:.75rem;font-weight:${isCurrent?'900':'700'};
+      text-transform:uppercase;letter-spacing:.04em;padding:5px 12px;
+      border:1.5px solid ${isCurrent?'var(--red)':'#d1d5db'};
+      background:${isCurrent?'var(--red)':'#fff'};
+      color:${isCurrent?'#fff':'#6b7280'};
+      text-decoration:none;white-space:nowrap;
+      ${s.estado==='jugada'?'opacity:.6':''}
+    ">S${s.num} <span style="font-weight:400;font-size:.65rem;opacity:.8">${label}</span></a>`;
+  }).join('');
+}
+
 function startPage(s) {
   sesion = s;
+  renderSessionNav();
   // ── Render hero ──
   document.title = `Semana ${NUM} · Antigua Ladder League`;
   document.getElementById('hero-title').textContent = `Semana ${NUM}`;
