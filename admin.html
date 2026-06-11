@@ -2741,7 +2741,7 @@ async function resetLeague() {
     return;
   }
 
-  if (!confirm('⚠️ ÚLTIMA ADVERTENCIA\n\nEsto borrará:\n• Todos los registros de inscripción\n• Todos los fixtures y resultados\n• Todas las penalizaciones\n• Todas las notificaciones\n\n¿Estás seguro?')) return;
+  if (!confirm('⚠️ ÚLTIMA ADVERTENCIA\n\nEsto borrará:\n• Todos los registros de inscripción\n• Todos los fixtures y resultados\n• Todos los rankings (ladder_scores)\n• Todas las penalizaciones\n• Todas las notificaciones\n\n¿Estás seguro?')) return;
 
   closeModal('modal-danger');
   toast('Reseteando… espera');
@@ -2755,6 +2755,7 @@ async function resetLeague() {
     await dels('ladder_fixtures');
     await dels('ladder_penalties');
     await dels('ladder_notifications');
+    await dels('ladder_scores');
 
     // Clear inscritos from all registration docs (keep doc structure)
     const regSnap = await db.collection(COLLECTION).get();
