@@ -786,6 +786,49 @@
       .footer-inner { grid-template-columns: 1fr; }
       .hero-title { font-size: clamp(3.5rem, 18vw, 6rem); }
     }
+    /* ═══ CAPA DEPORTIVA (aditiva) ═══ */
+    /* cinta atlética diagonal */
+    .tape-wrap { background: var(--red); overflow: hidden; transform: rotate(-1.2deg) scale(1.02); margin: -10px 0; position: relative; z-index: 5; box-shadow: 0 6px 24px rgba(228,37,46,.25); }
+    .tape { display: inline-flex; align-items: center; white-space: nowrap; padding: 11px 0; animation: tapeMove 28s linear infinite; }
+    .tape-wrap:hover .tape { animation-play-state: paused; }
+    @keyframes tapeMove { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+    .tape span {
+      font-family: 'Barlow Condensed', sans-serif; font-size: 1.05rem; font-weight: 800;
+      letter-spacing: .14em; text-transform: uppercase; color: #fff; padding: 0 26px;
+    }
+    .tape b { color: var(--yellow); font-weight: 900; }
+    .tape .sep { color: rgba(255,255,255,.45); padding: 0; }
+    /* filas del ranking entran en cascada (se re-animan al cargar de Firebase) */
+    @keyframes rowSlide { from { opacity: 0; transform: translateX(-16px); } to { opacity: 1; transform: none; } }
+    .standings-table tbody tr { animation: rowSlide .45s cubic-bezier(.2,.7,.2,1) both; }
+    .standings-table tbody tr:nth-child(1) { animation-delay: .04s; } .standings-table tbody tr:nth-child(2) { animation-delay: .09s; }
+    .standings-table tbody tr:nth-child(3) { animation-delay: .14s; } .standings-table tbody tr:nth-child(4) { animation-delay: .19s; }
+    .standings-table tbody tr:nth-child(5) { animation-delay: .24s; } .standings-table tbody tr:nth-child(6) { animation-delay: .29s; }
+    .standings-table tbody tr:nth-child(7) { animation-delay: .34s; } .standings-table tbody tr:nth-child(8) { animation-delay: .39s; }
+    .standings-table tbody tr:nth-child(n+9) { animation-delay: .44s; }
+    .standings-table tbody tr:hover td { background: var(--red-light); box-shadow: inset 3px 0 0 var(--red); }
+    .standings-table tbody tr:first-child td { background: #fffbe8; }
+    /* cinta de fotos de sesiones */
+    .session-belt { overflow: hidden; padding: 6px 0; }
+    .sb-track { display: flex; gap: 12px; width: max-content; animation: tapeMove 50s linear infinite; }
+    .session-belt:hover .sb-track { animation-play-state: paused; }
+    .sb-card {
+      flex-shrink: 0; width: 250px; height: 165px; overflow: hidden; position: relative; display: block;
+      border: 1px solid var(--border); transform: skewX(-3deg);
+    }
+    .sb-card img { width: 104%; height: 100%; object-fit: cover; transform: skewX(3deg) scale(1.08); filter: saturate(.85); transition: filter .4s, transform .5s cubic-bezier(.2,.7,.2,1); }
+    .sb-card::after { content: ''; position: absolute; left: 0; bottom: 0; width: 100%; height: 4px; background: var(--red); transform: scaleX(0); transform-origin: left; transition: transform .35s; }
+    .sb-card:hover img { filter: saturate(1.15); transform: skewX(3deg) scale(1.16); }
+    .sb-card:hover::after { transform: scaleX(1); }
+    /* contadores */
+    .hero-stat-num { font-variant-numeric: tabular-nums; }
+    /* barrido rojo bajo títulos al revelarse */
+    .section-title { position: relative; }
+    .reveal.visible .section-title::after, .section-title.swept::after {
+      content: ''; position: absolute; left: 0; bottom: -8px; width: 56px; height: 4px;
+      background: var(--red); animation: sweep .6s .2s cubic-bezier(.2,.7,.2,1) both;
+    }
+    @keyframes sweep { from { width: 0; } to { width: 56px; } }
   </style>
 </head>
 <body>
@@ -948,6 +991,9 @@
 
 </section>
 
+<!-- CINTA ATLÉTICA -->
+<div class="tape-wrap" aria-hidden="true"><div class="tape" id="tape"></div></div>
+
 <!-- ══════════════════════════════════════
      FEATURE CARDS — photo cards
 ══════════════════════════════════════ -->
@@ -1099,6 +1145,9 @@
 <!-- ══════════════════════════════════════
      STANDINGS
 ══════════════════════════════════════ -->
+<!-- CINTA DE FOTOS DE SESIONES -->
+<div class="session-belt" aria-hidden="true"><div class="sb-track" id="sessionBelt"></div></div>
+
 <section class="standings-section" id="standings">
   <div class="container">
     <div class="reveal" style="margin-bottom:36px">
@@ -1619,6 +1668,41 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
   });
+</script>
+<script>
+/* ═══ Capa deportiva (aditiva, no toca lógica del ladder) ═══ */
+// Cinta atlética
+(function(){
+  const items = [
+    'Antigua Ladder League', 'Temporada 1 · <b>Jul – Ago 2026</b>', 'Sube o baja <b>cada semana</b>',
+    'Quattro Club · La Antigua', '<b>Inscripciones abiertas</b>', 'Llegas solo · te asignamos grupo',
+  ];
+  const html = items.map(t => `<span>${t}</span><span class="sep">◆</span>`).join('');
+  const tape = document.getElementById('tape');
+  if (tape) tape.innerHTML = html + html;
+})();
+// Cinta de fotos de sesiones
+(function(){
+  const belt = document.getElementById('sessionBelt');
+  if (!belt) return;
+  const photos = ['img/strip-1.jpg','img/strip-2.jpg','img/strip-3.jpg','img/hero.jpg','img/card-ranking.jpg','img/card-calendario.jpg','img/card-inscripcion.jpg'];
+  const cards = photos.map(u => `<a class="sb-card" href="#calendario"><img src="${u}" loading="lazy" alt="Ladder League en acción" onerror="this.parentElement.remove()"></a>`).join('');
+  belt.innerHTML = cards + cards;
+})();
+// Contadores de stats del hero (solo los numéricos)
+(function(){
+  const cObs = new IntersectionObserver(es => { es.forEach(e => {
+    if (!e.isIntersecting) return; cObs.unobserve(e.target);
+    const raw = e.target.textContent.trim();
+    const target = parseInt(raw, 10);
+    if (isNaN(target) || String(target) !== raw) return; // saltar "Q75", "4 Jul"
+    const t0 = performance.now(), dur = 1200;
+    (function tick(t){ const p = Math.min((t - t0) / dur, 1);
+      e.target.textContent = Math.round(target * (1 - Math.pow(1 - p, 3)));
+      if (p < 1) requestAnimationFrame(tick); })(t0);
+  }); }, { threshold: .5 });
+  document.querySelectorAll('.hero-stat-num').forEach(el => cObs.observe(el));
+})();
 </script>
 </body>
 </html>
