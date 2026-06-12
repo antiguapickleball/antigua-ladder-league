@@ -829,6 +829,7 @@
       background: var(--red); animation: sweep .6s .2s cubic-bezier(.2,.7,.2,1) both;
     }
     @keyframes sweep { from { width: 0; } to { width: 56px; } }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .35; } }
   </style>
 </head>
 <body>
@@ -842,6 +843,8 @@
       <img src="logo.png" alt="Antigua Pickleball" height="28"/>
       <div class="nav-brand-divider"></div>
       <span class="nav-brand-name">Ladder League</span>
+      <div class="nav-brand-divider"></div>
+      <img src="img/quattro.png" alt="Quattro Club" style="height:34px;width:auto" onerror="this.style.display='none'"/>
     </a>
     <ul class="nav-links">
       <li><a href="#formato">Formato</a></li>
@@ -986,6 +989,13 @@
         <div class="hero-stat-num">4 Jul</div>
         <div class="hero-stat-label">Primera sesión</div>
       </div>
+      <div class="hero-stat" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px">
+        <div style="display:flex;align-items:center;gap:12px">
+          <img src="img/quattro.png" alt="Quattro Club" style="height:42px;width:auto" onerror="this.style.display='none'"/>
+          <img src="logo.png" alt="Antigua Pickleball" style="height:34px;width:auto" onerror="this.style.display='none'"/>
+        </div>
+        <div class="hero-stat-label">Sede oficial · Quattro Club</div>
+      </div>
     </div>
   </div>
 
@@ -1059,12 +1069,12 @@
       <div class="how-card reveal" data-num="02">
         <div class="how-card-icon">📊</div>
         <h3>Ranking Semanal</h3>
-        <p>Tu posición se mide por el porcentaje de puntos ganados vs. posibles. El ranking se publica cada domingo después de la sesión.</p>
+        <p>Tu posición se mide por el porcentaje de puntos ganados vs. posibles. El ranking se publica automáticamente al finalizar cada sesión — lo ves moverse en tiempo real aquí mismo.</p>
       </div>
       <div class="how-card reveal" data-num="03">
         <div class="how-card-icon">⬆️</div>
         <h3>Sube y Baja</h3>
-        <p>El mejor jugador de cada cancha sube de grupo. El peor baja. Cada semana la escalera cambia — siempre compites a tu nivel real.</p>
+        <p>Con 8 o más inscritos en la jornada, <strong>suben 2 y bajan 2</strong>. Con menos jugadores se juega round robin entre los presentes, y con 4–5 jugadores es <strong>round robin doble</strong> — siempre hay suficientes partidos por sesión.</p>
       </div>
       <div class="how-card reveal" data-num="04">
         <div class="how-card-icon">🏓</div>
@@ -1153,6 +1163,10 @@
     <div class="reveal" style="margin-bottom:36px">
       <div class="label">Temporada 1</div>
       <h2 class="section-title">Ranking</h2>
+      <p style="font-family:'Space Mono',monospace;font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:var(--court);margin-top:12px">
+        <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--court);margin-right:6px;animation:pulse 1.8s ease infinite"></span>
+        En vivo — se publica automáticamente al finalizar cada sesión
+      </p>
     </div>
     <div class="standings-tabs" role="tablist">
       <button class="s-tab active" data-cat="principiante" role="tab">Principiante</button>
@@ -1193,13 +1207,13 @@
     <div class="policy-grid">
       <div class="policy-card ok reveal">
         <div class="policy-icon">✅</div>
-        <h3>Cancela antes del viernes</h3>
-        <p>Sin penalización. Avisas con tiempo suficiente y tu posición en el ranking no se ve afectada.</p>
+        <h3>Cancela con 48+ horas</h3>
+        <p>Sin penalización. Puedes cancelar <strong>o reagendar</strong> tu cupo a otra sesión de la temporada sin afectar tu ranking.</p>
       </div>
       <div class="policy-card warn reveal">
         <div class="policy-icon">⚠️</div>
-        <h3>Cancela el mismo sábado</h3>
-        <p>Penalización de <strong style="color:#b45309">–1 posición</strong> en el ranking. Solo aplica si avisas antes de la sesión.</p>
+        <h3>Cancela con menos de 48 h</h3>
+        <p>Entre 24 y 48 horas solo puedes <strong>cancelar</strong> (sin reagendar), sin penalización — tu cupo se libera a la lista de espera. Con menos de 24 horas es cancelación tardía: <strong style="color:#b45309">–1 posición</strong>.</p>
       </div>
       <div class="policy-card bad reveal">
         <div class="policy-icon">🚫</div>
@@ -1334,13 +1348,27 @@ const SEMANAS = [
 // Current active category tab
 let _activeCat = 'principiante';
 
+// Escucha en tiempo real: cuando el admin publica resultados, el ranking
+// se re-renderiza solo (las filas re-animan en cascada).
+let _scoresSnap = null;
+let _scoresUnsub = null;
+function ensureLiveRanking() {
+  if (_scoresUnsub) return;
+  _scoresUnsub = db.collection('ladder_scores').onSnapshot(s => {
+    const first = _scoresSnap === null;
+    _scoresSnap = s;
+    if (!first) loadPublicRanking(_activeCat);
+  }, () => {});
+}
+
 async function loadPublicRanking(cat) {
   _activeCat = cat || _activeCat;
   const wrap = document.getElementById('standings-body');
   wrap.innerHTML = `<div class="standings-empty"><p style="color:#6b7280;font-size:.9rem">Cargando ranking…</p></div>`;
+  ensureLiveRanking();
 
   try {
-    const snap = await db.collection('ladder_scores').get();
+    const snap = _scoresSnap || await db.collection('ladder_scores').get();
 
     if (snap.empty) {
       renderStaticStandings(_activeCat);

@@ -213,6 +213,8 @@
       <img src="img/logo.png" alt="ALL" onerror="this.style.display='none'"/>
       <div class="nav-brand-divider"></div>
       <span class="nav-brand-name">Ladder League</span>
+      <div class="nav-brand-divider"></div>
+      <img src="img/quattro.png" alt="Quattro Club" style="height:34px;width:auto" onerror="this.style.display='none'"/>
     </a>
     <div class="nav-actions">
       <a class="nav-back" href="index.html">← Inicio</a>
@@ -319,8 +321,8 @@
         inscritos.forEach(p => {
           const cat = p.categoria;
           if (!counts[s.num][cat]) return;
-          if (p.status === 'confirmed' || p.status === 'pending_review') counts[s.num][cat].confirmed++;
-          else if (p.status === 'waitlist') counts[s.num][cat].waitlist++;
+          if (p.status === 'confirmed') counts[s.num][cat].confirmed++;
+          else if (p.status === 'waitlist' || p.status === 'pending_review') counts[s.num][cat].waitlist++;
         });
       }));
     } catch(e) { console.warn('Error cargando cupos:', e); }

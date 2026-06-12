@@ -430,6 +430,8 @@
       <img src="logo.png" alt="Antigua Pickleball"/>
       <div class="nav-brand-divider"></div>
       <span class="nav-brand-name">Ladder League</span>
+      <div class="nav-brand-divider"></div>
+      <img src="img/quattro.png" alt="Quattro Club" style="height:34px;width:auto" onerror="this.style.display='none'"/>
     </a>
     <div class="nav-actions">
       <div id="nav-auth-slot"></div>
@@ -1071,7 +1073,7 @@ function renderRegContainer(user, inscritos) {
           </div>
 
           <div style="background:#fffbeb;border:1px solid #fcd34d;padding:12px 14px;font-size:.82rem;color:#78350f;line-height:1.6">
-            ⚠️ Tu inscripción quedará <strong>pendiente de validación</strong>. El admin revisará tu boleta y confirmará por WhatsApp.
+            ⏳ Al enviar, entras en <strong>lista de espera hasta que validemos tu pago</strong>. El admin revisará tu boleta y te confirmará por WhatsApp — entonces tu cupo queda asegurado.
           </div>
 
           <button class="btn-transfer-submit" id="btn-transfer-submit" type="button">
@@ -1258,9 +1260,9 @@ function renderYaInscrito(container, user, reg, inscritos) {
            </div>`
         : isPending
         ? `<div class="reg-msg pending">
-             🕐 Pendiente de validación.<br>
+             ⏳ En lista de espera — pago por validar.<br>
              <span style="font-size:.8rem;font-family:'Barlow',sans-serif;font-weight:400">
-               El admin revisará tu boleta y te confirmará por WhatsApp.
+               El admin revisará tu boleta y te confirmará por WhatsApp. Al validar el pago, tu cupo queda asegurado.
              </span>
            </div>`
         : isDenied
@@ -1448,17 +1450,23 @@ async function submitTransfer(user) {
   errEl.style.display = 'none';
 
   try {
-    // 1. Comprimir imagen y guardar en Firestore (colección ladder_boletas)
-    btn.textContent = 'Procesando boleta…';
-    const base64    = await compressBoleta(file);
-    btn.textContent = 'Guardando inscripción…';
-    const boletaDocId = await saveBoleta(user.uid, NUM, base64);
+    // 1. Intentar subir la boleta — si falla, NO bloquea la inscripción:
+    //    el jugador queda en lista de espera y puede mandar la boleta por WhatsApp.
+    let boletaDocId = null;
+    try {
+      btn.textContent = 'Procesando boleta…';
+      const base64 = await compressBoleta(file);
+      boletaDocId  = await saveBoleta(user.uid, NUM, base64);
+    } catch (e) {
+      console.warn('Boleta no se pudo subir; la inscripción continúa:', e);
+    }
 
-    // 2. Guardar inscripción con referencia a la boleta
+    // 2. Guardar inscripción — entra en lista de espera hasta validar el pago
+    btn.textContent = 'Guardando inscripción…';
     await saveRegistration(user, duprId, cat, null, 'pending_review', {
       paymentMethod:  'transfer',
       transferAmount: TRANSFER_PRICE,
-      boletaDocId,   // referencia, no la imagen completa
+      ...(boletaDocId ? { boletaDocId } : { boletaPendiente: true }),
       phone,
     });
 
@@ -1469,9 +1477,11 @@ async function submitTransfer(user) {
     document.getElementById('reg-container').innerHTML = `
       <div class="reg-box">
         <div class="reg-msg pending">
-          🕐 ¡Inscripción enviada!<br>
+          ⏳ ¡Inscripción recibida — estás en lista de espera!<br>
           <span style="font-size:.8rem;font-family:'Barlow',sans-serif;font-weight:400">
-            El admin revisará tu boleta y te confirmará por WhatsApp al <strong>${phone}</strong>.
+            Quedas en lista de espera mientras validamos tu pago. ${boletaDocId
+              ? `El admin revisará tu boleta y te confirmará por WhatsApp al <strong>${phone}</strong>.`
+              : `No pudimos recibir tu boleta — envíala por <a href="https://wa.me/50230912707?text=Boleta+Ladder+Semana+${NUM}" style="color:var(--red);font-weight:700">WhatsApp</a> para validar tu pago.`}
           </span>
         </div>
         <div style="font-size:.8rem;color:var(--muted);display:flex;flex-direction:column;gap:5px">
