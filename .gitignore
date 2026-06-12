@@ -1,0 +1,8 @@
+
+.DS_Store
+**/.DS_Store
+*.docx
+*.pdf
+~$*
+.firebase/
+.claude/settings.local.json
