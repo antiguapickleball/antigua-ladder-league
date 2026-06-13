@@ -431,7 +431,7 @@
       <div class="nav-brand-divider"></div>
       <span class="nav-brand-name">Ladder League</span>
       <div class="nav-brand-divider"></div>
-      <img src="img/quattro.png" alt="Quattro Club" style="height:34px;width:auto" onerror="this.style.display='none'"/>
+      <img src="img/quattro.png" alt="Quattro Club" style="height:28px;width:auto;background:#111113;padding:4px 9px;border-radius:4px;box-sizing:content-box" onerror="this.style.display='none'"/>
     </a>
     <div class="nav-actions">
       <div id="nav-auth-slot"></div>
@@ -778,12 +778,23 @@ async function loadAltSessions(categoria) {
   }
 }
 
+// Lectura del perfil vía consulta (permitida por reglas) — la lectura directa
+// del doc se rechaza porque esta página usa sesión anónima de Firebase.
+let _profileCache;
+async function loadProfileDoc(uid) {
+  if (_profileCache !== undefined) return _profileCache;
+  try {
+    const snap = await db.collection('users')
+      .where(firebase.firestore.FieldPath.documentId(), '==', uid).get();
+    _profileCache = snap.empty ? null : snap.docs[0].data();
+  } catch (_) { _profileCache = null; }
+  return _profileCache;
+}
+
 // ── Cargar DUPR ID del perfil ──
 async function loadUserDuprId(uid) {
-  try {
-    const doc = await db.collection('users').doc(uid).get();
-    return doc.exists ? (doc.data().duprId || '') : '';
-  } catch (_) { return ''; }
+  const p = await loadProfileDoc(uid);
+  return (p && p.duprId) || '';
 }
 
 // ══════════════════════════════════════════════════════
@@ -807,10 +818,8 @@ function horasHastaInicio(sesionNum, categoria) {
 
 // ── Cargar teléfono del perfil ──
 async function loadUserPhone(uid) {
-  try {
-    const doc = await db.collection('users').doc(uid).get();
-    return doc.exists ? (doc.data().phone || doc.data().telefono || '') : '';
-  } catch (_) { return ''; }
+  const p = await loadProfileDoc(uid);
+  return (p && (p.phone || p.telefono)) || '';
 }
 
 // ── Comprimir imagen y convertir a base64 (para guardar en Firestore) ──
@@ -1138,10 +1147,8 @@ function renderRegContainer(user, inscritos) {
     const el = document.getElementById('nombre-input');
     if (!el) return;
     let nombre = user.displayName || '';
-    try {
-      const d = await db.collection('users').doc(user.uid).get();
-      if (d.exists && d.data().displayName) nombre = d.data().displayName;
-    } catch (_) {}
+    const p = await loadProfileDoc(user.uid);
+    if (p && p.displayName) nombre = p.displayName;
     el.value = nombre || '';
     if (!nombre) { el.readOnly = false; el.placeholder = 'Tu nombre y apellido'; }
   })();
@@ -1731,7 +1738,7 @@ function renderNavChip(user) {
     const isAdmin = user.role === 'admin';
     slot.innerHTML = `
       ${isAdmin ? `<a href="admin.html" style="font-family:'Barlow Condensed',sans-serif;font-size:.75rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);text-decoration:none;padding:5px 10px;border:1px solid var(--border);margin-right:4px">⚙ Admin</a>` : ''}
-      <a class="nav-user" href="perfil.html"><span class="nav-user-avatar">${initials}</span>${first}</a>`;
+      <a class="nav-user" href="perfil.html"><span class="nav-user-avatar">${initials}</span>${first}</a><button onclick="APAuth.signOut();location.href='https://antigua-pickleball.com/login.html?redirect='+encodeURIComponent(location.href)" title="Salir / cambiar de cuenta" style="font-family:'Barlow Condensed',sans-serif;font-size:.78rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#6b6b74;background:none;border:1px solid #e2e2de;padding:6px 11px;cursor:pointer;margin-left:6px">Salir</button>`;
   } else {
     const loginURL = `https://antigua-pickleball.com/login.html?redirect=${encodeURIComponent(window.location.href)}`;
     slot.innerHTML = `<a href="${loginURL}" class="nav-back">Ingresar</a>`;

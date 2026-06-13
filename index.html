@@ -844,7 +844,7 @@
       <div class="nav-brand-divider"></div>
       <span class="nav-brand-name">Ladder League</span>
       <div class="nav-brand-divider"></div>
-      <img src="img/quattro.png" alt="Quattro Club" style="height:34px;width:auto" onerror="this.style.display='none'"/>
+      <img src="img/quattro.png" alt="Quattro Club" style="height:28px;width:auto;background:#111113;padding:4px 9px;border-radius:4px;box-sizing:content-box" onerror="this.style.display='none'"/>
     </a>
     <ul class="nav-links">
       <li><a href="#formato">Formato</a></li>
@@ -992,7 +992,7 @@
       <div class="hero-stat" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px">
         <div style="display:flex;align-items:center;gap:12px">
           <img src="img/quattro.png" alt="Quattro Club" style="height:42px;width:auto" onerror="this.style.display='none'"/>
-          <img src="logo.png" alt="Antigua Pickleball" style="height:34px;width:auto" onerror="this.style.display='none'"/>
+          <img src="logo.png" alt="Antigua Pickleball" style="height:34px;width:auto;filter:brightness(0) invert(1)" onerror="this.style.display='none'"/>
         </div>
         <div class="hero-stat-label">Sede oficial · Quattro Club</div>
       </div>
@@ -1003,6 +1003,18 @@
 
 <!-- CINTA ATLÉTICA -->
 <div class="tape-wrap" aria-hidden="true"><div class="tape" id="tape"></div></div>
+
+<!-- ALIANZA: LOGOS GRANDES -->
+<section style="background:#111113;padding:64px 24px;text-align:center;position:relative;overflow:hidden">
+  <div style="position:absolute;inset:0;background:repeating-linear-gradient(-45deg,transparent,transparent 40px,rgba(255,255,255,.02) 40px,rgba(255,255,255,.02) 41px);pointer-events:none"></div>
+  <div class="reveal" style="font-family:'Space Mono',monospace;font-size:.65rem;letter-spacing:.24em;text-transform:uppercase;color:#f5c800;margin-bottom:32px;position:relative">Una alianza de</div>
+  <div class="reveal" style="display:flex;align-items:center;justify-content:center;gap:clamp(28px,6vw,64px);flex-wrap:wrap;position:relative">
+    <img src="logo.png" alt="Antigua Pickleball" style="height:clamp(80px,12vw,130px);width:auto;filter:brightness(0) invert(1)" onerror="this.style.display='none'"/>
+    <div style="width:1px;height:90px;background:rgba(255,255,255,.18)"></div>
+    <img src="img/quattro.png" alt="Quattro Club" style="height:clamp(90px,13vw,140px);width:auto" onerror="this.style.display='none'"/>
+  </div>
+  <div class="reveal" style="font-family:'Barlow Condensed',sans-serif;font-size:1rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.55);margin-top:30px;position:relative">Antigua Pickleball × Quattro Club · Sede oficial de la temporada</div>
+</section>
 
 <!-- ══════════════════════════════════════
      FEATURE CARDS — photo cards
@@ -1669,7 +1681,7 @@ document.addEventListener('DOMContentLoaded', () => {
         ${isAdmin ? `<a href="admin.html" style="font-family:'Barlow Condensed',sans-serif;font-size:.75rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);text-decoration:none;padding:5px 10px;border:1px solid var(--border);margin-right:4px" title="Panel Admin">⚙ Admin</a>` : ''}
         <a class="nav-user" href="${profileURL}" title="${name}">
           <span class="nav-user-avatar">${initials}</span>${first}
-        </a>`;
+        </a><button onclick="APAuth.signOut();location.href='https://antigua-pickleball.com/login.html?redirect='+encodeURIComponent(location.href)" title="Salir / cambiar de cuenta" style="font-family:'Barlow Condensed',sans-serif;font-size:.78rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#6b6b74;background:none;border:1px solid #e2e2de;padding:6px 11px;cursor:pointer;margin-left:6px">Salir</button>`;
 
       // Mobile menu — insertar al inicio
       if (mobMenu) {

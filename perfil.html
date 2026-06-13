@@ -482,7 +482,7 @@
       <div class="nav-brand-divider"></div>
       <span class="nav-brand-name">Ladder League</span>
       <div class="nav-brand-divider"></div>
-      <img src="img/quattro.png" alt="Quattro Club" style="height:34px;width:auto" onerror="this.style.display='none'"/>
+      <img src="img/quattro.png" alt="Quattro Club" style="height:28px;width:auto;background:#111113;padding:4px 9px;border-radius:4px;box-sizing:content-box" onerror="this.style.display='none'"/>
     </a>
     <ul class="nav-links">
       <li><a href="index.html#formato">Formato</a></li>
@@ -929,7 +929,7 @@ function renderNavChip(user) {
   slot.innerHTML = `
     <a class="nav-user" href="perfil.html">
       <span class="nav-user-avatar">${initials}</span>${first}
-    </a>`;
+    </a><button onclick="APAuth.signOut();location.href='https://antigua-pickleball.com/login.html?redirect='+encodeURIComponent(location.href)" title="Salir / cambiar de cuenta" style="font-family:'Barlow Condensed',sans-serif;font-size:.78rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#6b6b74;background:none;border:1px solid #e2e2de;padding:6px 11px;cursor:pointer;margin-left:6px">Salir</button>`;
   if (mobMenu && !document.getElementById('mob-auth-btn')) {
     const a = document.createElement('a');
     a.id = 'mob-auth-btn'; a.href = 'perfil.html';
