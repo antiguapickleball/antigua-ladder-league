@@ -788,7 +788,7 @@
     }
     /* ═══ CAPA DEPORTIVA (aditiva) ═══ */
     /* cinta atlética diagonal */
-    .tape-wrap { background: var(--red); overflow: hidden; transform: rotate(-1.2deg) scale(1.02); margin: -10px 0; position: relative; z-index: 5; box-shadow: 0 6px 24px rgba(228,37,46,.25); }
+    .tape-wrap { background: var(--red); overflow: hidden; position: relative; z-index: 5; box-shadow: 0 6px 24px rgba(228,37,46,.25); }
     .tape { display: inline-flex; align-items: center; white-space: nowrap; padding: 11px 0; animation: tapeMove 28s linear infinite; }
     .tape-wrap:hover .tape { animation-play-state: paused; }
     @keyframes tapeMove { from { transform: translateX(0); } to { transform: translateX(-50%); } }
@@ -839,13 +839,13 @@
 ══════════════════════════════════════ -->
 <header id="nav">
   <div class="nav-inner">
-    <a href="https://antigua-pickleball.com" class="nav-brand">
-      <img src="logo.png" alt="Antigua Pickleball" height="28"/>
+    <div class="nav-brand" style="cursor:default">
+      <a href="https://antigua-pickleball.com" title="Ir a Antigua Pickleball"><img src="logo.png" alt="Antigua Pickleball" height="28" style="display:block"/></a>
       <div class="nav-brand-divider"></div>
-      <span class="nav-brand-name">Ladder League</span>
+      <a href="index.html" class="nav-brand-name" style="text-decoration:none">Ladder League</a>
       <div class="nav-brand-divider"></div>
       <img src="img/quattro.png" alt="Quattro Club" style="height:28px;width:auto;background:#111113;padding:4px 9px;border-radius:4px;box-sizing:content-box" onerror="this.style.display='none'"/>
-    </a>
+    </div>
     <ul class="nav-links">
       <li><a href="#formato">Formato</a></li>
       <li><a href="#horarios">Horarios</a></li>
