@@ -419,7 +419,30 @@
       padding: 28px 24px; text-align: center; font-size: .8rem;
     }
     footer a { color: rgba(255,255,255,.4); text-decoration: none; }
-  </style>
+  
+    /* móvil: el nav no debe desbordar — ocultar logo Quattro y compactar marca */
+    @media (max-width: 560px) {
+      .nav-brand img[src*="quattro"] { display: none !important; }
+      .nav-brand .nav-brand-divider + img[src*="quattro"] { display: none !important; }
+      .nav-brand { gap: 8px; min-width: 0; }
+      .nav-brand-name { font-size: .92rem; white-space: nowrap; }
+      .nav-inner { padding: 0 14px; gap: 8px; }
+    }
+
+    /* móvil: compactar acciones del nav para que nada se corte */
+    @media (max-width: 560px) {
+      .nav-btn { padding: 7px 12px !important; font-size: .78rem !important; }
+      .nav-user { padding: 4px !important; gap: 0 !important; }
+      .nav-user > :not(.nav-user-avatar) { display: none; }
+      .nav-user { font-size: 0 !important; }
+      .nav-user .nav-user-avatar { font-size: .72rem !important; }
+      button[title="Salir / cambiar de cuenta"] { padding: 5px 8px !important; font-size: .68rem !important; margin-left: 4px !important; }
+      .nav-chip-admin { font-size: .6rem !important; padding: 4px 6px !important; }
+      .nav-actions, #nav-auth-slot { gap: 6px !important; }
+    }
+
+    #nav-auth-slot { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+</style>
 </head>
 <body>
 
