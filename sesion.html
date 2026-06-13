@@ -975,6 +975,18 @@ function renderRegContainer(user, inscritos) {
   container.innerHTML = `
     <div class="reg-box">
 
+      <!-- NOMBRE -->
+      <div class="dupr-form">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+          <label class="dupr-label">Tu nombre</label>
+          <button id="nombre-edit-btn" type="button" style="font-family:'Space Mono',monospace;font-size:.6rem;background:none;border:none;color:var(--red);cursor:pointer;letter-spacing:.08em;text-transform:uppercase">Editar</button>
+        </div>
+        <input class="dupr-input" id="nombre-input" type="text"
+          placeholder="Cargando…" maxlength="60" readonly
+          autocomplete="off" spellcheck="false"/>
+        <p class="dupr-hint">Se carga de tu perfil. Así aparecerás en el ranking.</p>
+      </div>
+
       <!-- DUPR ID -->
       <div class="dupr-form">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
@@ -1119,6 +1131,23 @@ function renderRegContainer(user, inscritos) {
     const el2 = document.getElementById('waitlist-phone-input');
     if (el  && phone) el.value  = phone;
     if (el2 && phone) el2.value = phone;
+  });
+
+  // Cargar nombre del perfil (editable con el botón)
+  (async () => {
+    const el = document.getElementById('nombre-input');
+    if (!el) return;
+    let nombre = user.displayName || '';
+    try {
+      const d = await db.collection('users').doc(user.uid).get();
+      if (d.exists && d.data().displayName) nombre = d.data().displayName;
+    } catch (_) {}
+    el.value = nombre || '';
+    if (!nombre) { el.readOnly = false; el.placeholder = 'Tu nombre y apellido'; }
+  })();
+  document.getElementById('nombre-edit-btn').addEventListener('click', () => {
+    const el = document.getElementById('nombre-input');
+    el.readOnly = false; el.focus(); el.select();
   });
 
   document.getElementById('dupr-edit-btn').addEventListener('click', () => {
@@ -1572,11 +1601,16 @@ async function moveToSession(user, reg) {
 }
 
 async function saveRegistration(user, duprId, categoria, paypalOrderId, status, extra = {}) {
-  const nombre = user.displayName || user.email.split('@')[0];
+  // Nombre: el del formulario (prellenado del perfil, editable) con fallback al perfil
+  const nombreInput = (document.getElementById('nombre-input')?.value || '').trim();
+  const nombre = nombreInput || user.displayName || user.email.split('@')[0];
   const docRef = db.collection(COLLECTION).doc(DOC_ID);
 
-  // Guardar DUPR ID en perfil
-  db.collection('users').doc(user.uid).set({ duprId }, { merge: true }).catch(() => {});
+  // Guardar DUPR ID (y nombre si lo editó) en perfil
+  db.collection('users').doc(user.uid).set({
+    duprId,
+    ...(nombreInput && nombreInput !== user.displayName ? { displayName: nombreInput } : {}),
+  }, { merge: true }).catch(() => {});
 
   // Guardia contra condición de carrera: re-verificar capacidad al momento de guardar
   if (status === 'confirmed') {
