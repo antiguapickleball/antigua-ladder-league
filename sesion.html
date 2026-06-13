@@ -1581,24 +1581,36 @@ async function moveToSession(user, reg) {
   btn.disabled = true; btn.textContent = 'Moviendo…';
 
   try {
+    // Verificar capacidad de la sesión destino ANTES de mover:
+    // un jugador ya confirmado (pagado) conserva su cupo confirmado,
+    // solo entra a lista de espera si la categoría destino está llena.
+    const dstRef  = db.collection(COLLECTION).doc(`t1_sesion_${targetNum}`);
+    const dstSnap = await dstRef.get();
+    const dstInscritos = dstSnap.exists ? (dstSnap.data().inscritos || []) : [];
+    const dstFull = isFull(dstInscritos, reg.categoria);
+    const newStatus = (reg.status === 'confirmed' && !dstFull) ? 'confirmed' : (reg.status === 'confirmed' ? 'waitlist' : reg.status);
+
     // Quitar de sesión actual
     const srcRef  = db.collection(COLLECTION).doc(DOC_ID);
     const srcSnap = await srcRef.get();
     const srcData = srcSnap.data()?.inscritos || [];
     await srcRef.update({ inscritos: srcData.filter(p => p.uid !== user.uid) });
 
-    // Agregar a sesión destino como waitlist (no confirmado aún, no pagó)
-    const dstRef = db.collection(COLLECTION).doc(`t1_sesion_${targetNum}`);
+    // Agregar a sesión destino conservando su estado (pago incluido)
     await dstRef.set({
       sesionNum: targetNum,
       inscritos: firebase.firestore.FieldValue.arrayUnion({
         ...reg,
         sesionNum:    targetNum,
-        status:       'waitlist',
+        status:       newStatus,
         movedFrom:    NUM,
         movedAt:      firebase.firestore.Timestamp.now(),
       }),
     }, { merge: true });
+
+    if (newStatus === 'waitlist' && reg.status === 'confirmed') {
+      alert(`La Semana ${targetNum} está llena en tu categoría: quedaste en lista de espera con tu pago vigente — si se libera un cupo, entras directo.`);
+    }
 
   } catch (err) {
     console.error(err);
