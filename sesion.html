@@ -712,10 +712,18 @@ function loadInscritos(currentUser) {
 // ══════════════════════════════════════════════════════
 //  CONFIG
 // ══════════════════════════════════════════════════════
-const PAYPAL_ENV      = 'sandbox';   // → 'production' para live
+const PAYPAL_ENV      = 'production';   // client-id LIVE activo
 const SESSION_PRICE   = '10.00';
 const TRANSFER_PRICE  = 'Q75';
 const CAP_POR_CAT     = 10;          // máximo confirmados por categoría
+
+// Correo al admin (antiguapickleball@gmail.com) vía EmailJS cuando se libera un cupo.
+window.EMAIL_CFG = {
+  provider:   'emailjs',
+  serviceId:  'service_oxl5kqj',
+  templateId: 'template_exj7udi',
+  publicKey:  'DPWct4-Hrc-2V6nc_',
+};
 
 const BANK_INFO = {
   banco:  'Banco Industrial',
@@ -837,6 +845,95 @@ function horasHastaInicio(sesionNum, categoria) {
   const start = getSessionStart(sesionNum, categoria);
   if (!start) return Infinity;
   return (start - Date.now()) / 3_600_000;
+}
+// Las 7:00 pm (hora GT) del viernes inmediatamente anterior a la sesión (sábado).
+function viernes7pm(sesionNum, categoria) {
+  const start = getSessionStart(sesionNum, categoria);
+  if (!start) return null;
+  const f = new Date(start);
+  f.setDate(f.getDate() - 1);   // viernes anterior
+  f.setHours(19, 0, 0, 0);      // 7:00 pm
+  return f.getTime();
+}
+// ¿La inscripción ya está pagada/autorizada? (tarjeta capturada o transferencia validada)
+function esPagado(reg) {
+  return reg.paid === true
+      || !!reg.paypalOrderId
+      || (reg.paymentMethod === 'transfer' && reg.status === 'confirmed');
+}
+
+// Quita a `uid` de la sesión `sesionNum`. La promoción de lista de espera → titular
+// es MANUAL desde el panel admin; aquí, si se liberó un cupo confirmado y hay gente
+// en espera de esa categoría, solo avisamos al admin por correo para que promueva.
+async function salirDeSesion(sesionNum, categoria, uid, eraConfirmado) {
+  const ref  = db.collection(COLLECTION).doc(`t1_sesion_${sesionNum}`);
+  const snap = await ref.get();
+  if (!snap.exists) return;
+  const updated = (snap.data().inscritos || []).filter(p => p.uid !== uid);
+  await ref.update({ inscritos: updated });
+
+  if (eraConfirmado) {
+    const enEspera = updated.filter(p => p.status === 'waitlist' && p.categoria === categoria).length;
+    if (enEspera > 0) avisarCupoLiberadoAdmin(sesionNum, categoria, enEspera);
+  }
+}
+
+function horaTexto(categoria) {
+  const [hh, mm] = HORA_INICIO[categoria] || [8, 0];
+  const h12 = ((hh + 11) % 12) + 1;
+  return `${h12}:${String(mm).padStart(2,'0')} ${hh < 12 ? 'am' : 'pm'}`;
+}
+// Aviso por correo al admin (antiguapickleball@gmail.com) cuando se libera un cupo confirmado,
+// para que entre al panel y promueva manualmente a alguien de la lista de espera.
+function avisarCupoLiberadoAdmin(sesionNum, categoria, enEspera) {
+  const catLabel = { principiante:'Principiante', intermedio:'Intermedio', open:'Open' }[categoria] || categoria;
+  const sem = SEMANAS.find(s => s.num === sesionNum);
+  const fecha = sem ? sem.fecha : `Semana ${sesionNum}`;
+  const payload = {
+    to:        'antiguapickleball@gmail.com',
+    asunto:    `🎾 Cupo liberado · Semana ${sesionNum} ${catLabel}`,
+    jugador:   `${enEspera} en lista de espera — promueve desde el panel`,
+    sesion:    `Semana ${sesionNum} · ${fecha} · ${horaTexto(categoria)}`,
+    categoria: catLabel,
+    waLink:    'https://ladder.antigua-pickleball.com/admin.html',
+  };
+  try { enviarCorreoAdmin(payload); } catch (_) {}
+}
+
+// Envío del correo al admin. Soporta dos backends según se configure window.EMAIL_CFG:
+//   { provider:'emailjs', serviceId, templateId, publicKey }  → llama a EmailJS desde el cliente
+//   { provider:'firestore', collection:'mail' }               → escribe doc para la extensión Trigger Email
+// Si no hay config, no envía correo (el panel admin ya muestra la alerta en vivo + WhatsApp).
+function enviarCorreoAdmin(payload) {
+  const cfg = window.EMAIL_CFG;
+  if (!cfg) return;
+
+  if (cfg.provider === 'firestore') {
+    const html = `
+      <h2>🎾 Se liberó un cupo</h2>
+      <p><strong>Jugador promovido:</strong> ${payload.jugador}</p>
+      <p><strong>Sesión:</strong> ${payload.sesion}</p>
+      <p><strong>Categoría:</strong> ${payload.categoria}</p>
+      ${payload.waLink ? `<p><a href="${payload.waLink}" style="display:inline-block;background:#25D366;color:#fff;padding:12px 20px;border-radius:6px;text-decoration:none;font-weight:bold">💬 Avisar al jugador por WhatsApp</a></p>` : '<p>(El jugador no tiene teléfono registrado)</p>'}`;
+    db.collection(cfg.collection || 'mail').add({
+      to: payload.to,
+      message: { subject: payload.asunto, html },
+    }).catch(() => {});
+    return;
+  }
+
+  if (cfg.provider === 'emailjs') {
+    fetch('https://api.emailjs.com/api/v1.0/email/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        service_id:  cfg.serviceId,
+        template_id: cfg.templateId,
+        user_id:     cfg.publicKey,
+        template_params: payload,
+      }),
+    }).catch(() => {});
+  }
 }
 
 // ── Cargar teléfono del perfil ──
@@ -1272,17 +1369,25 @@ function renderRegContainer(user, inscritos) {
 }
 
 function renderYaInscrito(container, user, reg, inscritos) {
-  const isWait    = reg.status === 'waitlist';
-  const isPending = reg.status === 'pending_review';
-  const isDenied  = reg.status === 'denied';
-  const catLabel  = { principiante:'Principiante', intermedio:'Intermedio', open:'Open' }[reg.categoria] || reg.categoria;
+  const isConfirmed = reg.status === 'confirmed';
+  const isWait      = reg.status === 'waitlist';
+  const isPending   = reg.status === 'pending_review';
+  const isDenied    = reg.status === 'denied';
+  const isSlot      = reg.status === 'slot_available';
+  const pagado      = esPagado(reg);
+  const catLabel    = { principiante:'Principiante', intermedio:'Intermedio', open:'Open' }[reg.categoria] || reg.categoria;
 
-  // Ventana de cancelación (solo para confirmados y pending)
-  const horas   = (!isWait && !isDenied) ? horasHastaInicio(NUM, reg.categoria) : Infinity;
-  const puedeReagendar = horas >= 48;   // ≥48h: cancelar + reagendar
-  const soloCancelar   = horas >= 24 && horas < 48; // 24-48h: solo cancelar, libera espera
-  const cancelTardio   = horas >= 0  && horas < 24; // <24h antes: penaliza -1
-  const yaPaso         = horas < 0;
+  // Ventanas de tiempo — SOLO aplican a quien tiene un cupo CONFIRMADO.
+  // (Lista de espera y "por validar" no ocupan cupo confirmado → se mueven cuando quieran.)
+  const horas  = isConfirmed ? horasHastaInicio(NUM, reg.categoria) : Infinity;
+  const v7pm   = isConfirmed ? viernes7pm(NUM, reg.categoria) : null;
+  const ahora  = Date.now();
+  const yaPaso = isConfirmed && horas < 0;
+
+  const faseMover        = isConfirmed && horas >= 48;                                    // cambio de sesión (confirmado si hay cupo)
+  const faseWaitMove     = isConfirmed && horas >= 24 && horas < 48;                       // solo a lista de espera de otra sesión
+  const faseForfeitFree  = isConfirmed && horas < 24 && v7pm && ahora < v7pm && !yaPaso;   // liberar, sin penalización
+  const faseForfeitPenal = isConfirmed && v7pm && ahora >= v7pm && !yaPaso;                // liberar, −1 posición
 
   const waitPos = isWait
     ? inscritos.filter(p => p.status==='waitlist' && p.categoria===reg.categoria)
@@ -1290,33 +1395,65 @@ function renderYaInscrito(container, user, reg, inscritos) {
                .findIndex(p=>p.uid===user.uid) + 1
     : null;
 
-  // Selector de reagendamiento
-  const moveSelector = `
+  // Selector para moverse a otra sesión
+  const moveSelector = (titulo, btnText) => `
     <div style="border-top:1px solid var(--border);padding-top:14px;margin-top:4px">
-      <div class="dupr-label" style="margin-bottom:8px">Mover a otra sesión</div>
+      <div class="dupr-label" style="margin-bottom:8px">${titulo}</div>
       <select id="move-sesion-select" style="width:100%;font-family:'Barlow Condensed',sans-serif;font-size:.95rem;padding:9px 12px;border:2px solid var(--border);background:#fff;outline:none">
         <option value="">— Selecciona una fecha —</option>
         ${SEMANAS.filter(s => s.num !== NUM && s.estado !== 'cancelada' && s.estado !== 'jugada')
                  .map(s => `<option value="${s.num}">Semana ${s.num} · ${s.fecha}</option>`)
                  .join('')}
       </select>
-      <button class="btn-register" id="btn-move" style="margin-top:10px;width:100%">Confirmar cambio de fecha</button>
+      <button class="btn-register" id="btn-move" style="margin-top:10px;width:100%">${btnText}</button>
     </div>`;
 
-  // Aviso de penalización
-  let penaltyWarning = '';
-  if (cancelTardio && !isWait && !isPending) {
-    penaltyWarning = `<div style="background:#fef2f2;border:1px solid #fecaca;padding:10px 12px;font-size:.8rem;color:#991b1b;line-height:1.5;margin-top:4px">
-      ⚠️ Cancelar ahora (menos de 24 h) registra una cancelación tardía. El admin puede aplicar <strong>−1 posición</strong> en la tabla.
-    </div>`;
+  // ── Acción según estado / fase ──
+  let accionHTML = '', salirHTML = '', forceWaitlistMove = false;
+  if (isDenied || isSlot) {
+    // sin acciones (denied: contacto admin; slot_available: el admin confirma)
+  } else if (isWait) {
+    // Lista de espera: se mueve cuando quiera. Si ya pagó, entra directo si hay cupo.
+    accionHTML = moveSelector('Mover a otra sesión',
+      pagado ? 'Pasar a esa sesión' : 'Pasar a lista de espera de esa sesión');
+    if (!pagado) salirHTML = `<button class="btn-unregister" id="btn-cancel-reg">Salir de lista de espera</button>`;
+  } else if (isPending) {
+    // Pago por validar: se mueve cuando quiera; sigue "por validar" en el destino.
+    accionHTML = moveSelector('Mover a otra sesión', 'Cambiar de sesión');
+  } else if (faseMover) {
+    accionHTML = moveSelector('Cambiar de sesión', 'Confirmar cambio de fecha');
+  } else if (faseWaitMove) {
+    forceWaitlistMove = true;
+    accionHTML = `<div style="border-top:1px solid var(--border);padding-top:12px;margin-top:4px;font-size:.8rem;color:var(--muted);line-height:1.5">
+        Con menos de 48 h ya no puedes tomar un cupo directo: solo puedes <strong>pasar a la lista de espera</strong> de otra sesión (sin costo). Si se libera un lugar, el admin te confirma.
+      </div>` + moveSelector('Pasar a lista de espera de otra sesión', 'Pasar a lista de espera');
+  } else if (faseForfeitFree) {
+    accionHTML = `<div style="border:1px solid #fcd34d;background:#fffbeb;padding:10px 12px;font-size:.8rem;color:#92400e;line-height:1.5;margin-top:8px">
+        ⚠️ Liberar tu lugar ahora: <strong>pierdes tu inscripción y el pago</strong> (sin reembolso), pero <strong>sin penalización</strong> en la tabla. Tu cupo pasa al primero en lista de espera.
+      </div>
+      <button class="btn-unregister" id="btn-forfeit">Liberar mi lugar (sin reembolso)</button>`;
+  } else if (faseForfeitPenal) {
+    accionHTML = `<div style="border:1px solid #fecaca;background:#fef2f2;padding:10px 12px;font-size:.8rem;color:#991b1b;line-height:1.5;margin-top:8px">
+        ⚠️ Ya pasó el viernes 7:00 pm: si sales ahora <strong>pierdes el pago</strong> y se registra <strong>−1 posición</strong> en la tabla. Tu cupo pasa al primero en lista de espera.
+      </div>
+      <button class="btn-unregister" id="btn-forfeit">Salir de la sesión (−1 posición)</button>`;
   }
+
+  // Texto de estado para confirmados
+  const estadoTexto =
+    faseMover        ? '✓ Puedes cambiar de sesión sin costo (hasta 48 h antes)' :
+    faseWaitMove     ? '⏳ Menos de 48 h: solo puedes pasar a lista de espera de otra sesión' :
+    faseForfeitFree  ? '⚠️ Solo puedes liberar tu lugar — sin reembolso, sin penalización' :
+    faseForfeitPenal ? '⚠️ Después del viernes 7 pm: salir penaliza −1 posición' : '';
 
   container.innerHTML = `
     <div class="reg-box">
       ${isWait
         ? `<div class="reg-msg" style="border-color:#f59e0b;background:#fffbeb;color:#92400e">
-             ⏳ Lista de espera — posición #${waitPos} en ${catLabel}.
+             ⏳ Lista de espera — posición #${waitPos} en ${catLabel}.${pagado ? ' <strong>Tu pago está vigente</strong> — si se libera un cupo, entras directo.' : ''}
            </div>`
+        : isSlot
+        ? `<div class="reg-msg success">🎉 ¡Se liberó un cupo para ti en ${catLabel}! El admin te contactará para confirmar.</div>`
         : isPending
         ? `<div class="reg-msg pending">
              ⏳ En lista de espera — pago por validar.<br>
@@ -1335,42 +1472,26 @@ function renderYaInscrito(container, user, reg, inscritos) {
       <div style="display:flex;flex-direction:column;gap:5px;font-size:.8rem;color:var(--muted)">
         <span>DUPR ID: <strong style="color:var(--dark)">${reg.duprId||'—'}</strong></span>
         <span>Categoría: <strong style="color:var(--dark)">${catLabel}</strong></span>
-        ${!isWait && !isPending && !isDenied
+        ${(isConfirmed || (isWait && pagado))
           ? `<span>Pago: <strong style="color:var(--court)">${reg.paymentMethod==='transfer'?'Q75 · Transferencia':'$10 USD · PayPal'} ✓</strong></span>`
           : ''}
         ${isPending ? `<span>Método: <strong>Transferencia bancaria</strong></span>` : ''}
-        ${(!yaPaso && !isWait && !isDenied) ? `<span style="color:${cancelTardio?'#b91c1c':''}">${
-          puedeReagendar ? '✓ Puedes cancelar o reagendar sin penalización' :
-          soloCancelar   ? '⚠️ Solo puedes cancelar (no reagendar) — sin penalización' :
-          cancelTardio   ? '⚠️ Menos de 24 h — cancelación tardía' :
-          ''
-        }</span>` : ''}
+        ${(isConfirmed && !yaPaso && estadoTexto) ? `<span>${estadoTexto}</span>` : ''}
       </div>
 
-      ${penaltyWarning}
-
-      ${/* Opciones según ventana */ ''}
-      ${isWait
-        ? moveSelector   // waitlist siempre puede moverse
-        : puedeReagendar && !isPending && !isDenied
-        ? moveSelector   // ≥48h: también puede reagendar
-        : ''}
-
-      ${!isDenied && !yaPaso
-        ? `<button class="btn-unregister" id="btn-cancel-reg">
-             ${isWait ? 'Salir de lista de espera' :
-               isPending ? 'Cancelar solicitud' :
-               cancelTardio ? 'Cancelar (cancelación tardía)' :
-               'Cancelar inscripción'}
-           </button>`
-        : ''}
+      ${accionHTML}
+      ${salirHTML}
+      ${yaPaso ? `<div style="font-size:.8rem;color:var(--muted);margin-top:8px">La sesión ya inició.</div>` : ''}
     </div>`;
 
   const btnCancel = document.getElementById('btn-cancel-reg');
-  if (btnCancel) btnCancel.addEventListener('click', () => cancelRegistration(user, reg, horas));
+  if (btnCancel) btnCancel.addEventListener('click', () => cancelRegistration(user, reg));
 
   const btnMove = document.getElementById('btn-move');
-  if (btnMove) btnMove.addEventListener('click', () => moveToSession(user, reg));
+  if (btnMove) btnMove.addEventListener('click', () => moveToSession(user, reg, forceWaitlistMove));
+
+  const btnForfeit = document.getElementById('btn-forfeit');
+  if (btnForfeit) btnForfeit.addEventListener('click', () => forfeitSpot(user, reg, faseForfeitPenal));
 }
 
 // ══════════════════════════════════════════════════════
@@ -1595,8 +1716,9 @@ async function joinWaitlist(user) {
   }
 }
 
-// ── Mover de lista de espera a otra sesión ──
-async function moveToSession(user, reg) {
+// ── Mover a otra sesión ──
+// forceWaitlist=true → ventana 24-48h de un confirmado: solo puede ir a lista de espera.
+async function moveToSession(user, reg, forceWaitlist) {
   const targetNum = parseInt(document.getElementById('move-sesion-select')?.value);
   if (!targetNum) { alert('Selecciona una sesión de destino.'); return; }
 
@@ -1604,41 +1726,85 @@ async function moveToSession(user, reg) {
   btn.disabled = true; btn.textContent = 'Moviendo…';
 
   try {
-    // Verificar capacidad de la sesión destino ANTES de mover:
-    // un jugador ya confirmado (pagado) conserva su cupo confirmado,
-    // solo entra a lista de espera si la categoría destino está llena.
+    // Capacidad del destino
     const dstRef  = db.collection(COLLECTION).doc(`t1_sesion_${targetNum}`);
     const dstSnap = await dstRef.get();
     const dstInscritos = dstSnap.exists ? (dstSnap.data().inscritos || []) : [];
     const dstFull = isFull(dstInscritos, reg.categoria);
-    const newStatus = (reg.status === 'confirmed' && !dstFull) ? 'confirmed' : (reg.status === 'confirmed' ? 'waitlist' : reg.status);
 
-    // Quitar de sesión actual
-    const srcRef  = db.collection(COLLECTION).doc(DOC_ID);
-    const srcSnap = await srcRef.get();
-    const srcData = srcSnap.data()?.inscritos || [];
-    await srcRef.update({ inscritos: srcData.filter(p => p.uid !== user.uid) });
+    // Estado en el destino según quién se mueve:
+    //  • Confirmado: conserva confirmado si hay cupo (salvo forceWaitlist 24-48h) → si no, lista de espera con pago vigente.
+    //  • Lista de espera PAGADA: entra confirmado si hay cupo; si no, sigue en espera.
+    //  • Lista de espera gratis: sigue en espera (debe pagar para confirmar).
+    //  • Por validar: conserva "por validar".
+    let newStatus;
+    if (reg.status === 'confirmed') {
+      newStatus = (!forceWaitlist && !dstFull) ? 'confirmed' : 'waitlist';
+    } else if (reg.status === 'waitlist') {
+      newStatus = (esPagado(reg) && !dstFull) ? 'confirmed' : 'waitlist';
+    } else {
+      newStatus = reg.status; // pending_review se mantiene
+    }
 
-    // Agregar a sesión destino conservando su estado (pago incluido)
+    // Agregar al destino conservando todos sus datos (pago incluido)
     await dstRef.set({
       sesionNum: targetNum,
       inscritos: firebase.firestore.FieldValue.arrayUnion({
         ...reg,
-        sesionNum:    targetNum,
-        status:       newStatus,
-        movedFrom:    NUM,
-        movedAt:      firebase.firestore.Timestamp.now(),
+        sesionNum: targetNum,
+        status:    newStatus,
+        movedFrom: NUM,
+        movedAt:   firebase.firestore.Timestamp.now(),
       }),
     }, { merge: true });
 
-    if (newStatus === 'waitlist' && reg.status === 'confirmed') {
-      alert(`La Semana ${targetNum} está llena en tu categoría: quedaste en lista de espera con tu pago vigente — si se libera un cupo, entras directo.`);
+    // Quitar de la sesión actual. Si dejaba un cupo CONFIRMADO libre, promover al primero en espera.
+    await salirDeSesion(NUM, reg.categoria, user.uid, reg.status === 'confirmed');
+
+    if (reg.status === 'confirmed' && newStatus === 'waitlist') {
+      alert(forceWaitlist
+        ? `Con menos de 48 h entraste a la lista de espera de la Semana ${targetNum} (pago vigente). Si se libera un cupo, el admin te confirma.`
+        : `La Semana ${targetNum} está llena en tu categoría: quedaste en lista de espera con tu pago vigente — si se libera un cupo, entras directo.`);
+    } else if (reg.status === 'waitlist' && newStatus === 'confirmed') {
+      alert(`¡Entraste directo a la Semana ${targetNum}! Tu cupo quedó confirmado.`);
     }
 
   } catch (err) {
     console.error(err);
-    btn.disabled = false; btn.textContent = 'Mover inscripción';
+    btn.disabled = false; btn.textContent = 'Confirmar cambio de fecha';
     alert('Error al mover. Intenta de nuevo.');
+  }
+}
+
+// ── Liberar el lugar (forfeit) — sin reembolso. penaliza=true aplica aviso de −1 ──
+async function forfeitSpot(user, reg, penaliza) {
+  const msg = penaliza
+    ? '⚠️ Ya pasó el viernes 7:00 pm. Si sales ahora pierdes el pago y se registra −1 posición en la tabla.\n\n¿Confirmas que quieres salir de la sesión?'
+    : 'Vas a liberar tu lugar. Pierdes tu inscripción y el pago (sin reembolso), sin penalización.\n\n¿Confirmas?';
+  if (!confirm(msg)) return;
+
+  const btn = document.getElementById('btn-forfeit');
+  btn.disabled = true; btn.textContent = 'Procesando…';
+
+  try {
+    // Aviso de penalización −1 para que el admin lo aplique (no automático)
+    if (penaliza) {
+      db.collection('ladder_notifications').add({
+        type:       'late_cancel',
+        sesionNum:  NUM,
+        categoria:  reg.categoria,
+        playerUid:  user.uid,
+        playerName: reg.nombre || user.displayName || user.email,
+        canceledAt: firebase.firestore.Timestamp.now(),
+      }).catch(() => {});
+    }
+    // Quitar al jugador y promover al primero en lista de espera (+ aviso al admin)
+    await salirDeSesion(NUM, reg.categoria, user.uid, true);
+    // renderYaInscrito se re-disparará via onSnapshot
+  } catch (err) {
+    console.error(err);
+    btn.disabled = false; btn.textContent = penaliza ? 'Salir de la sesión (−1 posición)' : 'Liberar mi lugar (sin reembolso)';
+    alert('Error al procesar. Intenta de nuevo.');
   }
 }
 
@@ -1672,9 +1838,12 @@ async function saveRegistration(user, duprId, categoria, paypalOrderId, status, 
     status:       status,   // 'confirmed' | 'waitlist' | 'pending_review' | 'denied'
     paymentMethod: extra.paymentMethod || 'paypal',
     registeredAt: firebase.firestore.Timestamp.now(),
-    ...(status === 'confirmed' && paypalOrderId ? {
+    // Pago con tarjeta capturado: guardar comprobante y marcar pagado AUNQUE caiga en lista de espera,
+    // para reconocer la "lista de espera autorizada" (entra directo si se libera un cupo).
+    ...(paypalOrderId ? {
       paypalOrderId: paypalOrderId,
       paidUSD:       SESSION_PRICE,
+      paid:          true,
     } : {}),
     ...(extra.boletaDocId   ? { boletaDocId:    extra.boletaDocId }   : {}),
     ...(extra.phone         ? { phone:          extra.phone }         : {}),
@@ -1686,78 +1855,37 @@ async function saveRegistration(user, duprId, categoria, paypalOrderId, status, 
     inscritos: firebase.firestore.FieldValue.arrayUnion(entry),
   }, { merge: true });
 
-  // Auditoría
-  if (status === 'confirmed' && paypalOrderId) {
+  // Auditoría — registrar todo pago capturado (confirmado o en lista de espera autorizada)
+  if (paypalOrderId) {
     db.collection('ladder_payments').add({
       uid: user.uid, nombre, email: user.email||'',
-      sesionNum: NUM, docId: DOC_ID, categoria,
+      sesionNum: NUM, docId: DOC_ID, categoria, status,
       paypalOrderId, amount: SESSION_PRICE, currency: 'USD',
       paidAt: firebase.firestore.Timestamp.now(), env: PAYPAL_ENV,
     }).catch(() => {});
   }
 }
 
+// Salir de lista de espera — único caso de retiro (gratis, no ocupa cupo pagado).
+// Quien pagó (confirmado o por validar) no cancela: solo puede cambiar de sesión.
 async function cancelRegistration(user, reg, horas) {
   const btn = document.getElementById('btn-cancel-reg');
-  const isLate = horas !== undefined && horas < 24 && horas >= 0;
-  const msg = isLate
-    ? '⚠️ Cancelar ahora puede generar una penalización de −1 posición en la tabla.\n\n¿Confirmas la cancelación?'
-    : '¿Confirmas que deseas cancelar tu inscripción en esta sesión?';
-  if (!confirm(msg)) return;
-  btn.disabled = true; btn.textContent = 'Cancelando…';
+  if (!confirm('¿Salir de la lista de espera de esta sesión?')) return;
+  btn.disabled = true; btn.textContent = 'Saliendo…';
 
   try {
     const docRef = db.collection(COLLECTION).doc(DOC_ID);
     const snap   = await docRef.get();
     if (!snap.exists) return;
     const inscritos = snap.data().inscritos || [];
-    const categoria = reg?.categoria;
 
-    // Quitar al jugador
-    let updated = inscritos.filter(p => p.uid !== user.uid);
-
-    // Si canceló en ventana 24-48h: promover primer jugador en espera de misma categoría
-    if (horas !== undefined && horas >= 24 && horas < 48 && categoria) {
-      const waitlisted = inscritos
-        .filter(p => p.status === 'waitlist' && p.categoria === categoria)
-        .sort((a,b) => (a.registeredAt?.seconds||0) - (b.registeredAt?.seconds||0));
-
-      if (waitlisted.length > 0) {
-        const primero = waitlisted[0];
-        // Marcar como "slot_available" para que el admin lo confirme
-        updated = updated.map(p =>
-          p.uid === primero.uid ? { ...p, status: 'slot_available', slotOpenedAt: new Date().toISOString() } : p
-        );
-        // Registrar el evento para que el admin lo vea
-        db.collection('ladder_notifications').add({
-          type:       'waitlist_slot_opened',
-          sesionNum:  NUM,
-          categoria:  categoria,
-          playerUid:  primero.uid,
-          playerName: primero.nombre,
-          phone:      primero.phone || '',
-          openedAt:   firebase.firestore.Timestamp.now(),
-        }).catch(() => {});
-      }
-    }
-
-    // Si fue cancelación tardía: registrar para que admin pueda penalizar
-    if (isLate) {
-      db.collection('ladder_notifications').add({
-        type:       'late_cancel',
-        sesionNum:  NUM,
-        categoria:  reg?.categoria,
-        playerUid:  user.uid,
-        playerName: user.displayName || user.email,
-        canceledAt: firebase.firestore.Timestamp.now(),
-      }).catch(() => {});
-    }
-
+    // Quitar al jugador de la lista de espera
+    const updated = inscritos.filter(p => p.uid !== user.uid);
     await docRef.update({ inscritos: updated });
 
   } catch (err) {
-    btn.disabled = false; btn.textContent = 'Cancelar inscripción';
-    alert('Error al cancelar. Intenta de nuevo.');
+    btn.disabled = false; btn.textContent = 'Salir de lista de espera';
+    alert('Error al salir. Intenta de nuevo.');
     console.error(err);
   }
 }

@@ -854,6 +854,22 @@ let SEMANAS = [
 
 const COLLECTION = 'ladder_registrations';
 
+// Horario de inicio por categoría (sesiones = sábados) y mensaje de promoción a WhatsApp
+const HORA_INICIO = { principiante:[8,0], intermedio:[9,40], open:[11,20] };
+function horaTexto(categoria) {
+  const [hh, mm] = HORA_INICIO[categoria] || [8, 0];
+  const h12 = ((hh + 11) % 12) + 1;
+  return `${h12}:${String(mm).padStart(2,'0')} ${hh < 12 ? 'am' : 'pm'}`;
+}
+function waPromoLink(nombre, sesionNum, categoria, phone) {
+  if (!phone) return '';
+  const catLabels = { principiante:'Principiante', intermedio:'Intermedio', open:'Open' };
+  const s = SEMANAS.find(x => x.num === sesionNum);
+  const fecha = s ? s.fecha : `Semana ${sesionNum}`;
+  const msg = `Hola ${nombre} 👋 ¡Buenas noticias! Se liberó un cupo y fuiste promovido a la lista oficial del Antigua Ladder League en la categoría ${catLabels[categoria]||categoria}, el ${fecha} a las ${horaTexto(categoria)} (Semana ${sesionNum}). ¿Confirmas si aún estás disponible para tomar el lugar? Si me confirmas, aseguramos tu cupo. 🎾`;
+  return `https://wa.me/${phone.replace(/\D/g,'')}?text=${encodeURIComponent(msg)}`;
+}
+
 /* ══════════════════════════════════════════════════════
    FIREBASE
 ══════════════════════════════════════════════════════ */
@@ -1176,24 +1192,41 @@ function closeWaitlistPanelFocus() { /* no-op, para encadenar con onclick */ }
 async function acceptPending(sesionNum, uid) {
   const player = (_allData[sesionNum]||[]).find(p=>p.uid===uid);
   if (!player) return;
-  if (!confirm(`¿Aceptar inscripción de ${player.nombre}?`)) return;
+
+  // ¿Hay cupo titular en su categoría? Si está llena, entra a lista de espera (pago vigente).
+  const inscritos = _allData[sesionNum] || [];
+  const confirmedCount = inscritos.filter(p => p.status === 'confirmed' && p.categoria === player.categoria && p.uid !== uid).length;
+  const lleno = confirmedCount >= 10;
+
+  if (!confirm(
+    `¿Aprobar el pago de ${player.nombre}?\n\n` +
+    (lleno
+      ? `⚠️ "${player.categoria}" está llena (${confirmedCount}/10): entrará a LISTA DE ESPERA con su pago vigente.`
+      : `Entrará como CONFIRMADO (titular) en "${player.categoria}".`)
+  )) return;
 
   try {
     const docRef  = db.collection(COLLECTION).doc(`t1_sesion_${sesionNum}`);
-    const snap    = await docRef.get();
-    const updated = (snap.data()?.inscritos||[]).map(p =>
-      p.uid === uid ? { ...p, status: 'confirmed', approvedAt: firebase.firestore.Timestamp.now() } : p
+    const snap     = await docRef.get();
+    const newStatus = lleno ? 'waitlist' : 'confirmed';
+    const updated  = (snap.data()?.inscritos||[]).map(p =>
+      p.uid === uid ? { ...p, status: newStatus, paid: true, approvedAt: firebase.firestore.Timestamp.now() } : p
     );
     await docRef.update({ inscritos: updated });
 
-    // WhatsApp automático si tiene teléfono
+    // WhatsApp de confirmación: avisa aprobación + si entró a sesión o a lista de espera
     if (player.phone) {
-      const sesLabel = `Semana ${sesionNum}`;
-      const msg = encodeURIComponent(`Hola ${player.nombre} 👋 Tu inscripción en *Antigua Ladder League – ${sesLabel}* fue *confirmada*. ¡Nos vemos en cancha! 🎾`);
-      window.open(`https://wa.me/${player.phone.replace(/\D/g,'')}?text=${msg}`, '_blank');
+      const catLabels = { principiante:'Principiante', intermedio:'Intermedio', open:'Open' };
+      const s = SEMANAS.find(x => x.num === sesionNum);
+      const fecha = s ? s.fecha : `Semana ${sesionNum}`;
+      const catLabel = catLabels[player.categoria] || player.categoria;
+      const msg = lleno
+        ? `Hola ${player.nombre} 👋 ¡Tu pago fue aprobado y tu registro al Antigua Ladder League quedó listo! La categoría ${catLabel} (${fecha} a las ${horaTexto(player.categoria)}, Semana ${sesionNum}) está llena, así que entraste a la *lista de espera* con tu pago vigente. Si se libera un cupo, entras directo. 🎾`
+        : `Hola ${player.nombre} 👋 ¡Tu pago fue aprobado! Quedaste *inscrito (titular)* en el Antigua Ladder League: ${catLabel}, ${fecha} a las ${horaTexto(player.categoria)} (Semana ${sesionNum}). ¡Nos vemos en cancha! 🎾`;
+      window.open(`https://wa.me/${player.phone.replace(/\D/g,'')}?text=${encodeURIComponent(msg)}`, '_blank');
     }
 
-    toast(`✓ ${player.nombre} aceptado`);
+    toast(`✓ ${player.nombre} aprobado → ${lleno ? 'lista de espera' : 'titular'}`);
   } catch(err) { console.error(err); toast('✕ Error al aceptar', true); }
 }
 
@@ -1242,7 +1275,12 @@ async function manualPromote(sesionNum, uid) {
       p.uid === uid ? { ...p, status: 'confirmed', promotedAt: firebase.firestore.Timestamp.now() } : p
     );
     await docRef.update({ inscritos: updated });
-    toast(`✓ ${player.nombre} promovido a confirmado`);
+
+    // Avisar al jugador por WhatsApp que fue promovido
+    const waLink = waPromoLink(player.nombre, sesionNum, player.categoria, player.phone);
+    if (waLink) window.open(waLink, '_blank');
+
+    toast(`✓ ${player.nombre} promovido${player.phone ? ' · avisando por WhatsApp' : ''}`);
   } catch(err) { console.error(err); toast('✕ Error al promover', true); }
 }
 
@@ -1703,7 +1741,7 @@ function renderNotifications(notifs) {
 
   listEl.innerHTML = notifs.map(n => {
     if (n.type === 'waitlist_slot_opened') {
-      const waMsg = encodeURIComponent(`Hola ${n.playerName} 👋 Se liberó un lugar en Antigua Ladder League ${sesLabel(n.sesionNum)} – ${catLabels[n.categoria]||n.categoria}. ¿Deseas confirmar tu inscripción y realizar el pago?`);
+      const waLink = waPromoLink(n.playerName, n.sesionNum, n.categoria, n.phone);
       return `<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid #e0e7ff;flex-wrap:wrap">
         <div>
           <span class="penalty-badge slot">Lugar disponible</span>
@@ -1711,7 +1749,7 @@ function renderNotifications(notifs) {
           <span style="font-size:.8rem;color:var(--muted);margin-left:6px">${sesLabel(n.sesionNum)} · ${catLabels[n.categoria]||n.categoria}</span>
         </div>
         <div style="display:flex;gap:8px">
-          ${n.phone ? `<a href="https://wa.me/${n.phone.replace(/\D/g,'')}?text=${waMsg}" target="_blank" class="btn-action btn-wa">💬 Notificar por WA</a>` : ''}
+          ${waLink ? `<a href="${waLink}" target="_blank" class="btn-action btn-wa">💬 Notificar por WA</a>` : ''}
           <button class="btn-action btn-accept" onclick="resolveNotif('${n.id}')">✓ Resuelto</button>
         </div>
       </div>`;
