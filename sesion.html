@@ -873,8 +873,10 @@ async function salirDeSesion(sesionNum, categoria, uid, eraConfirmado) {
   await ref.update({ inscritos: updated });
 
   if (eraConfirmado) {
-    const enEspera = updated.filter(p => p.status === 'waitlist' && p.categoria === categoria).length;
-    if (enEspera > 0) avisarCupoLiberadoAdmin(sesionNum, categoria, enEspera);
+    const espera = updated
+      .filter(p => p.status === 'waitlist' && p.categoria === categoria)
+      .sort((a, b) => (a.registeredAt?.seconds || 0) - (b.registeredAt?.seconds || 0));
+    if (espera.length) avisarCupoLiberadoAdmin(sesionNum, categoria, espera[0], espera.length);
   }
 }
 
@@ -883,19 +885,26 @@ function horaTexto(categoria) {
   const h12 = ((hh + 11) % 12) + 1;
   return `${h12}:${String(mm).padStart(2,'0')} ${hh < 12 ? 'am' : 'pm'}`;
 }
-// Aviso por correo al admin (antiguapickleball@gmail.com) cuando se libera un cupo confirmado,
-// para que entre al panel y promueva manualmente a alguien de la lista de espera.
-function avisarCupoLiberadoAdmin(sesionNum, categoria, enEspera) {
+// Aviso por correo al admin (antiguapickleball@gmail.com) cuando se libera un cupo confirmado.
+// El correo trae: nombre del 1° en lista de espera, link de WhatsApp directo a ese jugador
+// (con mensaje listo) y link al panel del Ladder. La promoción la hace el admin manualmente.
+function avisarCupoLiberadoAdmin(sesionNum, categoria, primero, enEspera) {
   const catLabel = { principiante:'Principiante', intermedio:'Intermedio', open:'Open' }[categoria] || categoria;
   const sem = SEMANAS.find(s => s.num === sesionNum);
   const fecha = sem ? sem.fecha : `Semana ${sesionNum}`;
+  const hora  = horaTexto(categoria);
+  const waMsg = `Hola ${primero.nombre} 👋 ¡Buenas noticias! Se liberó un cupo y eres el siguiente en la lista del Antigua Ladder League en la categoría ${catLabel}, el ${fecha} a las ${hora} (Semana ${sesionNum}). ¿Confirmas si aún estás disponible para tomar el lugar? Si me confirmas, aseguramos tu cupo. 🎾`;
+  const waLink = primero.phone
+    ? `https://wa.me/${primero.phone.replace(/\D/g,'')}?text=${encodeURIComponent(waMsg)}`
+    : '(el jugador no tiene teléfono registrado)';
   const payload = {
     to:        'antiguapickleball@gmail.com',
     asunto:    `🎾 Cupo liberado · Semana ${sesionNum} ${catLabel}`,
-    jugador:   `${enEspera} en lista de espera — promueve desde el panel`,
-    sesion:    `Semana ${sesionNum} · ${fecha} · ${horaTexto(categoria)}`,
+    jugador:   `${primero.nombre} (1° de ${enEspera} en lista de espera)`,
+    sesion:    `Semana ${sesionNum} · ${fecha} · ${hora}`,
     categoria: catLabel,
-    waLink:    'https://ladder.antigua-pickleball.com/admin.html',
+    waLink:    waLink,
+    panelLink: 'https://ladder.antigua-pickleball.com/admin.html',
   };
   try { enviarCorreoAdmin(payload); } catch (_) {}
 }
