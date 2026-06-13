@@ -893,7 +893,7 @@ function avisarCupoLiberadoAdmin(sesionNum, categoria, primero, enEspera) {
   const sem = SEMANAS.find(s => s.num === sesionNum);
   const fecha = sem ? sem.fecha : `Semana ${sesionNum}`;
   const hora  = horaTexto(categoria);
-  const waMsg = `Hola ${primero.nombre} 👋 ¡Buenas noticias! Se liberó un cupo y eres el siguiente en la lista del Antigua Ladder League en la categoría ${catLabel}, el ${fecha} a las ${hora} (Semana ${sesionNum}). ¿Confirmas si aún estás disponible para tomar el lugar? Si me confirmas, aseguramos tu cupo. 🎾`;
+  const waMsg = `¡Hola ${primero.nombre}! Te saluda *Antigua Pickleball* 🎾 Se ha liberado un espacio en el Antigua Ladder League y esperamos tu confirmación para incluirte en la *Sesión ${sesionNum}* (${fecha}), categoría *${catLabel}*, que inicia a las *${hora}*. Responde *SÍ* para confirmar tu cupo. ¡Te esperamos en cancha!`;
   const waLink = primero.phone
     ? `https://wa.me/${primero.phone.replace(/\D/g,'')}?text=${encodeURIComponent(waMsg)}`
     : '(el jugador no tiene teléfono registrado)';

@@ -866,7 +866,7 @@ function waPromoLink(nombre, sesionNum, categoria, phone) {
   const catLabels = { principiante:'Principiante', intermedio:'Intermedio', open:'Open' };
   const s = SEMANAS.find(x => x.num === sesionNum);
   const fecha = s ? s.fecha : `Semana ${sesionNum}`;
-  const msg = `Hola ${nombre} 👋 ¡Buenas noticias! Se liberó un cupo y fuiste promovido a la lista oficial del Antigua Ladder League en la categoría ${catLabels[categoria]||categoria}, el ${fecha} a las ${horaTexto(categoria)} (Semana ${sesionNum}). ¿Confirmas si aún estás disponible para tomar el lugar? Si me confirmas, aseguramos tu cupo. 🎾`;
+  const msg = `¡Hola ${nombre}! Te saluda *Antigua Pickleball* 🎾 Se ha liberado un espacio en el Antigua Ladder League y esperamos tu confirmación para incluirte en la *Sesión ${sesionNum}* (${fecha}), categoría *${catLabels[categoria]||categoria}*, que inicia a las *${horaTexto(categoria)}*. Responde *SÍ* para confirmar tu cupo. ¡Te esperamos en cancha!`;
   return `https://wa.me/${phone.replace(/\D/g,'')}?text=${encodeURIComponent(msg)}`;
 }
 
