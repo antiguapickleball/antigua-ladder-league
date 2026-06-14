@@ -602,14 +602,14 @@
               <div class="stat-card-sub" id="stat-sesiones-sub">de 8 posibles</div>
             </div>
             <div class="stat-card">
-              <div class="stat-card-label">Puntos Ganados</div>
-              <div class="stat-card-value" id="stat-ptos">0</div>
-              <div class="stat-card-sub" id="stat-ptos-sub">de 0 posibles</div>
+              <div class="stat-card-label">Promedio</div>
+              <div class="stat-card-value" id="stat-ptos">—</div>
+              <div class="stat-card-sub" id="stat-ptos-sub">aún sin partidos</div>
             </div>
             <div class="stat-card">
-              <div class="stat-card-label">Rendimiento</div>
+              <div class="stat-card-label">Estado</div>
               <div class="stat-card-value red" id="stat-pct">—</div>
-              <div class="stat-card-sub">win rate</div>
+              <div class="stat-card-sub">temporada 1</div>
             </div>
           </div>
 
@@ -640,8 +640,8 @@
             <div style="display:grid;grid-template-columns:90px 1fr 80px 80px 100px;padding:10px 22px 10px;border-bottom:2px solid var(--border);gap:12px;">
               <span style="font-family:'Space Mono',monospace;font-size:.6rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)">Semana</span>
               <span style="font-family:'Space Mono',monospace;font-size:.6rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)">Fecha</span>
-              <span style="font-family:'Space Mono',monospace;font-size:.6rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);text-align:center">Pts G.</span>
-              <span style="font-family:'Space Mono',monospace;font-size:.6rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);text-align:center">Pts P.</span>
+              <span style="font-family:'Space Mono',monospace;font-size:.6rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);text-align:center">Score</span>
+              <span style="font-family:'Space Mono',monospace;font-size:.6rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);text-align:center">Cat.</span>
               <span style="font-family:'Space Mono',monospace;font-size:.6rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);text-align:center">Estado</span>
             </div>
             <div id="sessions-list"></div>
@@ -676,8 +676,8 @@
             <ul class="rules-list">
               <li>Cada sesión semanal dura 90 minutos con rotación de parejas y rivales.</li>
               <li>Se juegan partidos a 11 puntos (win by 2). El formato garantiza mínimo 4 partidos por jugador por sesión.</li>
-              <li>Los puntos ganados en cada partido suman a tu marcador acumulado de la temporada.</li>
-              <li>El ranking se calcula como: (Puntos Ganados / Puntos Posibles) × 100%.</li>
+              <li>Cada sesión te da un <strong>score</strong> según tu desempeño en los partidos de esa sesión.</li>
+              <li>El ranking se calcula con el <strong>promedio de tus mejores sesiones</strong> (se descarta tu sesión más baja, o las 2 más bajas si jugaste 7 o más). Necesitas al menos 3 sesiones para entrar al ranking.</li>
             </ul>
           </div>
           <div class="rules-card">
@@ -735,49 +735,78 @@
 </footer>
 
 <!-- SCRIPTS -->
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+<script>
+  firebase.initializeApp({
+    apiKey: "AIzaSyBBmUQR8AGdosXSGNK3galyBmFjkn6jOuM",
+    authDomain: "antigua-pickleball.firebaseapp.com",
+    projectId: "antigua-pickleball",
+    storageBucket: "antigua-pickleball.firebasestorage.app",
+    messagingSenderId: "270487643715",
+    appId: "1:270487643715:web:701b74a71253ac599056f6"
+  });
+  const db = firebase.firestore();
+  // Sesión anónima para que las reglas permitan las lecturas
+  firebase.auth().signInAnonymously().catch(e => console.warn('anon auth:', e));
+</script>
 <script src="js/auth-bridge-client.js"></script>
 <script>
 /* ════════════════════════════════════════════════════════════
    DATOS — mismo que index.html, editar aquí también cada semana
 ════════════════════════════════════════════════════════════ */
-const JUGADORES = {
-  principiante: [
-    { nombre: 'Carlos Ajú',         sesiones: 0, ptosGanados: 0, ptosPosibles: 0 },
-    { nombre: 'María Chávez',       sesiones: 0, ptosGanados: 0, ptosPosibles: 0 },
-    { nombre: 'Diego Recinos',      sesiones: 0, ptosGanados: 0, ptosPosibles: 0 },
-    { nombre: 'Luisa Pac',          sesiones: 0, ptosGanados: 0, ptosPosibles: 0 },
-    { nombre: 'Ernesto Saquimux',   sesiones: 0, ptosGanados: 0, ptosPosibles: 0 },
-    { nombre: 'Andrea Batz',        sesiones: 0, ptosGanados: 0, ptosPosibles: 0 },
-    { nombre: 'Roberto Chiroy',     sesiones: 0, ptosGanados: 0, ptosPosibles: 0 },
-    { nombre: 'Sofía Caal',         sesiones: 0, ptosGanados: 0, ptosPosibles: 0 },
-    { nombre: 'Julio Tzul',         sesiones: 0, ptosGanados: 0, ptosPosibles: 0 },
-    { nombre: 'Patricia Xocoy',     sesiones: 0, ptosGanados: 0, ptosPosibles: 0 },
-  ],
-  intermedio: [
-    { nombre: 'Fernando Ajanel',    sesiones: 0, ptosGanados: 0, ptosPosibles: 0 },
-    { nombre: 'Valeria Cuxum',      sesiones: 0, ptosGanados: 0, ptosPosibles: 0 },
-    { nombre: 'Héctor Matzul',      sesiones: 0, ptosGanados: 0, ptosPosibles: 0 },
-    { nombre: 'Isabel Sacol',       sesiones: 0, ptosGanados: 0, ptosPosibles: 0 },
-    { nombre: 'Marco Tzoc',         sesiones: 0, ptosGanados: 0, ptosPosibles: 0 },
-    { nombre: 'Diana Ajú',          sesiones: 0, ptosGanados: 0, ptosPosibles: 0 },
-    { nombre: 'Alejandro Boj',      sesiones: 0, ptosGanados: 0, ptosPosibles: 0 },
-    { nombre: 'Claudia Coyoy',      sesiones: 0, ptosGanados: 0, ptosPosibles: 0 },
-    { nombre: 'René Quiché',        sesiones: 0, ptosGanados: 0, ptosPosibles: 0 },
-    { nombre: 'Natalia Xiquín',     sesiones: 0, ptosGanados: 0, ptosPosibles: 0 },
-  ],
-  open: [
-    { nombre: 'Rodrigo Crisóstomo', sesiones: 0, ptosGanados: 0, ptosPosibles: 0 },
-    { nombre: 'Paula Sincal',       sesiones: 0, ptosGanados: 0, ptosPosibles: 0 },
-    { nombre: 'Osvaldo Tzep',       sesiones: 0, ptosGanados: 0, ptosPosibles: 0 },
-    { nombre: 'Camila Muc',         sesiones: 0, ptosGanados: 0, ptosPosibles: 0 },
-    { nombre: 'Gabriel Ajpop',      sesiones: 0, ptosGanados: 0, ptosPosibles: 0 },
-    { nombre: 'Mariana Cotuc',      sesiones: 0, ptosGanados: 0, ptosPosibles: 0 },
-    { nombre: 'Álvaro Sic',         sesiones: 0, ptosGanados: 0, ptosPosibles: 0 },
-    { nombre: 'Elena Choc',         sesiones: 0, ptosGanados: 0, ptosPosibles: 0 },
-    { nombre: 'Tomás Ixcoy',        sesiones: 0, ptosGanados: 0, ptosPosibles: 0 },
-    { nombre: 'Rebeca Yool',        sesiones: 0, ptosGanados: 0, ptosPosibles: 0 },
-  ],
-};
+/* Datos REALES desde Firebase: ladder_registrations (inscripciones del jugador)
+   + ladder_scores (ranking). Ya no hay datos de relleno. */
+const CAT_LABELS = { principiante:'Principiante', intermedio:'Intermedio', open:'Open' };
+
+// Perfil del usuario (para DUPR ID) — lectura por documentId (la sesión anónima no puede leer el doc directo)
+let _profileCache;
+async function loadProfileDoc(uid) {
+  if (_profileCache !== undefined) return _profileCache;
+  try {
+    const snap = await db.collection('users')
+      .where(firebase.firestore.FieldPath.documentId(), '==', uid).get();
+    _profileCache = snap.empty ? null : snap.docs[0].data();
+  } catch (_) { _profileCache = null; }
+  return _profileCache;
+}
+
+// Filas de ranking de una categoría desde docs de ladder_scores (misma lógica que index.html:
+// promedio descartando la sesión más baja —2 si hay ≥7—; "compitiendo" con ≥3 sesiones).
+function catRows(scoreDocs, cat) {
+  const map = {};
+  scoreDocs.forEach(d => {
+    const id = ((d.duprId || '').trim()) || d.docId;
+    if (!map[id]) map[id] = { id, duprId: d.duprId || id, nombre: d.nombre || id, sessions: { ...(d.sessions||{}) } };
+    else map[id].sessions = { ...(d.sessions||{}), ...map[id].sessions };
+  });
+  const rows = Object.values(map)
+    .filter(p => Object.values(p.sessions).some(s => s.categoria === cat))
+    .map(p => {
+      const cs = Object.entries(p.sessions)
+        .filter(([,s]) => s.categoria === cat)
+        .map(([k,s]) => ({ key:k, sesionNum:s.sesionNum, score:s.score }))
+        .sort((a,b) => a.sesionNum - b.sesionNum);
+      const scores = cs.map(s => s.score);
+      const n = scores.length;
+      let used;
+      if (n < 3) used = scores;
+      else {
+        const sorted = [...scores].sort((a,b)=>a-b);
+        const dropped = sorted.slice(0, n >= 7 ? 2 : 1);
+        const dc = [...dropped], keep = [];
+        cs.forEach(s => { const i = dc.indexOf(s.score); if (i !== -1) dc.splice(i,1); else keep.push(s.score); });
+        used = keep;
+      }
+      const avg = used.length ? used.reduce((a,b)=>a+b,0)/used.length : 0;
+      return { duprId:(p.duprId||'').trim(), nombre:p.nombre, catSessions:cs, avg, n, compitiendo:n>=3 };
+    })
+    .sort((a,b) => b.avg - a.avg);
+  let pos = 0;
+  rows.forEach(r => { if (r.compitiendo) { pos++; r.pos = pos; } });
+  return rows;
+}
 
 const SEMANAS = [
   { num: 1, fecha: '4 Jul',  estado: 'proxima'                        },
@@ -790,156 +819,172 @@ const SEMANAS = [
   { num: 8, fecha: '29 Ago', estado: 'pendiente'                      },
 ];
 
-// ── Mapeo nombre → categoría (para encontrar al usuario) ──
-function findPlayer(displayName) {
-  if (!displayName) return null;
-  const nameNorm = displayName.trim().toLowerCase();
-  for (const cat of ['principiante', 'intermedio', 'open']) {
-    const idx = JUGADORES[cat].findIndex(p =>
-      p.nombre.toLowerCase() === nameNorm ||
-      p.nombre.toLowerCase().includes(nameNorm.split(' ')[0].toLowerCase())
-    );
-    if (idx !== -1) return { cat, idx, player: JUGADORES[cat][idx] };
-  }
+// ── Estado del perfil ──
+let _user = null;          // usuario APAuth
+let _duprId = '';          // DUPR ID del jugador
+let _myRegs = [];          // [{ sesionNum, status, categoria, duprId }]
+let _scoresDocs = [];      // docs de ladder_scores
+let _scoresReady = false;
+
+// Esperar a que la sesión anónima esté lista (para que las lecturas pasen las reglas)
+function whenAuthed() {
+  return new Promise(res => {
+    if (firebase.auth().currentUser) return res();
+    const un = firebase.auth().onAuthStateChanged(u => { if (u) { un(); res(); } });
+  });
+}
+
+// Inscripciones reales del jugador en las 8 sesiones
+async function loadMyRegistrations(uid) {
+  const regs = [];
+  await Promise.all(SEMANAS.map(async s => {
+    try {
+      const snap = await db.collection('ladder_registrations').doc(`t1_sesion_${s.num}`).get();
+      if (!snap.exists) return;
+      const me = (snap.data().inscritos || []).find(p => p.uid === uid);
+      if (me) regs.push({ sesionNum: s.num, status: me.status, categoria: me.categoria, duprId: me.duprId });
+    } catch (_) {}
+  }));
+  regs.sort((a,b) => a.sesionNum - b.sesionNum);
+  return regs;
+}
+
+// Categoría del jugador: la de su inscripción más reciente, o la de sus scores
+function myCategoria() {
+  if (_myRegs.length) return _myRegs[_myRegs.length - 1].categoria;
+  const mine = _scoresDocs.find(d => ((d.duprId||'').trim() === _duprId && _duprId) || d.docId === _duprId);
+  if (mine) { const s = Object.values(mine.sessions||{})[0]; if (s) return s.categoria; }
   return null;
 }
 
-// ── Render principal ──
-function renderProfile(user) {
-  const found   = findPlayer(user.displayName);
-  const player  = found ? found.player : null;
-  const cat     = found ? found.cat    : null;
-  const catIdx  = found ? found.idx    : -1;
-
-  // Avatar e info
-  const name     = user.displayName || user.email.split('@')[0];
+// ── Carga principal ──
+async function loadProfile(user) {
+  _user = user;
+  const name     = user.displayName || (user.email||'').split('@')[0] || 'Jugador';
   const initials = name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0,2);
   document.getElementById('profile-avatar').textContent = initials;
   document.getElementById('profile-name').textContent   = name;
   document.getElementById('profile-email').textContent  = user.email || '';
-
-  const catLabels = { principiante: 'Principiante', intermedio: 'Intermedio', open: 'Open' };
-
-  // Stats
-  const sesiones    = player ? player.sesiones    : 0;
-  const ptosGanados = player ? player.ptosGanados : 0;
-  const ptosPosibles= player ? player.ptosPosibles: 0;
-  const pct = ptosPosibles ? (ptosGanados / ptosPosibles * 100) : null;
-
-  // Ranking: calcular posición en categoría
-  let pos = '—', totalCat = 0;
-  if (cat) {
-    const sorted = [...JUGADORES[cat]].map((p,i) => ({
-      ...p, idx: i,
-      pct: p.ptosPosibles ? p.ptosGanados / p.ptosPosibles * 100 : null
-    })).sort((a,b) => {
-      if (a.pct===null && b.pct===null) return 0;
-      if (a.pct===null) return 1; if (b.pct===null) return -1;
-      return b.pct - a.pct;
-    });
-    totalCat = sorted.length;
-    const myRank = sorted.findIndex(p => p.idx === catIdx);
-    pos = myRank >= 0 ? myRank + 1 : '—';
-    renderRankingTab(sorted, catIdx, cat, catLabels[cat], pct);
-  }
-
-  // Resumen stats
-  document.getElementById('stat-pos').textContent      = pos;
-  document.getElementById('stat-pos-sub').textContent  = `de ${totalCat} en ${cat ? catLabels[cat] : 'tu categoría'}`;
-  document.getElementById('stat-sesiones').textContent = sesiones;
-  document.getElementById('stat-ptos').textContent     = ptosGanados;
-  document.getElementById('stat-ptos-sub').textContent = `de ${ptosPosibles} posibles`;
-  document.getElementById('stat-pct').textContent      = pct !== null ? pct.toFixed(1) + '%' : '—';
-
-  // Próximas 3 sesiones
-  renderUpcoming();
-
-  // Progreso temporada
-  const jugadas = SEMANAS.filter(s => s.estado === 'jugada').length;
-  const total   = SEMANAS.length;
-  document.getElementById('season-bar').style.width       = (jugadas / total * 100) + '%';
-  document.getElementById('season-pct-label').textContent = `${jugadas} / ${total} semanas`;
-
-  // Tab sesiones
-  renderSessionsTab(player);
-
-  // Nav auth chip
   renderNavChip(user);
+
+  await whenAuthed();
+
+  const prof = await loadProfileDoc(user.uid);
+  _duprId = ((prof && prof.duprId) || '').trim();
+  _myRegs = await loadMyRegistrations(user.uid);
+  if (!_duprId && _myRegs.length) _duprId = ((_myRegs[_myRegs.length-1].duprId)||'').trim();
+
+  renderAll();  // pinta inscripciones de inmediato (ranking se llena al llegar scores)
+
+  // Ranking en tiempo real
+  db.collection('ladder_scores').onSnapshot(snap => {
+    _scoresDocs = snap.docs.map(d => ({ docId: d.id, ...d.data() }));
+    _scoresReady = true;
+    renderAll();
+  }, () => { _scoresReady = true; renderAll(); });
 }
+
+// ── Render de todo (resumen + tabs) ──
+function renderAll() {
+  const cat = myCategoria();
+  const catLabel = cat ? CAT_LABELS[cat] : 'tu categoría';
+  const rows = (cat && _scoresReady) ? catRows(_scoresDocs, cat) : [];
+  const me   = rows.find(r => r.duprId && r.duprId === _duprId) || null;
+
+  const sesionesJugadas = me ? me.catSessions.length : 0;
+  const avg = me ? me.avg : null;
+  const pos = me && me.pos ? me.pos : '—';
+  const totalCompit = rows.filter(r => r.compitiendo).length;
+
+  document.getElementById('stat-pos').textContent      = pos;
+  document.getElementById('stat-pos-sub').textContent  = cat ? `de ${totalCompit || rows.length || 0} en ${catLabel}` : 'aún sin categoría';
+  document.getElementById('stat-sesiones').textContent = sesionesJugadas;
+  document.getElementById('stat-sesiones-sub').textContent = 'de 8 sesiones';
+  document.getElementById('stat-ptos').textContent     = (me && avg !== null) ? avg.toFixed(2) : '—';
+  document.getElementById('stat-ptos-sub').textContent = me ? (me.compitiendo ? 'promedio (mejores)' : `faltan ${3 - me.n} sesión${(3-me.n)>1?'es':''}`) : 'aún sin partidos';
+  document.getElementById('stat-pct').textContent      = me ? (me.compitiendo ? 'Compitiendo' : 'En progreso') : '—';
+
+  document.getElementById('season-bar').style.width       = (sesionesJugadas / 8 * 100) + '%';
+  document.getElementById('season-pct-label').textContent = `${sesionesJugadas} / 8 sesiones`;
+
+  renderUpcoming();
+  renderSessionsTab(me);
+  renderRankingTab(rows, catLabel);
+}
+
+const STATUS_LABELS = { confirmed:'Inscrito', waitlist:'Lista de espera', pending_review:'Pago por validar', slot_available:'Cupo disponible', denied:'No aprobado' };
 
 function renderUpcoming() {
-  const upcoming = SEMANAS
-    .filter(s => s.estado === 'proxima' || s.estado === 'pendiente')
-    .slice(0, 3);
-  const badgeLabels = { proxima: 'Próxima', pendiente: 'Pendiente' };
-  if (!upcoming.length) {
-    document.getElementById('upcoming-grid').innerHTML =
-      `<div style="color:var(--muted);font-size:.88rem;grid-column:1/-1">No hay sesiones próximas.</div>`;
-    return;
-  }
-  document.getElementById('upcoming-grid').innerHTML = upcoming.map(s => {
-    const title = `Semana ${s.num}`;
-    const sub   = isGF ? 'Formato eliminatorio · Club Antigua Pickleball' : 'Viernes 7:00 pm · Club Antigua Pickleball';
-    const canRegister = s.estado === 'proxima' || s.estado === 'pendiente';
-    return `<div class="upcoming-card ${s.estado}">
+  const grid = document.getElementById('upcoming-grid');
+  const regMap = {}; _myRegs.forEach(r => regMap[r.sesionNum] = r);
+  const upcoming = SEMANAS.slice(0, 3);
+  grid.innerHTML = upcoming.map(s => {
+    const r = regMap[s.num];
+    const label = r ? (STATUS_LABELS[r.status] || r.status) : 'Sin inscribir';
+    const cls   = r && r.status === 'confirmed' ? 'proxima' : 'pendiente';
+    return `<div class="upcoming-card ${cls}">
       <div class="upcoming-card-top">
         <div>
-          <div class="upcoming-card-num">${isGF ? 'Sesión Final' : `Semana ${s.num} · Temporada 1`}</div>
+          <div class="upcoming-card-num">Semana ${s.num} · Temporada 1</div>
           <div class="upcoming-card-fecha">${s.fecha}</div>
         </div>
-        <span class="upcoming-card-badge ${s.estado}">${badgeLabels[s.estado]}</span>
+        <span class="upcoming-card-badge ${cls}">${label}</span>
       </div>
-      <div class="upcoming-card-sub">${sub}</div>
-      <a href="sesion.html?n=${s.num}" class="btn-inscribirse">Ver sesión &amp; registrarse →</a>
+      <div class="upcoming-card-sub">Sábado · Club Girasoles${r ? ' · ' + (CAT_LABELS[r.categoria]||'') : ''}</div>
+      <a href="sesion.html?n=${s.num}" class="btn-inscribirse">${r ? 'Ver mi sesión' : 'Ver e inscribirme'} →</a>
     </div>`;
   }).join('');
 }
 
-function renderSessionsTab(player) {
-  const labels = {
-    jugada:'Jugada', proxima:'Próxima', cancelada:'Cancelada',
-    pendiente:'Pendiente'
-  };
+function renderSessionsTab(me) {
+  const scoreByNum = {};
+  if (me) me.catSessions.forEach(s => { scoreByNum[s.sesionNum] = s.score; });
+  const regMap = {}; _myRegs.forEach(r => regMap[r.sesionNum] = r);
+
   document.getElementById('sessions-list').innerHTML = SEMANAS.map(s => {
-    const isPlayed = s.estado === 'jugada';
-    const isCancelled = s.estado === 'cancelada';
-    const pg = isPlayed && player ? '—' : '—';
-    const pp = isPlayed && player ? '—' : '—';
-    const numLabel = `Sem. ${s.num}`;
-    const linkStart = !isCancelled ? `<a href="sesion.html?n=${s.num}" style="text-decoration:none;color:inherit;display:contents">` : '';
-    const linkEnd   = !isCancelled ? '</a>' : '';
-    return `<div class="session-row" style="${!isCancelled?'cursor:pointer':''}">
-      ${linkStart}
-      <span class="session-num">${numLabel}</span>
-      <span class="session-fecha">${s.fecha}${s.nota ? ' · <em style="color:var(--muted);font-style:normal">'+s.nota+'</em>' : ''}</span>
-      <span class="session-pts-gan ${isPlayed?'has-pts':''}">${pg}</span>
-      <span class="session-pts-pos">${pp}</span>
-      <span class="session-badge ${s.estado}">${labels[s.estado]}</span>
-      ${linkEnd}
+    const r = regMap[s.num];
+    const score = scoreByNum[s.num];
+    const played = score !== undefined;
+    const label = played ? 'Jugada' : (r ? (STATUS_LABELS[r.status] || r.status) : 'Sin inscribir');
+    const cls   = played ? 'jugada' : (r && r.status === 'confirmed' ? 'proxima' : 'pendiente');
+    return `<div class="session-row" style="cursor:pointer">
+      <a href="sesion.html?n=${s.num}" style="text-decoration:none;color:inherit;display:contents">
+      <span class="session-num">Sem. ${s.num}</span>
+      <span class="session-fecha">${s.fecha}</span>
+      <span class="session-pts-gan ${played?'has-pts':''}">${played ? score.toFixed(2) : '—'}</span>
+      <span class="session-pts-pos">${r ? (CAT_LABELS[r.categoria] || '—') : '—'}</span>
+      <span class="session-badge ${cls}">${label}</span>
+      </a>
     </div>`;
   }).join('');
 }
 
-function renderRankingTab(sorted, myIdx, cat, catLabel, myPct) {
-  document.getElementById('rank-pos-num').textContent = sorted.findIndex(p => p.idx === myIdx) + 1 || '—';
+function renderRankingTab(rows, catLabel) {
+  const meIdx = rows.findIndex(r => r.duprId && r.duprId === _duprId);
+  const me    = meIdx >= 0 ? rows[meIdx] : null;
+
+  document.getElementById('rank-pos-num').textContent = me && me.pos ? me.pos : '—';
   document.getElementById('rank-cat-name').textContent = catLabel;
-  document.getElementById('rank-bar-fill').style.width = myPct !== null ? myPct.toFixed(1) + '%' : '0%';
-  document.getElementById('rank-pct-label').textContent = myPct !== null ? myPct.toFixed(1) + '%' : '—';
+  const maxAvg = rows.length ? Math.max(...rows.map(r => r.avg), 0.01) : 1;
+  document.getElementById('rank-bar-fill').style.width  = (me ? (me.avg / maxAvg * 100) : 0).toFixed(0) + '%';
+  document.getElementById('rank-pct-label').textContent = me ? me.avg.toFixed(2) : '—';
 
-  // Mostrar jugadores alrededor del usuario
-  const myRankIdx = sorted.findIndex(p => p.idx === myIdx);
-  const from = Math.max(0, myRankIdx - 2);
-  const to   = Math.min(sorted.length, myRankIdx + 3);
-  const slice = sorted.slice(from, to);
+  const peers = document.getElementById('ranking-peers');
+  if (!rows.length) {
+    peers.innerHTML = `<div style="color:var(--muted);font-size:.85rem;padding:6px 0">Aún no hay resultados publicados. Tu ranking aparecerá en cuanto inicie la temporada y se carguen los puntajes.</div>`;
+    return;
+  }
+  let from, to;
+  if (meIdx >= 0) { from = Math.max(0, meIdx - 2); to = Math.min(rows.length, meIdx + 3); }
+  else { from = 0; to = Math.min(rows.length, 5); }
 
-  document.getElementById('ranking-peers').innerHTML = slice.map((p, i) => {
-    const absPos = from + i + 1;
-    const isMe   = p.idx === myIdx;
-    const pctStr = p.pct !== null ? p.pct.toFixed(1) + '%' : '—';
+  peers.innerHTML = rows.slice(from, to).map((p, i) => {
+    const absPos = (p.pos != null) ? p.pos : (from + i + 1);
+    const isMe   = p.duprId && p.duprId === _duprId;
     return `<div class="peer-row">
       <span class="peer-pos">${absPos}</span>
       <span class="peer-name ${isMe?'me':''}">${isMe ? '▶ ' : ''}${p.nombre}</span>
-      <span class="peer-pct">${pctStr}</span>
+      <span class="peer-pct">${p.compitiendo ? p.avg.toFixed(2) : '—'}</span>
     </div>`;
   }).join('');
 }
@@ -989,7 +1034,7 @@ document.getElementById('btn-signout').addEventListener('click', () => {
 APAuth.onReady(function(user) {
   if (user) {
     document.getElementById('state-logged').style.display = 'block';
-    renderProfile(user);
+    loadProfile(user).catch(e => console.error('perfil:', e));
   } else {
     document.getElementById('state-guest').style.display = 'block';
     const loginURL = 'https://antigua-pickleball.com/login.html?redirect=' + encodeURIComponent(window.location.href);
