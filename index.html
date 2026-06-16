@@ -731,6 +731,40 @@
     .btn-cta:hover { background: #f0f0f0; transform: translateY(-2px); }
 
     /* ════════════════════════════════════════════
+       SPONSORS
+    ════════════════════════════════════════════ */
+    .sponsors-section {
+      background: var(--dark2);
+      border-top: 1px solid rgba(255,255,255,.07);
+      padding: 48px 24px;
+      text-align: center;
+    }
+    .sponsors-label {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: .72rem;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,.35);
+      margin-bottom: 28px;
+    }
+    .sponsors-row {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 40px;
+    }
+    .sponsors-row img {
+      height: 52px;
+      width: auto;
+      object-fit: contain;
+      filter: brightness(0) invert(1);
+      opacity: .55;
+      transition: opacity .2s;
+    }
+    .sponsors-row img:hover { opacity: 1; }
+
+    /* ════════════════════════════════════════════
        FOOTER
     ════════════════════════════════════════════ */
     footer {
@@ -1289,6 +1323,16 @@
   <h2>¿Listo para<br>subir la escalera?</h2>
   <p>Cupo limitado a 10 jugadores por categoría. Inscríbete y asegura tu lugar en la primera temporada de la Antigua Ladder League.</p>
   <a class="btn-cta" href="inscribirse.html">INSCRIBIRME AHORA</a>
+</section>
+
+<!-- ══════════════════════════════════════
+     SPONSORS
+══════════════════════════════════════ -->
+<section class="sponsors-section">
+  <div class="sponsors-label">Patrocinado por</div>
+  <div class="sponsors-row">
+    <img src="img/hectors-bistro.png" alt="Hector's Bistro"/>
+  </div>
 </section>
 
 <!-- ══════════════════════════════════════
