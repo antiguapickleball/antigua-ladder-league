@@ -888,6 +888,28 @@ function horaTexto(categoria) {
 // Aviso por correo al admin (antiguapickleball@gmail.com) cuando se libera un cupo confirmado.
 // El correo trae: nombre del 1° en lista de espera, link de WhatsApp directo a ese jugador
 // (con mensaje listo) y link al panel del Ladder. La promoción la hace el admin manualmente.
+function avisarNuevoRegistroAdmin(sesionNum, categoria, entry) {
+  const catLabel = { principiante:'Principiante', intermedio:'Intermedio', open:'Open' }[categoria] || categoria;
+  const sem = SEMANAS.find(s => s.num === sesionNum);
+  const fecha = sem ? sem.fecha : `Semana ${sesionNum}`;
+  const hora  = horaTexto(categoria);
+  const statusLabel = entry.status === 'confirmed' ? '✅ Titular' : entry.status === 'waitlist' ? '⏳ Lista de espera' : '🔍 Por validar (transferencia)';
+  const pagoLabel   = entry.paid ? '💳 Tarjeta (pagado)' : entry.paymentMethod === 'transfer' ? '🏦 Transferencia (pendiente)' : '—';
+  const waLink = entry.phone
+    ? `https://wa.me/${entry.phone.replace(/\D/g,'')}?text=${encodeURIComponent(`¡Hola ${entry.nombre}! Te saluda *Antigua Pickleball* 🎾 Tu inscripción en el Antigua Ladder League fue recibida: *Sesión ${sesionNum}* (${fecha}), categoría *${catLabel}*, ${hora}. ¡Nos vemos en cancha!`)}`
+    : null;
+  const payload = {
+    to:        'antiguapickleball@gmail.com',
+    asunto:    `🎾 Nueva inscripción · ${entry.nombre} · Semana ${sesionNum} ${catLabel}`,
+    jugador:   `${entry.nombre}${entry.duprId ? ' (DUPR: ' + entry.duprId + ')' : ''}`,
+    sesion:    `Semana ${sesionNum} · ${fecha} · ${hora}`,
+    categoria: `${catLabel} — ${statusLabel} — ${pagoLabel}`,
+    waLink:    waLink || '(sin teléfono registrado)',
+    panelLink: 'https://ladder.antigua-pickleball.com/admin.html',
+  };
+  try { enviarCorreoAdmin(payload); } catch (_) {}
+}
+
 function avisarCupoLiberadoAdmin(sesionNum, categoria, primero, enEspera) {
   const catLabel = { principiante:'Principiante', intermedio:'Intermedio', open:'Open' }[categoria] || categoria;
   const sem = SEMANAS.find(s => s.num === sesionNum);
@@ -1873,6 +1895,9 @@ async function saveRegistration(user, duprId, categoria, paypalOrderId, status, 
       paidAt: firebase.firestore.Timestamp.now(), env: PAYPAL_ENV,
     }).catch(() => {});
   }
+
+  // Avisar al admin de la nueva inscripción
+  avisarNuevoRegistroAdmin(NUM, categoria, entry);
 }
 
 // Salir de lista de espera — único caso de retiro (gratis, no ocupa cupo pagado).
