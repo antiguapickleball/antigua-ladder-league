@@ -384,6 +384,7 @@
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
         <button class="btn-action" style="padding:9px 16px;font-size:.82rem;background:#f0fdf4;color:#065f46;border-color:#6ee7b7" onclick="toggleLadderPanel()">📊 Tabla Ladder</button>
+        <button class="btn-action" style="padding:9px 16px;font-size:.82rem;background:#eff6ff;color:#1d4ed8;border-color:#bfdbfe" onclick="openModal('modal-copiar')">📋 Copiar registro</button>
         <button class="btn-action" style="padding:9px 16px;font-size:.82rem;background:#fef2f2;color:#991b1b;border-color:#fca5a5" onclick="openModal('modal-danger')">⚙️ Peligro</button>
       </div>
     </div>
@@ -623,6 +624,54 @@
 </div>
 
 <!-- MODAL AGREGAR JUGADOR MANUALMENTE -->
+<div class="modal-overlay" id="modal-copiar" style="display:none" onclick="if(event.target===this)closeModal('modal-copiar')">
+  <div class="modal" style="max-width:620px">
+    <div class="modal-header">
+      <span class="modal-title">📋 Copiar registro a otras sesiones</span>
+      <button class="modal-close" onclick="closeModal('modal-copiar')">×</button>
+    </div>
+    <div class="modal-body">
+      <!-- Paso 1: buscar jugador -->
+      <div class="field-group">
+        <label class="field-label">Buscar jugador por nombre</label>
+        <div style="display:flex;gap:8px">
+          <input class="field-input" id="copiar-buscar" type="text" placeholder="Escribe el nombre…" oninput="buscarJugadorCopiar()" style="flex:1"/>
+        </div>
+      </div>
+      <div id="copiar-resultados" style="display:none;border:1.5px solid var(--border);border-radius:8px;max-height:180px;overflow-y:auto;margin-top:-8px"></div>
+
+      <!-- Jugador seleccionado -->
+      <div id="copiar-seleccionado" style="display:none;background:#f0fdf4;border:1.5px solid #6ee7b7;border-radius:8px;padding:12px 16px">
+        <div style="font-weight:700;font-size:.9rem" id="copiar-sel-nombre">—</div>
+        <div style="font-size:.78rem;color:var(--muted);margin-top:2px" id="copiar-sel-detalle">—</div>
+      </div>
+
+      <!-- Paso 2: seleccionar sesiones destino -->
+      <div id="copiar-sesiones-wrap" style="display:none">
+        <label class="field-label">Copiar a sesiones</label>
+        <div id="copiar-sesiones-checks" style="display:flex;flex-direction:column;gap:8px;padding:4px 0"></div>
+        <div class="field-group" style="margin-top:4px">
+          <label class="field-label">Estado en sesiones destino</label>
+          <select class="field-select" id="copiar-status">
+            <option value="confirmed">Confirmado (pagó)</option>
+            <option value="waitlist">Lista de espera</option>
+            <option value="pending_review">Por validar</option>
+          </select>
+        </div>
+        <p style="font-size:.78rem;color:var(--muted);line-height:1.6;margin-top:4px">
+          Solo se copian sesiones donde el jugador <strong>no está ya inscrito</strong> en la misma categoría.
+        </p>
+      </div>
+
+      <div id="copiar-msg" style="display:none;padding:10px 14px;border-radius:8px;font-size:.84rem"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-modal btn-cancel-modal" onclick="closeModal('modal-copiar')">Cancelar</button>
+      <button class="btn-modal btn-save" id="btn-copiar-guardar" style="display:none" onclick="ejecutarCopiarRegistro()">Copiar a sesiones seleccionadas</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modal-add" style="display:none" onclick="if(event.target===this)closeModal('modal-add')">
   <div class="modal" style="max-width:560px">
     <div class="modal-header">
@@ -1792,6 +1841,128 @@ async function applyPenalty(uid, nombre, sesionNum, delta, notifId) {
 /* ══════════════════════════════════════════════════════
    MODAL: AGREGAR JUGADOR MANUALMENTE
 ══════════════════════════════════════════════════════ */
+// ── Copiar registro ──────────────────────────────────────────
+let _copiarJugador = null; // { entry, sesionOrigen }
+
+async function buscarJugadorCopiar() {
+  const q = document.getElementById('copiar-buscar').value.trim().toLowerCase();
+  const res = document.getElementById('copiar-resultados');
+  _copiarJugador = null;
+  document.getElementById('copiar-seleccionado').style.display = 'none';
+  document.getElementById('copiar-sesiones-wrap').style.display = 'none';
+  document.getElementById('btn-copiar-guardar').style.display = 'none';
+  document.getElementById('copiar-msg').style.display = 'none';
+
+  if (q.length < 2) { res.style.display = 'none'; return; }
+
+  // Buscar en todas las sesiones cargadas en _allSessions (cache del panel)
+  const encontrados = [];
+  const sesSnap = await db.collection('ladder_registrations').get();
+  sesSnap.forEach(doc => {
+    const data = doc.data();
+    (data.inscritos || []).forEach(p => {
+      if (p.nombre && p.nombre.toLowerCase().includes(q)) {
+        encontrados.push({ entry: p, sesionOrigen: data.sesionNum || doc.id, docId: doc.id });
+      }
+    });
+  });
+
+  // Deduplicar por uid (mostrar cada jugador una sola vez, con su sesión más reciente)
+  const vistos = new Map();
+  encontrados.forEach(r => {
+    if (!vistos.has(r.entry.uid) || r.sesionOrigen > vistos.get(r.entry.uid).sesionOrigen)
+      vistos.set(r.entry.uid, r);
+  });
+  const lista = [...vistos.values()];
+
+  if (!lista.length) {
+    res.innerHTML = '<div style="padding:12px 16px;font-size:.84rem;color:var(--muted)">Sin resultados</div>';
+    res.style.display = 'block'; return;
+  }
+
+  res.innerHTML = lista.map((r, i) => `
+    <div onclick="seleccionarJugadorCopiar(${i})" data-idx="${i}"
+         style="padding:10px 16px;cursor:pointer;border-bottom:1px solid var(--border);font-size:.84rem;transition:background .15s"
+         onmouseover="this.style.background='#f0fdf4'" onmouseout="this.style.background=''">
+      <strong>${r.entry.nombre}</strong>
+      <span style="color:var(--muted);margin-left:8px">${r.entry.categoria||''} · Sesión ${r.sesionOrigen}${r.entry.duprId?' · DUPR '+r.entry.duprId:''}</span>
+    </div>`).join('');
+  res.style.display = 'block';
+  res._lista = lista;
+}
+
+function seleccionarJugadorCopiar(idx) {
+  const lista = document.getElementById('copiar-resultados')._lista;
+  _copiarJugador = lista[idx];
+  const e = _copiarJugador.entry;
+
+  document.getElementById('copiar-resultados').style.display = 'none';
+  document.getElementById('copiar-buscar').value = e.nombre;
+
+  document.getElementById('copiar-sel-nombre').textContent = e.nombre;
+  document.getElementById('copiar-sel-detalle').textContent =
+    `${(e.categoria||'').charAt(0).toUpperCase()+(e.categoria||'').slice(1)} · Sesión ${_copiarJugador.sesionOrigen}` +
+    (e.email ? ' · ' + e.email : '') + (e.duprId ? ' · DUPR ' + e.duprId : '');
+  document.getElementById('copiar-seleccionado').style.display = 'block';
+
+  // Cargar checkboxes de sesiones disponibles
+  const wrap = document.getElementById('copiar-sesiones-checks');
+  wrap.innerHTML = SEMANAS.filter(s => s.estado !== 'jugada' && s.num !== _copiarJugador.sesionOrigen).map(s => `
+    <label style="display:flex;align-items:center;gap:10px;font-size:.84rem;cursor:pointer;padding:6px 0">
+      <input type="checkbox" value="${s.num}" style="width:16px;height:16px;accent-color:#065f46"/>
+      Sesión ${s.num} · ${s.fecha}
+    </label>`).join('');
+  document.getElementById('copiar-sesiones-wrap').style.display = 'block';
+  document.getElementById('btn-copiar-guardar').style.display = 'inline-flex';
+}
+
+async function ejecutarCopiarRegistro() {
+  if (!_copiarJugador) return;
+  const checks = [...document.querySelectorAll('#copiar-sesiones-checks input[type=checkbox]:checked')];
+  if (!checks.length) { mostrarMsgCopiar('Selecciona al menos una sesión.', '#fef2f2', '#991b1b'); return; }
+
+  const btn = document.getElementById('btn-copiar-guardar');
+  btn.disabled = true; btn.textContent = 'Copiando…';
+
+  const status   = document.getElementById('copiar-status').value;
+  const e        = _copiarJugador.entry;
+  const catLabel = { principiante:'Principiante', intermedio:'Intermedio', open:'Open' };
+  let copiadas = 0, omitidas = 0;
+
+  for (const chk of checks) {
+    const sesNum = parseInt(chk.value);
+    const docId  = `t1_sesion_${sesNum}`;
+    const ref    = db.collection('ladder_registrations').doc(docId);
+    const snap   = await ref.get();
+    const inscritos = snap.exists ? (snap.data().inscritos || []) : [];
+
+    // Omitir si ya está en esa sesión/categoría
+    if (inscritos.some(p => p.uid === e.uid && p.categoria === e.categoria)) { omitidas++; continue; }
+
+    const entry = {
+      uid: e.uid, nombre: e.nombre, email: e.email||'', duprId: e.duprId||'',
+      categoria: e.categoria, status, paymentMethod: 'manual',
+      ...(e.phone ? { phone: e.phone } : {}),
+      registeredAt: firebase.firestore.Timestamp.now(),
+    };
+    await ref.set({ sesionNum: sesNum, inscritos: firebase.firestore.FieldValue.arrayUnion(entry) }, { merge: true });
+    copiadas++;
+  }
+
+  btn.disabled = false; btn.textContent = 'Copiar a sesiones seleccionadas';
+  const msg = `✅ Copiado a ${copiadas} sesión(es)${omitidas ? ` · ${omitidas} omitida(s) (ya inscrito)` : ''}.`;
+  mostrarMsgCopiar(msg, '#f0fdf4', '#065f46');
+  // Limpiar checks
+  document.querySelectorAll('#copiar-sesiones-checks input').forEach(c => c.checked = false);
+}
+
+function mostrarMsgCopiar(txt, bg, color) {
+  const el = document.getElementById('copiar-msg');
+  el.textContent = txt; el.style.background = bg; el.style.color = color;
+  el.style.display = 'block';
+}
+// ─────────────────────────────────────────────────────────────
+
 function openAdd() {
   // Reset button state always (in case previous call left it disabled)
   const btn = document.getElementById('btn-save-add');
