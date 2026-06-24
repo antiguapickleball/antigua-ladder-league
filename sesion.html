@@ -1127,9 +1127,12 @@ function renderRegContainer(user, inscritos) {
       </div>`; return;
   }
 
-  // Multi-categoría: si ya está inscrito en alguna categoría, mostramos sus inscripciones
-  // pero dejamos inscribirse en categorías distintas.
-  const myRegs = inscritos.filter(p => p.uid === user.uid);
+  // Si ya tiene inscripción activa → pantalla de gestión (comportamiento original intacto)
+  const yaReg = inscritos.find(p => p.uid === user.uid);
+  if (yaReg) { renderYaInscrito(container, user, yaReg, inscritos); return; }
+
+  // Sin inscripción: mostrar formulario
+  const myRegs = []; // sin registros previos en esta sesión
 
   // Formulario: DUPR (auto-fill) + categoría + método de pago
   const counts = getCounts(inscritos);
