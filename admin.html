@@ -2176,7 +2176,7 @@ async function publishSession(sesionNum, categoria) {
 
     const processMatches = (matches, uids, court) => {
       const stats = computeStandings(matches, uids, court, isS1);
-      const maxPts = isS1 ? 2 : (court === 'A' ? 3 : 2);
+      const maxPts = 1;
       const courtFactor = (!isS1 && court === 'A') ? 1.25 : 1.0;
       const key = `${sesionNum}_${cat}`;
       Object.entries(stats).forEach(([uid, s]) => {
@@ -2344,7 +2344,7 @@ async function computeGlobalLadder() {
 
     const addStats = (matches, uids, court) => {
       const stats = computeStandings(matches, uids, court, isS1);
-      const maxPts = isS1 ? 2 : (court === 'A' ? 3 : 2);
+      const maxPts = 1;
       const courtFactor = (!isS1 && court === 'A') ? 1.25 : 1.0;
       Object.entries(stats).forEach(([uid, s]) => {
         if (s.pj === 0) return;
@@ -2380,7 +2380,7 @@ async function computeGlobalLadder() {
   const playerRows = Object.entries(allPlayers).map(([key, data]) => {
     const sessions = Object.values(data.bySession).map(s => ({
       ...s,
-      ladderScore: s.pj > 0 ? (s.pts / (s.pj * (s.maxPts||2))) * (s.courtFactor||1.0) : 0,
+      ladderScore: s.pj > 0 ? (s.pts / (s.pj * (s.maxPts||1))) * (s.courtFactor||1.0) : 0,
     })).sort((a,b) => a.sesionNum - b.sesionNum);
 
     const allScores = sessions.map(s => s.ladderScore);
@@ -3363,7 +3363,7 @@ async function trySaveScore(sesionNum, categoria, roundNum, court, matchId) {
 
 // ── Standings computation ──
 function computeStandings(matches, uids, court, isS1) {
-  const pts = isS1 ? {w:2,l:0} : (court==='A' ? {w:3,l:1} : {w:2,l:0});
+  const pts = {w:1, l:0};
   const s = {};
   (uids||[]).forEach(u => s[u] = {pj:0, pg:0, pp:0, pf:0, pc:0, pts:0});
 
@@ -3378,7 +3378,7 @@ function computeStandings(matches, uids, court, isS1) {
     (los||[]).forEach(u => { if(s[u]){s[u].pp++;s[u].pf+=lp;s[u].pc+=wp;s[u].pts+=pts.l;} });
   });
 
-  const maxPts = isS1 ? 2 : (court === 'A' ? 3 : 2);
+  const maxPts = 1;
   const courtFactor = (!isS1 && court === 'A') ? 1.25 : 1.0;
   Object.values(s).forEach(r => {
     r.pctPG      = r.pj > 0 ? r.pg / r.pj : 0;
