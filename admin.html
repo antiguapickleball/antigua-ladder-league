@@ -504,6 +504,16 @@
     <!-- Fixture por categoría -->
     <div id="fixture-cats-section" style="display:none;margin-bottom:20px"></div>
 
+    <!-- Filtro de categorías -->
+    <div id="cat-filter-bar" style="display:none;margin-bottom:12px;display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+      <span style="font-size:.72rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Categoría:</span>
+      <button onclick="setCatFilter('todos')" id="cf-todos" class="btn-action" style="padding:5px 14px;font-size:.78rem;background:var(--dark);color:#fff;border-color:var(--dark)">Todos</button>
+      <button onclick="setCatFilter('principiante')" id="cf-principiante" class="btn-action" style="padding:5px 14px;font-size:.78rem">Principiante</button>
+      <button onclick="setCatFilter('intermedio')" id="cf-intermedio" class="btn-action" style="padding:5px 14px;font-size:.78rem">Intermedio</button>
+      <button onclick="setCatFilter('open')" id="cf-open" class="btn-action" style="padding:5px 14px;font-size:.78rem">Open</button>
+      <span id="cf-count" style="font-size:.78rem;color:var(--muted);margin-left:4px"></span>
+    </div>
+
     <!-- Tabla de inscritos -->
     <div id="loading-state">Cargando datos…</div>
     <div class="reg-table-wrap" id="table-wrap" style="display:none">
@@ -1365,11 +1375,28 @@ function closeLightbox() {
 document.addEventListener('keydown', e => { if (e.key==='Escape') closeLightbox(); });
 
 /* ══════════════════════════════════════════════════════
+   FILTRO CATEGORÍA
+══════════════════════════════════════════════════════ */
+let _catFilter = 'todos';
+function setCatFilter(cat) {
+  _catFilter = cat;
+  ['todos','principiante','intermedio','open'].forEach(c => {
+    const btn = document.getElementById('cf-' + c);
+    if (!btn) return;
+    const active = c === cat;
+    btn.style.background    = active ? 'var(--dark)' : '';
+    btn.style.color         = active ? '#fff' : '';
+    btn.style.borderColor   = active ? 'var(--dark)' : '';
+  });
+  if (_currentSession) renderTable(_currentSession);
+}
+
+/* ══════════════════════════════════════════════════════
    RENDER TABLA
 ══════════════════════════════════════════════════════ */
 function renderTable(sesionNum) {
   const sesion    = SEMANAS.find(s => s.num === sesionNum);
-  const inscritos = (_allData[sesionNum] || [])
+  const allInscritos = (_allData[sesionNum] || [])
     .slice()
     .sort((a, b) => {
       // confirmed → pending_review → waitlist → denied
@@ -1378,23 +1405,34 @@ function renderTable(sesionNum) {
       if (oa !== ob) return oa - ob;
       return (a.registeredAt?.seconds||0) - (b.registeredAt?.seconds||0);
     });
+  const inscritos = _catFilter === 'todos'
+    ? allInscritos
+    : allInscritos.filter(p => p.categoria === _catFilter);
+
+  // Mostrar barra de filtros y contador
+  const filterBar = document.getElementById('cat-filter-bar');
+  if (filterBar) { filterBar.style.display = 'flex'; }
+  const cfCount = document.getElementById('cf-count');
+  if (cfCount) cfCount.textContent = _catFilter === 'todos'
+    ? `${inscritos.length} jugadores`
+    : `${inscritos.length} en ${_catFilter}`;
 
   // Ocultar loading, mostrar tabla
   document.getElementById('loading-state').style.display = 'none';
   document.getElementById('table-wrap').style.display    = 'block';
 
-  // Summary chips
-  const confirmed = inscritos.filter(p => p.status === 'confirmed').length;
-  const waitlist  = inscritos.filter(p => p.status === 'waitlist').length;
-  const pending   = inscritos.filter(p => p.status === 'pending_review').length;
+  // Summary chips — siempre sobre el total sin filtrar
+  const confirmed = allInscritos.filter(p => p.status === 'confirmed').length;
+  const waitlist  = allInscritos.filter(p => p.status === 'waitlist').length;
+  const pending   = allInscritos.filter(p => p.status === 'pending_review').length;
   const counts    = { principiante: 0, intermedio: 0, open: 0 };
-  inscritos.filter(p=>p.status==='confirmed').forEach(p => { if (counts[p.categoria]!==undefined) counts[p.categoria]++; });
+  allInscritos.filter(p=>p.status==='confirmed').forEach(p => { if (counts[p.categoria]!==undefined) counts[p.categoria]++; });
 
   // Detectar categorías con cupo abierto + jugadores en espera → aviso accionable
   const cats = ['principiante','intermedio','open'];
   const promotionAlerts = cats.filter(cat => {
-    const confirmedCat = inscritos.filter(p => p.status === 'confirmed' && p.categoria === cat).length;
-    const waitlistCat  = inscritos.filter(p => p.status === 'waitlist'  && p.categoria === cat).length;
+    const confirmedCat = allInscritos.filter(p => p.status === 'confirmed' && p.categoria === cat).length;
+    const waitlistCat  = allInscritos.filter(p => p.status === 'waitlist'  && p.categoria === cat).length;
     return confirmedCat < 10 && waitlistCat > 0;
   });
 

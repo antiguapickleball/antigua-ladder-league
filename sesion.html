@@ -1127,8 +1127,9 @@ function renderRegContainer(user, inscritos) {
       </div>`; return;
   }
 
-  const yaReg = inscritos.find(p => p.uid === user.uid);
-  if (yaReg) { renderYaInscrito(container, user, yaReg, inscritos); return; }
+  // Multi-categoría: si ya está inscrito en alguna categoría, mostramos sus inscripciones
+  // pero dejamos inscribirse en categorías distintas.
+  const myRegs = inscritos.filter(p => p.uid === user.uid);
 
   // Formulario: DUPR (auto-fill) + categoría + método de pago
   const counts = getCounts(inscritos);
@@ -1161,22 +1162,35 @@ function renderRegContainer(user, inscritos) {
         </p>
       </div>
 
+      <!-- Inscripciones existentes en esta sesión -->
+      ${myRegs.length ? `<div style="background:#f0fdf4;border:1.5px solid #6ee7b7;border-radius:10px;padding:12px 16px;margin-bottom:4px">
+        <div style="font-size:.78rem;font-weight:700;color:#065f46;margin-bottom:6px;text-transform:uppercase;letter-spacing:.06em">✅ Ya inscrito en esta sesión</div>
+        ${myRegs.map(r => {
+          const cl = {principiante:'Principiante',intermedio:'Intermedio',open:'Open'};
+          const sl = {confirmed:'Titular',waitlist:'Lista de espera',pending_review:'Por validar'};
+          return `<div style="font-size:.84rem;color:#065f46">${cl[r.categoria]||r.categoria} · <em>${sl[r.status]||r.status}</em></div>`;
+        }).join('')}
+        <div style="font-size:.74rem;color:#6b7280;margin-top:6px">Puedes inscribirte en una segunda categoría si los horarios no se solapan.</div>
+      </div>` : ''}
+
       <!-- CATEGORÍA -->
       <div class="cat-select-label">Selecciona tu categoría</div>
+      <div id="dupr-cat-error" style="display:none;background:#fef2f2;border:1.5px solid #fca5a5;border-radius:8px;padding:10px 14px;font-size:.84rem;color:#991b1b;margin-bottom:8px"></div>
       <div class="cat-options" id="cat-options">
         ${CATEGORIAS.map(c => {
           const count = counts[c.id];
           const full  = count >= CAP_POR_CAT;
           const waitCount = getWaitCounts(_inscritos)[c.id] || 0;
-          return `<label class="cat-option${full?' cat-full':''}">
-            <input type="radio" name="categoria" value="${c.id}"/>
+          const yaEnCat = myRegs.some(r => r.categoria === c.id);
+          return `<label class="cat-option${full?' cat-full':''}${yaEnCat?' cat-full':''}" ${yaEnCat?'title="Ya estás inscrito en esta categoría"':''}>
+            <input type="radio" name="categoria" value="${c.id}" ${yaEnCat?'disabled':''}/>
             <div class="cat-option-inner">
               <div class="cat-option-top">
                 <span class="cat-option-name">${c.label}</span>
-                <span class="cat-option-cap ${full?'full':''}">${count}/${CAP_POR_CAT}${full?' · LLENO':''}</span>
+                <span class="cat-option-cap ${full||yaEnCat?'full':''}">${yaEnCat?'YA INSCRITO':count+'/'+CAP_POR_CAT+(full?' · LLENO':'')}</span>
               </div>
               <span class="cat-option-rango">DUPR ${c.rango} · ${c.hora}</span>
-              ${full ? `<span class="cat-option-wait">⏳ Lista de espera${waitCount > 0 ? ` · ${waitCount} esperando` : ' disponible'}</span>` : ''}
+              ${yaEnCat ? '' : full ? `<span class="cat-option-wait">⏳ Lista de espera${waitCount > 0 ? ` · ${waitCount} esperando` : ' disponible'}</span>` : ''}
             </div>
           </label>`;
         }).join('')}
@@ -1316,34 +1330,72 @@ function renderRegContainer(user, inscritos) {
     _pendingDuprId = e.target.value.trim();
   });
 
-  // Selección de categoría → mostrar método de pago o waitlist
-  document.getElementById('cat-options').addEventListener('change', e => {
+  // Selección de categoría → validar DUPR + mostrar método de pago o waitlist
+  document.getElementById('cat-options').addEventListener('change', async e => {
     if (e.target.name !== 'categoria') return;
     _pendingCategoria = e.target.value;
-    const full = isFull(_inscritos, _pendingCategoria);
 
-    // Aviso de categoría llena
+    // Ocultar pago mientras se valida
+    const hidePayment = () => {
+      document.getElementById('pay-method-label').style.display  = 'none';
+      document.getElementById('pay-method-toggle').style.display = 'none';
+      document.getElementById('paypal-section').style.display    = 'none';
+      document.getElementById('transfer-section').style.display  = 'none';
+      document.getElementById('waitlist-btn-wrap').style.display = 'none';
+    };
+    hidePayment();
+    document.getElementById('reg-form-error').style.display = 'none';
+
+    const duprError = document.getElementById('dupr-cat-error');
+
+    // 1. DUPR ID obligatorio
+    const duprId = (document.getElementById('dupr-input')?.value || '').trim();
+    if (!duprId) {
+      duprError.textContent = '⛔ Necesitas ingresar tu DUPR ID para inscribirte. Haz clic en "Editar" junto a tu DUPR ID.';
+      duprError.style.display = 'block';
+      return;
+    }
+
+    // 2. Validar rating contra categoría (principiante ≤3.0, intermedio ≤3.7, open libre)
+    const LIMITES = { principiante: 3.0, intermedio: 3.7 };
+    const limite = LIMITES[_pendingCategoria];
+    if (limite !== undefined) {
+      duprError.textContent = '🔍 Verificando tu rating DUPR…';
+      duprError.style.background = '#f0f9ff';
+      duprError.style.borderColor = '#7dd3fc';
+      duprError.style.color = '#0369a1';
+      duprError.style.display = 'block';
+      try {
+        const res  = await fetch(`https://ap-dupr-api.netlify.app/.netlify/functions/dupr?id=${encodeURIComponent(duprId)}`);
+        const data = await res.json();
+        const rating = data.doubles ?? data.doublesVerified ?? null;
+        if (rating !== null && rating !== 'NR' && parseFloat(rating) > limite) {
+          duprError.style.background = '#fef2f2';
+          duprError.style.borderColor = '#fca5a5';
+          duprError.style.color = '#991b1b';
+          const catLabel = { principiante:'Principiante', intermedio:'Intermedio' }[_pendingCategoria];
+          duprError.textContent = `⛔ Tu rating DUPR de dobles (${rating}) supera el límite para ${catLabel} (máx ${limite}). Selecciona una categoría superior.`;
+          return;
+        }
+      } catch (_) {
+        // Si falla la consulta, dejamos pasar (no bloqueamos por error de red)
+      }
+    }
+
+    // Todo OK — mostrar pago
+    duprError.style.display = 'none';
+    const full = isFull(_inscritos, _pendingCategoria);
     const notice = document.getElementById('cat-full-notice');
     notice.classList.toggle('visible', full);
-
-    // Formulario de pago o botón waitlist
     document.getElementById('pay-method-label').style.display  = full ? 'none' : 'block';
     document.getElementById('pay-method-toggle').style.display = full ? 'none' : 'grid';
     document.getElementById('paypal-section').style.display    = full ? 'none' : 'block';
     document.getElementById('transfer-section').style.display  = 'none';
     document.getElementById('waitlist-btn-wrap').style.display = full ? 'block' : 'none';
-    document.getElementById('reg-form-error').style.display    = 'none';
-
-    // Resetear al método paypal
     document.getElementById('btn-pm-paypal').classList.add('active');
     document.getElementById('btn-pm-transfer').classList.remove('active');
-
-    // Si llena, buscar sesiones alternativas con espacio
-    if (full) {
-      loadAltSessions(_pendingCategoria);
-    } else {
-      document.getElementById('alt-sessions-wrap').style.display = 'none';
-    }
+    if (full) loadAltSessions(_pendingCategoria);
+    else document.getElementById('alt-sessions-wrap').style.display = 'none';
   });
 
   // Toggle PayPal / Transferencia
@@ -1851,13 +1903,13 @@ async function saveRegistration(user, duprId, categoria, paypalOrderId, status, 
     ...(nombreInput && nombreInput !== user.displayName ? { displayName: nombreInput } : {}),
   }, { merge: true }).catch(() => {});
 
-  // Guardia contra condición de carrera: re-verificar capacidad al momento de guardar
-  if (status === 'confirmed') {
-    const freshSnap = await docRef.get();
-    const freshInscritos = freshSnap.exists ? (freshSnap.data().inscritos || []) : [];
-    if (isFull(freshInscritos, categoria)) {
-      status = 'waitlist';  // Categoría se llenó entre form y save → pasar a lista de espera
-    }
+  // Guardia contra condición de carrera: re-verificar al momento de guardar
+  const freshSnap2 = await docRef.get();
+  const freshInscritos2 = freshSnap2.exists ? (freshSnap2.data().inscritos || []) : [];
+  // Bloquear si ya está inscrito en esta misma categoría (doble submit)
+  if (freshInscritos2.some(p => p.uid === user.uid && p.categoria === categoria)) return;
+  if (status === 'confirmed' && isFull(freshInscritos2, categoria)) {
+    status = 'waitlist';
   }
 
   const entry = {
