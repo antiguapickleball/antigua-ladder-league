@@ -1150,6 +1150,11 @@
         <h3>Cupo Limitado</h3>
         <p>Máximo 10 jugadores por categoría. Si está lleno, entra en lista de espera. Primero en inscribirse, primero en jugar.</p>
       </div>
+      <div class="how-card reveal" data-num="05">
+        <div class="how-card-icon">🧮</div>
+        <h3>Jugar más, rendir mejor</h3>
+        <p>Puedes inscribirte a <strong>1 sesión o a todas</strong> — cada una se paga por separado. El ranking premia la constancia: con <strong>3 sesiones</strong> entras a la tabla (sin descarte). Con <strong>4 a 6</strong> se descarta tu peor sesión. Con <strong>7 u 8</strong> se descartan las 2 peores. Más jornadas = más margen para un mal día.</p>
+      </div>
     </div>
   </div>
 </section>
@@ -1534,7 +1539,7 @@ async function loadPublicRanking(cat) {
         usedScores = allScores;
       } else {
         const sorted = [...allScores].sort((a, b) => a - b);
-        const dropCount = n >= 7 ? 2 : 1;
+        const dropCount = n >= 7 ? 2 : (n >= 4 ? 1 : 0);
         const dropped = sorted.slice(0, dropCount);
         // Mark scores as dropped (by index, handle ties)
         let dropCopy = [...dropped];
@@ -1593,7 +1598,7 @@ async function loadPublicRanking(cat) {
 
     html += `</tbody></table>
       <div style="margin-top:10px;font-size:.72rem;color:#9ca3af;padding:0 4px">
-        ⭐ Promedio = score normalizado · Cancha B / S1: máx 1.00 · Cancha A (S2+): máx 1.50 · Tachado = sesión descartada
+        ⭐ Promedio = score normalizado · Cancha B / S1: máx 1.00 · Cancha A (S2+): máx 1.50 · Tachado = sesión descartada (4–6 jornadas: se descarta 1; 7–8: se descartan 2)
       </div>
     </div>`;
 

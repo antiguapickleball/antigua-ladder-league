@@ -796,7 +796,7 @@ function catRows(scoreDocs, cat) {
       if (n < 3) used = scores;
       else {
         const sorted = [...scores].sort((a,b)=>a-b);
-        const dropped = sorted.slice(0, n >= 7 ? 2 : 1);
+        const dropped = sorted.slice(0, n >= 7 ? 2 : (n >= 4 ? 1 : 0));
         const dc = [...dropped], keep = [];
         cs.forEach(s => { const i = dc.indexOf(s.score); if (i !== -1) dc.splice(i,1); else keep.push(s.score); });
         used = keep;
