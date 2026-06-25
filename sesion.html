@@ -1127,12 +1127,15 @@ function renderRegContainer(user, inscritos) {
       </div>`; return;
   }
 
-  // Si ya tiene inscripción activa → pantalla de gestión (comportamiento original intacto)
-  const yaReg = inscritos.find(p => p.uid === user.uid);
-  if (yaReg) { renderYaInscrito(container, user, yaReg, inscritos); return; }
-
-  // Sin inscripción: mostrar formulario
-  const myRegs = []; // sin registros previos en esta sesión
+  // Si ya tiene inscripción(es) activa(s) → pantalla de gestión (comportamiento original intacto)
+  const myRegs = inscritos.filter(p => p.uid === user.uid);
+  if (myRegs.length > 0) {
+    // Mostrar gestión de la primera inscripción (flujo original sin cambios)
+    renderYaInscrito(container, user, myRegs[0], inscritos);
+    // Agregar opción de segunda categoría debajo, sin tocar lo de arriba
+    appendSegundaCategoria(container, user, myRegs, inscritos);
+    return;
+  }
 
   // Formulario: DUPR (auto-fill) + categoría + método de pago
   const counts = getCounts(inscritos);
@@ -1452,6 +1455,201 @@ function renderRegContainer(user, inscritos) {
       if (full) loadAltSessions(_pendingCategoria);
     }
   }
+}
+
+function appendSegundaCategoria(container, user, myRegs, inscritos) {
+  const catsInscritas = new Set(myRegs.map(r => r.categoria));
+  const catsDisponibles = CATEGORIAS.filter(c => !catsInscritas.has(c.id));
+  if (!catsDisponibles.length) return; // ya está en todas las categorías
+
+  const wrap = document.createElement('div');
+  wrap.id = 'segunda-cat-wrap';
+  wrap.style.cssText = 'margin-top:16px';
+  wrap.innerHTML = `
+    <button id="btn-show-segunda" style="width:100%;font-family:'Barlow Condensed',sans-serif;font-size:.9rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;padding:12px;background:transparent;border:2px dashed var(--border);color:var(--muted);cursor:pointer;border-radius:8px;transition:all .2s">
+      ➕ Inscribirme en otra categoría esta misma jornada
+    </button>
+    <div id="segunda-cat-form" style="display:none"></div>`;
+  container.appendChild(wrap);
+
+  document.getElementById('btn-show-segunda').addEventListener('click', () => {
+    document.getElementById('btn-show-segunda').style.display = 'none';
+    const formDiv = document.getElementById('segunda-cat-form');
+    const counts  = getCounts(inscritos);
+    const waitCounts = getWaitCounts(inscritos);
+    formDiv.innerHTML = `
+      <div class="reg-box" style="margin-top:0;border-top:2px dashed var(--border);padding-top:20px">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:1rem;font-weight:900;text-transform:uppercase;letter-spacing:.06em;color:var(--dark);margin-bottom:14px">Segunda categoría · misma jornada</div>
+        <div id="dupr2-cat-error" style="display:none;background:#fef2f2;border:1.5px solid #fca5a5;border-radius:8px;padding:10px 14px;font-size:.84rem;color:#991b1b;margin-bottom:8px"></div>
+        <div class="cat-options" id="cat-options-2">
+          ${CATEGORIAS.map(c => {
+            const yaEn  = catsInscritas.has(c.id);
+            const count = counts[c.id] || 0;
+            const full  = count >= CAP_POR_CAT;
+            const wc    = waitCounts[c.id] || 0;
+            return `<label class="cat-option${yaEn||full?' cat-full':''}">
+              <input type="radio" name="categoria2" value="${c.id}" ${yaEn?'disabled':''} />
+              <div class="cat-option-inner">
+                <div class="cat-option-top">
+                  <span class="cat-option-name">${c.label}</span>
+                  <span class="cat-option-cap ${yaEn||full?'full':''}">${yaEn?'YA INSCRITO':count+'/'+CAP_POR_CAT+(full?' · LLENO':'')}</span>
+                </div>
+                <span class="cat-option-rango">DUPR ${c.rango} · ${c.hora}</span>
+                ${!yaEn && full ? `<span class="cat-option-wait">⏳ Lista de espera${wc>0?' · '+wc+' esperando':' disponible'}</span>` : ''}
+              </div>
+            </label>`;
+          }).join('')}
+        </div>
+        <div id="pay-method-label-2" class="cat-select-label" style="display:none">Método de pago</div>
+        <div class="pay-method-toggle" id="pay-method-toggle-2" style="display:none">
+          <button class="pay-method-btn active" id="btn-pm-paypal-2" type="button"><span class="pm-icon">💳</span>Tarjeta / PayPal</button>
+          <button class="pay-method-btn" id="btn-pm-transfer-2" type="button"><span class="pm-icon">🏦</span>Transferencia</button>
+        </div>
+        <div id="reg-form-error-2" class="reg-status-line err" style="display:none"></div>
+        <div id="paypal-section-2"><div id="paypal-button-container-2" style="min-height:50px"></div></div>
+        <div id="transfer-section-2" style="display:none">
+          <div class="transfer-form">
+            <div class="bank-info-box">
+              <div class="bank-title">💳 Datos para transferencia</div>
+              <div class="bank-amount">${TRANSFER_PRICE}</div>
+              <div class="bank-row">🏦 <strong>${BANK_INFO.banco}</strong> · ${BANK_INFO.tipo}</div>
+              <div class="bank-row">No. <strong>${BANK_INFO.numero}</strong></div>
+              <div class="bank-row">A nombre de: <strong>${BANK_INFO.nombre}</strong></div>
+            </div>
+            <div class="field-group-reg">
+              <div class="dupr-label" style="margin-bottom:6px">Tu número de teléfono</div>
+              <input class="phone-input" id="phone-input-2" type="tel" placeholder="Ej: +502 5555-0000"/>
+            </div>
+            <div>
+              <div class="dupr-label" style="margin-bottom:6px">Boleta de pago <span style="color:var(--red)">*</span></div>
+              <div class="upload-area" id="upload-area-2">
+                <input type="file" id="boleta-file-2" accept="image/*,application/pdf"/>
+                <div class="upload-icon">📎</div>
+                <div class="upload-label" id="upload-label-2">Adjunta foto o PDF de tu boleta</div>
+                <div style="font-size:.7rem;color:var(--muted);margin-top:3px">JPG, PNG o PDF · máx 5 MB</div>
+              </div>
+            </div>
+            <button class="btn-register" id="btn-transfer-submit-2">Enviar comprobante</button>
+          </div>
+        </div>
+        <div id="waitlist-btn-wrap-2" style="display:none">
+          <button class="btn-waitlist" id="btn-waitlist-2">⏳ Entrar en lista de espera (gratis)</button>
+        </div>
+      </div>`;
+    formDiv.style.display = 'block';
+
+    // Toggle pago
+    document.getElementById('btn-pm-paypal-2').addEventListener('click', () => {
+      document.getElementById('btn-pm-paypal-2').classList.add('active');
+      document.getElementById('btn-pm-transfer-2').classList.remove('active');
+      document.getElementById('paypal-section-2').style.display = 'block';
+      document.getElementById('transfer-section-2').style.display = 'none';
+    });
+    document.getElementById('btn-pm-transfer-2').addEventListener('click', () => {
+      document.getElementById('btn-pm-transfer-2').classList.add('active');
+      document.getElementById('btn-pm-paypal-2').classList.remove('active');
+      document.getElementById('paypal-section-2').style.display = 'none';
+      document.getElementById('transfer-section-2').style.display = 'block';
+    });
+    document.getElementById('boleta-file-2').addEventListener('change', e => {
+      const file = e.target.files[0];
+      if (file) {
+        document.getElementById('upload-area-2').classList.add('has-file');
+        document.getElementById('upload-label-2').className = 'upload-label ok';
+        document.getElementById('upload-label-2').textContent = '✓ ' + file.name;
+      }
+    });
+    const getDuprId2  = () => myRegs[0]?.duprId  || '';
+    const getNombre2  = () => myRegs[0]?.nombre  || user.displayName || '';
+
+    const joinWaitlist2 = async () => {
+      const cat2 = document.querySelector('input[name="categoria2"]:checked')?.value;
+      if (!cat2) return;
+      await saveRegistration(user, getDuprId2(), cat2, null, 'waitlist', { nombre: getNombre2() });
+    };
+
+    const submitTransfer2 = async () => {
+      const cat2    = document.querySelector('input[name="categoria2"]:checked')?.value;
+      const phone2  = (document.getElementById('phone-input-2')?.value || '').trim();
+      const file2   = document.getElementById('boleta-file-2')?.files[0];
+      const errEl2  = document.getElementById('reg-form-error-2');
+      if (!cat2)  { errEl2.textContent = '✕ Selecciona una categoría.'; errEl2.style.display = 'block'; return; }
+      if (!file2) { errEl2.textContent = '✕ Adjunta tu boleta de pago.'; errEl2.style.display = 'block'; return; }
+      errEl2.style.display = 'none';
+      let boletaDocId = null;
+      try {
+        const reader = new FileReader();
+        const b64 = await new Promise((res, rej) => { reader.onload = e => res(e.target.result); reader.onerror = rej; reader.readAsDataURL(file2); });
+        const boletaRef = await db.collection('ladder_boletas').add({ uid: user.uid, sesionNum: NUM, uploadedAt: firebase.firestore.Timestamp.now(), file: b64, fileName: file2.name });
+        boletaDocId = boletaRef.id;
+      } catch (_) {}
+      await saveRegistration(user, getDuprId2(), cat2, null, 'pending_review', { paymentMethod:'transfer', phone:phone2, boletaDocId, nombre: getNombre2() });
+    };
+
+    document.getElementById('btn-waitlist-2').addEventListener('click', joinWaitlist2);
+    document.getElementById('btn-transfer-submit-2').addEventListener('click', submitTransfer2);
+
+    // Selección de categoría con validación DUPR
+    document.getElementById('cat-options-2').addEventListener('change', async e => {
+      if (e.target.name !== 'categoria2') return;
+      const cat2 = e.target.value;
+      const duprError2 = document.getElementById('dupr2-cat-error');
+      const hideAll2 = () => {
+        document.getElementById('pay-method-label-2').style.display = 'none';
+        document.getElementById('pay-method-toggle-2').style.display = 'none';
+        document.getElementById('paypal-section-2').style.display = 'none';
+        document.getElementById('transfer-section-2').style.display = 'none';
+        document.getElementById('waitlist-btn-wrap-2').style.display = 'none';
+      };
+      hideAll2();
+
+      const duprId = myRegs[0]?.duprId || '';
+      const LIMITES = { principiante: 3.0, intermedio: 3.7 };
+      const limite = LIMITES[cat2];
+      if (limite !== undefined && duprId) {
+        duprError2.textContent = '🔍 Verificando tu rating DUPR…';
+        duprError2.style.background = '#f0f9ff'; duprError2.style.borderColor = '#7dd3fc'; duprError2.style.color = '#0369a1';
+        duprError2.style.display = 'block';
+        try {
+          const res  = await fetch(`https://ap-dupr-api.netlify.app/.netlify/functions/dupr?id=${encodeURIComponent(duprId)}`);
+          const data = await res.json();
+          const rating = data.doubles ?? data.doublesVerified ?? null;
+          if (rating !== null && rating !== 'NR' && parseFloat(rating) > limite) {
+            duprError2.style.background = '#fef2f2'; duprError2.style.borderColor = '#fca5a5'; duprError2.style.color = '#991b1b';
+            duprError2.textContent = `⛔ Tu rating DUPR de dobles (${rating}) supera el límite (máx ${limite}).`;
+            return;
+          }
+        } catch (_) {}
+      }
+      duprError2.style.display = 'none';
+      const full2 = isFull(inscritos, cat2);
+      document.getElementById('pay-method-label-2').style.display  = full2 ? 'none' : 'block';
+      document.getElementById('pay-method-toggle-2').style.display = full2 ? 'none' : 'grid';
+      document.getElementById('paypal-section-2').style.display    = full2 ? 'none' : 'block';
+      document.getElementById('waitlist-btn-wrap-2').style.display = full2 ? 'block' : 'none';
+      document.getElementById('btn-pm-paypal-2').classList.add('active');
+      document.getElementById('btn-pm-transfer-2').classList.remove('active');
+      if (!full2) mountPayPalButtons2(user, cat2, myRegs[0]?.duprId || '', myRegs[0]?.nombre || '');
+    });
+  });
+}
+
+function mountPayPalButtons2(user, cat2, duprId, nombre) {
+  const container2 = document.getElementById('paypal-button-container-2');
+  if (!container2) return;
+  container2.innerHTML = '';
+  paypal.Buttons({
+    style: { layout:'vertical', color:'black', shape:'rect', label:'pay', height:44 },
+    createOrder: (data, actions) => actions.order.create({ purchase_units:[{ amount:{ value: SESSION_PRICE, currency_code:'USD' }, description:`Ladder League S${NUM} · ${cat2}` }] }),
+    onApprove: async (data, actions) => {
+      const order = await actions.order.capture();
+      await saveRegistration(user, duprId, cat2, order.id, 'confirmed', { nombre });
+    },
+    onError: err => {
+      const errEl2 = document.getElementById('reg-form-error-2');
+      if (errEl2) { errEl2.textContent = '✕ Error en el pago. Intenta de nuevo.'; errEl2.style.display = 'block'; }
+    }
+  }).render('#paypal-button-container-2');
 }
 
 function renderYaInscrito(container, user, reg, inscritos) {
