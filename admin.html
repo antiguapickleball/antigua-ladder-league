@@ -1481,7 +1481,7 @@ function renderTable(sesionNum) {
       <td>${p.categoria ? `<span class="cat-badge ${p.categoria}">${catLabels[p.categoria]||p.categoria}</span>` : '—'}</td>
       <td>
         <span class="status-badge ${p.status}">${statusLabels[p.status]||p.status}</span>
-        ${isPending && p.boletaDocId ? `<br><button onclick="viewBoleta('${p.boletaDocId}')" style="font-size:.68rem;color:var(--red);background:none;border:none;cursor:pointer;padding:0">Ver boleta</button>` : ''}
+        ${p.boletaDocId ? `<br><button onclick="viewBoleta('${p.boletaDocId}')" style="font-size:.68rem;color:var(--red);background:none;border:none;cursor:pointer;padding:0">📎 Ver boleta</button>` : ''}
       </td>
       <td class="email">${p.email || '—'}</td>
       <td class="fecha">${fecha}</td>
