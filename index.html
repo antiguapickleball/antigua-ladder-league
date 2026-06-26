@@ -615,8 +615,19 @@
     .cal-h-cat.o { background:#ede9fe; color:#5b21b6; }
 
     /* ════════════════════════════════════════════
-       POLÍTICA
+       REGLAMENTO
     ════════════════════════════════════════════ */
+    .reglamento-section { padding: 88px 0; background: var(--light); }
+    .regl-grid { display: grid; gap: 20px; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); margin-top: 48px; }
+    .regl-card { background: #fff; border-radius: 14px; padding: 28px 28px 24px; border-top: 4px solid var(--red); box-shadow: 0 2px 12px rgba(0,0,0,.05); }
+    .regl-card h3 { font-size: .95rem; font-weight: 800; margin-bottom: 14px; color: var(--dark); display: flex; align-items: center; gap: 8px; }
+    .regl-card ul { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 9px; }
+    .regl-card ul li { font-size: .84rem; color: var(--muted); line-height: 1.55; padding-left: 16px; position: relative; }
+    .regl-card ul li::before { content: '—'; position: absolute; left: 0; color: var(--red); font-weight: 700; }
+    .regl-card ul li strong { color: var(--dark); }
+    .regl-highlight { background: #fff8f8; border: 1.5px solid #fecaca; border-radius: 10px; padding: 14px 18px; margin-top: 14px; font-size: .82rem; color: #7f1d1d; line-height: 1.5; }
+
+    /* POLÍTICA */
     .policy-section { padding: 88px 0; background: #fff; }
 
     .policy-grid {
@@ -908,6 +919,7 @@
       <li><a href="#horarios">Horarios</a></li>
       <li><a href="#standings">Ranking</a></li>
       <li><a href="#calendario">Calendario</a></li>
+      <li><a href="#reglamento">Reglamento</a></li>
       <li><a href="https://antigua-pickleball.com">← Antigua PB</a></li>
     </ul>
     <div class="nav-actions">
@@ -923,6 +935,7 @@
     <a href="#horarios">Horarios</a>
     <a href="#standings">Ranking</a>
     <a href="#calendario">Calendario</a>
+    <a href="#reglamento">Reglamento</a>
     <a href="https://antigua-pickleball.com">← Antigua Pickleball</a>
   </div>
 </header>
@@ -1265,6 +1278,93 @@
       <span><strong style="color:#6b7280">P</strong> = Principiante</span>
       <span><strong style="color:#6b7280">I</strong> = Intermedio</span>
       <span><strong style="color:#6b7280">O</strong> = Open</span>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════
+     POLÍTICA
+══════════════════════════════════════ -->
+<!-- ══════════════════════════════════════
+     REGLAMENTO
+══════════════════════════════════════ -->
+<section class="reglamento-section" id="reglamento">
+  <div class="container">
+    <div class="reveal" style="margin-bottom:8px">
+      <div class="label">Bases de competencia</div>
+      <h2 class="section-title">Reglamento</h2>
+      <p style="max-width:660px;color:var(--muted);line-height:1.6;margin-top:12px">Todo lo que necesitas saber para competir en la Antigua Ladder League. Léelo antes de inscribirte.</p>
+    </div>
+
+    <div class="regl-grid">
+
+      <div class="regl-card reveal">
+        <h3>🏓 Formato de Jornada</h3>
+        <ul>
+          <li>Cada jornada es un <strong>sábado de 8:00 AM a 1:00 PM</strong> en Club Quattro, Antigua Guatemala.</li>
+          <li>Se juegan entre <strong>5 y 8 partidos</strong> por jugador por jornada, con rotación de parejas y rivales.</li>
+          <li>Partidos a <strong>11 puntos, side-out scoring</strong> (ganas punto solo si estás sirviendo).</li>
+          <li>Cada jornada es independiente — puedes jugar <strong>1 jornada o todas las 8</strong> de la temporada.</li>
+          <li>Cupo máximo de <strong>10 jugadores por categoría</strong> por jornada.</li>
+        </ul>
+      </div>
+
+      <div class="regl-card reveal">
+        <h3>🏟 Las Dos Canchas</h3>
+        <ul>
+          <li>La jornada se divide en <strong>Cancha A</strong> (nivel élite) y <strong>Cancha B</strong> (nivel entrada).</li>
+          <li>Al inicio de la jornada se asigna a cada jugador su cancha según su posición en el ranking.</li>
+          <li>Al final de cada ronda, los mejores de Cancha B <strong>suben a Cancha A</strong> y los de menor desempeño en Cancha A <strong>bajan a Cancha B</strong>.</li>
+          <li>Cancha A es más exigente: ganar ahí vale más puntos (factor ×1.25).</li>
+        </ul>
+      </div>
+
+      <div class="regl-card reveal">
+        <h3>📊 Sistema de Puntuación</h3>
+        <ul>
+          <li><strong>Victoria = 1 punto · Derrota = 0 puntos</strong>. Simple y directo.</li>
+          <li>Tu <strong>score de jornada</strong> = (victorias ÷ partidos jugados) × factor de cancha.</li>
+          <li><strong>Cancha A:</strong> factor ×1.25 · <strong>Cancha B:</strong> factor ×1.00</li>
+          <li>Ejemplo: 6 victorias de 8 partidos en Cancha A → (6/8) × 1.25 = <strong>0.9375</strong></li>
+          <li>Si jugaste en ambas canchas en la misma jornada, se calcula el promedio ponderado.</li>
+        </ul>
+      </div>
+
+      <div class="regl-card reveal">
+        <h3>📈 Ranking y Descarte</h3>
+        <ul>
+          <li>Necesitas <strong>mínimo 3 jornadas</strong> jugadas para aparecer en el ranking.</li>
+          <li><strong>1–3 jornadas:</strong> todas cuentan, sin descarte.</li>
+          <li><strong>4–6 jornadas:</strong> se descarta tu <strong>1 peor jornada</strong>.</li>
+          <li><strong>7–8 jornadas:</strong> se descartan tus <strong>2 peores jornadas</strong>.</li>
+          <li>Tu ranking final = promedio de las jornadas que cuentan (sin las descartadas).</li>
+          <li>Jugar más jornadas te protege: los descartes mejoran tu promedio.</li>
+        </ul>
+      </div>
+
+      <div class="regl-card reveal">
+        <h3>🏅 Categorías y DUPR</h3>
+        <ul>
+          <li>Hay <strong>3 categorías</strong>: Principiante, Intermedio y Open.</li>
+          <li><strong>Principiante:</strong> rating DUPR de dobles ≤ 3.00</li>
+          <li><strong>Intermedio:</strong> rating DUPR de dobles ≤ 3.70</li>
+          <li><strong>Open:</strong> sin restricción de rating.</li>
+          <li>El <strong>DUPR ID es obligatorio</strong> para inscribirse. Se valida automáticamente al registrarse.</li>
+          <li>Un mismo jugador puede inscribirse en <strong>más de una categoría</strong> en la misma jornada.</li>
+        </ul>
+      </div>
+
+      <div class="regl-card reveal">
+        <h3>🏆 Premios</h3>
+        <ul>
+          <li>Al finalizar la temporada (8 jornadas) se premia a los <strong>mejores del ranking</strong> por categoría.</li>
+          <li><strong>Premios en efectivo</strong> para los campeones de cada categoría.</li>
+          <li><strong>Premios de patrocinadores</strong>: Quattro Padel & Club House, DUPR y más.</li>
+          <li>Solo jugadores con mínimo 3 jornadas participan en la premiación final.</li>
+        </ul>
+        <div class="regl-highlight">💡 Mientras más jornadas juegues, mayor protección te dan los descartes y mayor es tu opción de ganar.</div>
+      </div>
+
     </div>
   </div>
 </section>
