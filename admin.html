@@ -1674,6 +1674,12 @@ function avisarCambioSesionAdmin(sesionOrigen, sesionDestino, finalStatus, playe
   const catLabels = { principiante:'Principiante', intermedio:'Intermedio', open:'Open' };
   const catLabel  = catLabels[player.categoria] || player.categoria;
   const statusLabel = finalStatus === 'confirmed' ? '✅ Titular' : '⏳ Lista de espera (categoría llena)';
+  const waMsgJugador = finalStatus === 'waitlist'
+    ? `¡Hola ${player.nombre}! Te saluda *Antigua Pickleball* 🎾 Tu cambio de sesión fue procesado: ahora estás en *Sesión ${sesionDestino}*, categoría *${catLabel}*. Sin embargo, la sesión está llena por el momento, por lo que quedaste en *lista de espera*. Te avisaremos cuando se confirme tu lugar. ¡Gracias!`
+    : `¡Hola ${player.nombre}! Te saluda *Antigua Pickleball* 🎾 Tu cambio de sesión fue procesado exitosamente ✅ Ahora estás inscrito en *Sesión ${sesionDestino}*, categoría *${catLabel}*. ¡Nos vemos en cancha!`;
+  const waLink = player.phone
+    ? `https://wa.me/${player.phone.replace(/\D/g,'')}?text=${encodeURIComponent(waMsgJugador)}`
+    : '';
   const payload = {
     to:         'antiguapickleball@gmail.com',
     encabezado: '↔️ Cambio de sesión — Antigua Ladder League',
@@ -1684,7 +1690,7 @@ function avisarCambioSesionAdmin(sesionOrigen, sesionDestino, finalStatus, playe
     jugador:    `${player.nombre}${player.duprId ? ' (DUPR: ' + player.duprId + ')' : ''}`,
     sesion:     `Sesión ${sesionOrigen} → Sesión ${sesionDestino}`,
     categoria:  `${catLabel} — ${statusLabel}`,
-    waLink:     '(cambio realizado por el admin)',
+    waLink,
     panelLink:  'https://ladder.antigua-pickleball.com/admin.html',
   };
   enviarCorreoAdmin(payload);

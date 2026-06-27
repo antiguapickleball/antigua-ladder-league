@@ -919,8 +919,20 @@ function avisarNuevoRegistroAdmin(sesionNum, categoria, entry) {
 
   const statusLabel = entry.status === 'confirmed' ? '✅ Titular' : entry.status === 'waitlist' ? '⏳ Lista de espera' : '🔍 Por validar';
   const pagoLabel   = esTarjeta ? '💳 Tarjeta PayPal (pagado)' : esTransfer ? '🏦 Transferencia (pendiente de revisión)' : '—';
+
+  // Mensaje WhatsApp al jugador según tipo
+  let waMsgJugador;
+  if (esEspera) {
+    waMsgJugador = `¡Hola ${entry.nombre}! Te saluda *Antigua Pickleball* 🎾 Quedaste en la *lista de espera* del Antigua Ladder League: Semana ${sesionNum} (${fecha}), categoría *${catLabel}*. Te avisaremos si se libera un cupo. ¡Gracias por inscribirte!`;
+  } else if (esTarjeta) {
+    waMsgJugador = `¡Hola ${entry.nombre}! Te saluda *Antigua Pickleball* 🎾 Tu inscripción al Antigua Ladder League está *confirmada* ✅ Semana ${sesionNum} (${fecha}), categoría *${catLabel}*, ${hora}. ¡Nos vemos en cancha!`;
+  } else if (esTransfer) {
+    waMsgJugador = `¡Hola ${entry.nombre}! Te saluda *Antigua Pickleball* 🎾 Recibimos tu inscripción para el Antigua Ladder League: Semana ${sesionNum} (${fecha}), categoría *${catLabel}*. Estamos revisando tu boleta de pago y te confirmamos pronto. ¡Gracias!`;
+  } else {
+    waMsgJugador = `¡Hola ${entry.nombre}! Te saluda *Antigua Pickleball* 🎾 Tu inscripción fue recibida: Semana ${sesionNum} (${fecha}), categoría *${catLabel}*, ${hora}.`;
+  }
   const waLink = entry.phone
-    ? `https://wa.me/${entry.phone.replace(/\D/g,'')}?text=${encodeURIComponent(`¡Hola ${entry.nombre}! Te saluda *Antigua Pickleball* 🎾 Tu inscripción en el Antigua Ladder League fue recibida: *Sesión ${sesionNum}* (${fecha}), categoría *${catLabel}*, ${hora}. ¡Nos vemos en cancha!`)}`
+    ? `https://wa.me/${entry.phone.replace(/\D/g,'')}?text=${encodeURIComponent(waMsgJugador)}`
     : null;
 
   const payload = {
@@ -931,7 +943,7 @@ function avisarNuevoRegistroAdmin(sesionNum, categoria, entry) {
     jugador:    `${entry.nombre}${entry.duprId ? ' (DUPR: ' + entry.duprId + ')' : ''}`,
     sesion:     `Semana ${sesionNum} · ${fecha} · ${hora}`,
     categoria:  `${catLabel} — ${statusLabel} — ${pagoLabel}`,
-    waLink:     waLink || '(sin teléfono registrado)',
+    waLink:     waLink || '',
     panelLink:  'https://ladder.antigua-pickleball.com/admin.html',
   };
   try { enviarCorreoAdmin(payload); } catch (_) {}
