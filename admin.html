@@ -1655,6 +1655,9 @@ async function saveMove() {
       promoteWaitlist(sesionNum, player.categoria);
     }
 
+    // Notificar al admin por correo
+    avisarCambioSesionAdmin(sesionNum, targetNum, finalStatus, player);
+
     closeModal('modal-move');
     const msg = finalStatus !== targetStatus
       ? `✓ ${player.nombre} movido a Sesión ${targetNum} (lista de espera — categoría llena)`
@@ -1665,6 +1668,45 @@ async function saveMove() {
     toast('✕ Error al mover', true);
   }
   btn.disabled = false; btn.textContent = 'Mover jugador';
+}
+
+function avisarCambioSesionAdmin(sesionOrigen, sesionDestino, finalStatus, player) {
+  const catLabels = { principiante:'Principiante', intermedio:'Intermedio', open:'Open' };
+  const catLabel  = catLabels[player.categoria] || player.categoria;
+  const statusLabel = finalStatus === 'confirmed' ? '✅ Titular' : '⏳ Lista de espera (categoría llena)';
+  const payload = {
+    to:         'antiguapickleball@gmail.com',
+    encabezado: '↔️ Cambio de sesión — Antigua Ladder League',
+    accion:     finalStatus === 'waitlist'
+      ? '⚠️ El jugador quedó en lista de espera porque la sesión destino está llena.'
+      : 'Sin acción requerida. El cambio fue aplicado correctamente.',
+    asunto:     `↔️ Cambio de sesión · ${player.nombre} · S${sesionOrigen} → S${sesionDestino}`,
+    jugador:    `${player.nombre}${player.duprId ? ' (DUPR: ' + player.duprId + ')' : ''}`,
+    sesion:     `Sesión ${sesionOrigen} → Sesión ${sesionDestino}`,
+    categoria:  `${catLabel} — ${statusLabel}`,
+    waLink:     '(cambio realizado por el admin)',
+    panelLink:  'https://ladder.antigua-pickleball.com/admin.html',
+  };
+  enviarCorreoAdmin(payload);
+}
+
+function enviarCorreoAdmin(payload) {
+  const cfg = {
+    provider:   'emailjs',
+    serviceId:  'service_oxl5kqj',
+    templateId: 'template_exj7udi',
+    publicKey:  'DPWct4-Hrc-2V6nc_',
+  };
+  fetch('https://api.emailjs.com/api/v1.0/email/send', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      service_id:      cfg.serviceId,
+      template_id:     cfg.templateId,
+      user_id:         cfg.publicKey,
+      template_params: payload,
+    }),
+  }).catch(() => {});
 }
 
 /* ══════════════════════════════════════════════════════
