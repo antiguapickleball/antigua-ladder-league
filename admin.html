@@ -3143,11 +3143,24 @@ async function doGenerateFixture(sesionNum, categoria) {
 }
 
 // Sort confirmed players for court assignment:
-// 1. Penalized (forceB) → always Court B
-// 2. New players (no DUPR ID or no published scores) → always Court B
-// 3. Ranked players → Court A by avg desc (top courtASize slots)
+// Session 1 → sort by DUPR doubles rating desc (higher rating = Court A)
+// Session 2+ → sort by ladder ranking avg desc
+// Penalized → always Court B regardless
 async function sortByRanking(confirmed, sesionNum) {
-  if (sesionNum === 1) return confirmed; // Session 1: no ranking yet, use as-is
+  if (sesionNum === 1) {
+    // Session 1: use DUPR doubles rating from users collection
+    const ratingByUid = {};
+    await Promise.all(confirmed.map(async p => {
+      if (!p.duprId) return;
+      try {
+        const res = await fetch(`https://ap-dupr-api.netlify.app/.netlify/functions/dupr?id=${encodeURIComponent(p.duprId)}`);
+        const data = await res.json();
+        const rating = parseFloat(data.doubles ?? data.doublesVerified ?? 0) || 0;
+        ratingByUid[p.uid] = rating;
+      } catch(_) {}
+    }));
+    return [...confirmed].sort((a, b) => (ratingByUid[b.uid] || 0) - (ratingByUid[a.uid] || 0));
+  }
 
   try {
     // Load published ladder_scores — keyed by DUPR ID
