@@ -771,6 +771,17 @@
     appId: "1:270487643715:web:701b74a71253ac599056f6"
   });
   const db = firebase.firestore();
+  const IS_TEST_ENV = location.hostname.includes('nueva') || location.hostname.includes('localhost');
+  function COLN(name) { return IS_TEST_ENV ? name + '_test' : name; }
+if (IS_TEST_ENV) {
+  document.addEventListener('DOMContentLoaded', () => {
+    const b = document.createElement('div');
+    b.textContent = '🧪 AMBIENTE DE PRUEBAS — datos de prueba, no es producción';
+    b.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99999;background:#97C459;color:#111;text-align:center;font:700 12px sans-serif;padding:5px;letter-spacing:.5px';
+    document.body.prepend(b);
+    document.body.style.paddingTop = '26px';
+  });
+}
   // Sesión anónima para que las reglas permitan las lecturas
   firebase.auth().signInAnonymously().catch(e => console.warn('anon auth:', e));
 </script>
@@ -862,7 +873,7 @@ async function loadMyRegistrations(uid) {
   const regs = [];
   await Promise.all(SEMANAS.map(async s => {
     try {
-      const snap = await db.collection('ladder_registrations').doc(`t1_sesion_${s.num}`).get();
+      const snap = await db.collection(COLN('ladder_registrations')).doc(`t1_sesion_${s.num}`).get();
       if (!snap.exists) return;
       const me = (snap.data().inscritos || []).find(p => p.uid === uid);
       if (me) regs.push({ sesionNum: s.num, status: me.status, categoria: me.categoria, duprId: me.duprId });
@@ -900,7 +911,7 @@ async function loadProfile(user) {
   renderAll();  // pinta inscripciones de inmediato (ranking se llena al llegar scores)
 
   // Ranking en tiempo real
-  db.collection('ladder_scores').onSnapshot(snap => {
+  db.collection(COLN('ladder_scores')).onSnapshot(snap => {
     _scoresDocs = snap.docs.map(d => ({ docId: d.id, ...d.data() }));
     _scoresReady = true;
     renderAll();

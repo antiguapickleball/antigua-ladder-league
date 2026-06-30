@@ -289,7 +289,19 @@
   const auth = getAuth(app);
   const db   = getFirestore(app);
 
-  const COLLECTION = 'ladder_registrations';
+  const IS_TEST_ENV = location.hostname.includes('nueva') || location.hostname.includes('localhost');
+  function COLN(name) { return IS_TEST_ENV ? name + '_test' : name; }
+if (IS_TEST_ENV) {
+  document.addEventListener('DOMContentLoaded', () => {
+    const b = document.createElement('div');
+    b.textContent = '🧪 AMBIENTE DE PRUEBAS — datos de prueba, no es producción';
+    b.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99999;background:#97C459;color:#111;text-align:center;font:700 12px sans-serif;padding:5px;letter-spacing:.5px';
+    document.body.prepend(b);
+    document.body.style.paddingTop = '26px';
+  });
+}
+
+  const COLLECTION = COLN('ladder_registrations');
   const CAP_POR_CAT = 10;
 
   // Fallback — se sobreescribe con datos de Firestore
@@ -413,7 +425,7 @@
 
   // Cargar config de sesiones desde Firestore
   try {
-    const cfgSnap = await getDoc(doc(db, 'ladder_config', 't1_semanas'));
+    const cfgSnap = await getDoc(doc(db, COLN('ladder_config'), 't1_semanas'));
     if (cfgSnap.exists() && cfgSnap.data().semanas?.length) {
       SEMANAS = cfgSnap.data().semanas;
     }
