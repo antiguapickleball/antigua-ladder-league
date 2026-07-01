@@ -3192,16 +3192,18 @@ function genMatches(uids, total) {
 }
 
 // ── Generate and save fixture ──
-async function doGenerateFixture(sesionNum, categoria) {
+async function doGenerateFixture(sesionNum, categoria, btn) {
   const isS1 = sesionNum === 1;
   const confirmed = (_allData[sesionNum]||[]).filter(p => p.status==='confirmed' && p.categoria===categoria);
   if (confirmed.length < 4) { toast('Necesitas al menos 4 jugadores confirmados', true); return; }
+
+  if (btn) { btn.disabled = true; btn.dataset.origText = btn.textContent; btn.textContent = '⏳ Generando…'; }
+  if (isS1 && confirmed.length >= 8) toast('⏳ Consultando ratings DUPR para ordenar canchas, puede tardar unos segundos…');
 
   const playerNames = {};
   confirmed.forEach(p => playerNames[p.uid] = p.nombre);
   const playerDupr = {};
   confirmed.forEach(p => { if (p.duprId) playerDupr[p.uid] = p.duprId.trim(); });
-  await prefetchDuprRatings(confirmed.map(p => p.duprId));
 
   const n = confirmed.length;
   let fixture;
@@ -3489,7 +3491,7 @@ async function loadAndRenderFixture(sesionNum, categoria) {
             ? `<strong>${cnt}</strong> jugadores confirmados en <strong>${catLabels[categoria]}</strong>. Listo para generar el fixture.`
             : `Se necesitan al menos <strong>4</strong> jugadores confirmados en ${catLabels[categoria]} (hay ${cnt}).`}
         </p>
-        ${cnt >= 4 ? `<button class="btn-modal btn-save" onclick="doGenerateFixture(${sesionNum},'${categoria}')">⚙️ Generar Fixture</button>` : ''}
+        ${cnt >= 4 ? `<button class="btn-modal btn-save" onclick="doGenerateFixture(${sesionNum},'${categoria}',this)">⚙️ Generar Fixture</button>` : ''}
       </div>`;
       return;
     }
@@ -3678,7 +3680,7 @@ function renderFixtureHTML(fx, sesionNum, categoria) {
   }
 
   html += `<div style="margin-top:8px;padding-top:14px;border-top:1px solid var(--border);display:flex;gap:8px;flex-wrap:wrap">
-    <button class="btn-action btn-delete" onclick="if(confirm('¿Regenerar? Se borrarán los resultados guardados.'))doGenerateFixture(${sesionNum},'${categoria}')">↺ Regenerar</button>
+    <button class="btn-action btn-delete" onclick="if(confirm('¿Regenerar? Se borrarán los resultados guardados.'))doGenerateFixture(${sesionNum},'${categoria}',this)">↺ Regenerar</button>
     <button class="btn-action btn-delete" onclick="deleteCurrentFixture()">🗑 Borrar fixture</button>
   </div>`;
   return html;
