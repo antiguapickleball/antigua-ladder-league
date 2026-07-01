@@ -137,6 +137,7 @@
     }
     .status-badge.confirmed { background: #d1fae5; color: #065f46; }
     .status-badge.waitlist  { background: #fef3c7; color: #92400e; }
+    .status-badge.slot_available { background: #dbeafe; color: #1e40af; }
 
     /* CAT BADGE */
     .cat-badge {
@@ -955,6 +956,73 @@ function waPromoLink(nombre, sesionNum, categoria, phone) {
   return `https://wa.me/${phone.replace(/\D/g,'')}?text=${encodeURIComponent(msg)}`;
 }
 
+// ¿Ya pagó/autorizó su cupo? (tarjeta capturada o transferencia ya aprobada)
+function esPagado(reg) {
+  return reg.paid === true
+      || !!reg.paypalOrderId
+      || (reg.paymentMethod === 'transfer' && reg.status === 'confirmed');
+}
+
+// Link con el aviso de cupo liberado + link de pago (tarjeta o transferencia) a la página del jugador
+function waInviteLink(nombre, sesionNum, categoria, phone) {
+  if (!phone) return '';
+  const catLabels = { principiante:'Principiante', intermedio:'Intermedio', open:'Open' };
+  const s = SEMANAS.find(x => x.num === sesionNum);
+  const fecha = s ? s.fecha : `Semana ${sesionNum}`;
+  const link = `https://ladder.antigua-pickleball.com/sesion.html?n=${sesionNum}`;
+  const msg = `¡Hola ${nombre}! Te saluda *Antigua Pickleball* 🎾 Se liberó un cupo en el Antigua Ladder League: *Sesión ${sesionNum}* (${fecha}), categoría *${catLabels[categoria]||categoria}*, ${horaTexto(categoria)}. Para tomarlo, completa tu pago aquí: ${link} — tarjeta/PayPal ($10, entra directo) o transferencia (Q75, confirmamos apenas validemos tu boleta). ¡Te esperamos en cancha!`;
+  return `https://wa.me/${phone.replace(/\D/g,'')}?text=${encodeURIComponent(msg)}`;
+}
+
+// ── Invitar a un jugador de lista de espera a pagar el cupo liberado ──
+async function invitarAPagar(sesionNum, uid) {
+  const player = (_allData[sesionNum]||[]).find(p=>p.uid===uid);
+  if (!player) return;
+  if (!confirm(`¿Invitar a ${player.nombre} a pagar el cupo liberado en "${player.categoria}"?\n\nSe le avisará por WhatsApp con el link de pago. No queda confirmado hasta que pague.`)) return;
+
+  try {
+    const docRef  = db.collection(COLLECTION).doc(`t1_sesion_${sesionNum}`);
+    const snap    = await docRef.get();
+    const updated = (snap.data()?.inscritos||[]).map(p =>
+      p.uid === uid ? { ...p, status: 'slot_available', invitedAt: firebase.firestore.Timestamp.now() } : p
+    );
+    await docRef.update({ inscritos: updated });
+
+    const waLink = waInviteLink(player.nombre, sesionNum, player.categoria, player.phone);
+    if (waLink) window.open(waLink, '_blank');
+
+    toast(`✓ ${player.nombre} invitado a pagar${player.phone ? ' · avisando por WhatsApp' : ' — sin teléfono registrado, avísale tú directamente'}`);
+  } catch(err) { console.error(err); toast('✕ Error al invitar', true); }
+}
+
+// ── Reenviar el mismo aviso de pago (link) a un jugador ya invitado ──
+function reenviarInvitacion(sesionNum, uid) {
+  const player = (_allData[sesionNum]||[]).find(p=>p.uid===uid);
+  if (!player) return;
+  const waLink = waInviteLink(player.nombre, sesionNum, player.categoria, player.phone);
+  if (waLink) window.open(waLink, '_blank');
+  else toast('Este jugador no tiene teléfono registrado', true);
+}
+
+// ── Cancelar la invitación: regresa al jugador a lista de espera normal ──
+async function cancelarInvitacion(sesionNum, uid) {
+  const player = (_allData[sesionNum]||[]).find(p=>p.uid===uid);
+  if (!player) return;
+  if (!confirm(`¿Cancelar la invitación de pago de ${player.nombre}? Vuelve a lista de espera normal.`)) return;
+
+  try {
+    const docRef  = db.collection(COLLECTION).doc(`t1_sesion_${sesionNum}`);
+    const snap    = await docRef.get();
+    const updated = (snap.data()?.inscritos||[]).map(p => {
+      if (p.uid !== uid) return p;
+      const { invitedAt, ...rest } = p; // quitar marca de invitación (no aplica FieldValue.delete() dentro de un array)
+      return { ...rest, status: 'waitlist' };
+    });
+    await docRef.update({ inscritos: updated });
+    toast(`${player.nombre} volvió a lista de espera`);
+  } catch(err) { console.error(err); toast('✕ Error al cancelar', true); }
+}
+
 // Recordatorio de sesión (horario + reglas) — mensaje individual por jugador confirmado
 function recordatorioMsg(nombre, sesionNum, categoria) {
   const catLabels = { principiante:'Principiante', intermedio:'Intermedio', open:'Open' };
@@ -1240,7 +1308,7 @@ function renderPending() {
 function renderWaitlist() {
   const waitlist = [];
   Object.entries(_allData).forEach(([num, inscritos]) => {
-    inscritos.filter(p => p.status === 'waitlist').forEach(p => {
+    inscritos.filter(p => p.status === 'waitlist' || p.status === 'slot_available').forEach(p => {
       waitlist.push({ ...p, sesionNum: parseInt(num) });
     });
   });
@@ -1279,6 +1347,14 @@ function renderWaitlist() {
     const fecha = p.registeredAt
       ? new Date(p.registeredAt.seconds*1000).toLocaleDateString('es-GT',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})
       : '—';
+    const isInvited = p.status === 'slot_available';
+    const promoBtn = isInvited
+      ? `<span style="font-size:.68rem;font-weight:700;color:#1e40af;margin-right:4px">✉️ Invitado</span>
+         <button class="btn-action btn-move" onclick="reenviarInvitacion(${p.sesionNum},'${p.uid}')">🔁 Reenviar</button>
+         <button class="btn-action btn-deny" onclick="cancelarInvitacion(${p.sesionNum},'${p.uid}')">↩ Cancelar</button>`
+      : esPagado(p)
+        ? `<button class="btn-action btn-accept" onclick="manualPromote(${p.sesionNum},'${p.uid}')">↑ Promover</button>`
+        : `<button class="btn-action btn-accept" onclick="invitarAPagar(${p.sesionNum},'${p.uid}')">📲 Avisar cupo</button>`;
     return `<tr class="waitlist-row">
       <td class="num" style="font-weight:700;color:#92400e">${pos}°</td>
       <td class="nombre">${p.nombre}<br><span style="font-size:.72rem;color:var(--muted)">${p.email||''}</span></td>
@@ -1287,7 +1363,7 @@ function renderWaitlist() {
       <td class="dupr">${p.duprId||'—'}</td>
       <td class="fecha">${fecha}</td>
       <td class="actions">
-        <button class="btn-action btn-accept" onclick="manualPromote(${p.sesionNum},'${p.uid}')">↑ Promover</button>
+        ${promoBtn}
         <button class="btn-action btn-move"   onclick="openMove(${p.sesionNum},'${p.uid}')">↔ Sesión</button>
         <button class="btn-action btn-edit"   onclick="openEdit(${p.sesionNum},'${p.uid}');closeWaitlistPanelFocus()">Editar</button>
         <button class="btn-action btn-delete" onclick="openDelete(${p.sesionNum},'${p.uid}')">Borrar</button>
@@ -1335,8 +1411,36 @@ async function acceptPending(sesionNum, uid) {
       window.open(`https://wa.me/${player.phone.replace(/\D/g,'')}?text=${encodeURIComponent(msg)}`, '_blank');
     }
 
+    avisarTransferAprobadaAdmin(sesionNum, player, lleno);
+
     toast(`✓ ${player.nombre} aprobado → ${lleno ? 'lista de espera' : 'titular'}`);
   } catch(err) { console.error(err); toast('✕ Error al aceptar', true); }
+}
+
+// Correo al admin cuando se aprueba una transferencia (registro nuevo o cupo liberado que invitó a pagar)
+function avisarTransferAprobadaAdmin(sesionNum, player, quedoEnEspera) {
+  const catLabels = { principiante:'Principiante', intermedio:'Intermedio', open:'Open' };
+  const catLabel  = catLabels[player.categoria] || player.categoria;
+  const s = SEMANAS.find(x => x.num === sesionNum);
+  const fecha = s ? s.fecha : `Semana ${sesionNum}`;
+  const veniaDeCupoLiberado = !!player.invitedAt;
+
+  const payload = {
+    to:         'antiguapickleball@gmail.com',
+    encabezado: quedoEnEspera
+      ? '⏳ Transferencia aprobada — pago vigente en lista de espera'
+      : veniaDeCupoLiberado
+        ? '✅ Cupo liberado — promovido y confirmado (transferencia)'
+        : '✅ Transferencia aprobada — jugador confirmado',
+    accion:     'No requiere acción. Ya se avisó al jugador por WhatsApp.',
+    asunto:     `✅ Transferencia aprobada · ${player.nombre} · Semana ${sesionNum} ${catLabel}`,
+    jugador:    `${player.nombre}${player.duprId ? ' (DUPR: ' + player.duprId + ')' : ''}`,
+    sesion:     `Semana ${sesionNum} · ${fecha} · ${horaTexto(player.categoria)}`,
+    categoria:  `${catLabel} — ${quedoEnEspera ? 'Lista de espera (pago vigente)' : 'Confirmado'}`,
+    waLink:     '',
+    panelLink:  'https://ladder.antigua-pickleball.com/admin.html',
+  };
+  enviarCorreoAdmin(payload);
 }
 
 async function denyPending(sesionNum, uid) {
@@ -1449,8 +1553,8 @@ function renderTable(sesionNum) {
   const allInscritos = (_allData[sesionNum] || [])
     .slice()
     .sort((a, b) => {
-      // confirmed → pending_review → waitlist → denied
-      const order = { confirmed:0, pending_review:1, waitlist:2, denied:3 };
+      // confirmed → pending_review → waitlist/invitado → denied
+      const order = { confirmed:0, pending_review:1, waitlist:2, slot_available:2, denied:3 };
       const oa = order[a.status]??9, ob = order[b.status]??9;
       if (oa !== ob) return oa - ob;
       return (a.registeredAt?.seconds||0) - (b.registeredAt?.seconds||0);
@@ -1478,12 +1582,13 @@ function renderTable(sesionNum) {
   const counts    = { principiante: 0, intermedio: 0, open: 0 };
   allInscritos.filter(p=>p.status==='confirmed').forEach(p => { if (counts[p.categoria]!==undefined) counts[p.categoria]++; });
 
-  // Detectar categorías con cupo abierto + jugadores en espera → aviso accionable
+  // Detectar categorías con cupo abierto (real, descontando ya invitados) + jugadores en espera → aviso accionable
   const cats = ['principiante','intermedio','open'];
   const promotionAlerts = cats.filter(cat => {
     const confirmedCat = allInscritos.filter(p => p.status === 'confirmed' && p.categoria === cat).length;
+    const invitedCat   = allInscritos.filter(p => p.status === 'slot_available' && p.categoria === cat).length;
     const waitlistCat  = allInscritos.filter(p => p.status === 'waitlist'  && p.categoria === cat).length;
-    return confirmedCat < 10 && waitlistCat > 0;
+    return (confirmedCat + invitedCat) < 10 && waitlistCat > 0;
   });
 
   const alertBanner = promotionAlerts.length > 0
@@ -1492,7 +1597,7 @@ function renderTable(sesionNum) {
           ⚠️ Hay cupos disponibles con jugadores en lista de espera: <strong>${promotionAlerts.join(', ')}</strong>
         </span>
         <button class="btn-action btn-accept" onclick="autoPromoteAll(${sesionNum})" style="white-space:nowrap">
-          ↑ Promover ahora
+          📲 Avisar / Promover
         </button>
       </div>`
     : '';
@@ -1518,12 +1623,13 @@ function renderTable(sesionNum) {
 
   tbody.innerHTML = inscritos.map((p, i) => {
     const isWait    = p.status === 'waitlist';
+    const isInvited = p.status === 'slot_available';
     const isPending = p.status === 'pending_review';
     const fecha     = p.registeredAt
       ? new Date(p.registeredAt.seconds*1000).toLocaleDateString('es-GT', {day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'})
       : '—';
-    const statusLabels = { confirmed:'Confirmado', waitlist:'Espera', pending_review:'Por validar', denied:'Denegado' };
-    const rowClass = isWait ? 'waitlist-row' : isPending ? 'pending-row' : '';
+    const statusLabels = { confirmed:'Confirmado', waitlist:'Espera', slot_available:'Invitado a pagar', pending_review:'Por validar', denied:'Denegado' };
+    const rowClass = (isWait || isInvited) ? 'waitlist-row' : isPending ? 'pending-row' : '';
     return `<tr class="${rowClass}">
       <td class="num">${i+1}</td>
       <td class="nombre">${p.nombre || '—'}${duprRatingBadge(p.duprId)}</td>
@@ -1549,7 +1655,11 @@ function renderTable(sesionNum) {
       <td class="actions">
         ${isPending ? `<button class="btn-action btn-accept" onclick="acceptPending(${sesionNum},'${p.uid}')">✓</button>
                        <button class="btn-action btn-deny"   onclick="denyPending(${sesionNum},'${p.uid}')">✕</button>` : ''}
-        ${isWait ? `<button class="btn-action btn-accept" onclick="manualPromote(${sesionNum},'${p.uid}')">↑ Promover</button>` : ''}
+        ${isWait ? (esPagado(p)
+            ? `<button class="btn-action btn-accept" onclick="manualPromote(${sesionNum},'${p.uid}')">↑ Promover</button>`
+            : `<button class="btn-action btn-accept" onclick="invitarAPagar(${sesionNum},'${p.uid}')">📲 Avisar cupo</button>`) : ''}
+        ${isInvited ? `<button class="btn-action btn-move" onclick="reenviarInvitacion(${sesionNum},'${p.uid}')">🔁 Reenviar</button>
+                       <button class="btn-action btn-deny" onclick="cancelarInvitacion(${sesionNum},'${p.uid}')">↩ Cancelar</button>` : ''}
         <button class="btn-action btn-edit"   onclick="openEdit(${sesionNum}, '${p.uid}')">Editar</button>
         <button class="btn-action btn-move"   onclick="openMove(${sesionNum}, '${p.uid}')">Mover</button>
         ${p.status === 'confirmed' ? `<button class="btn-action btn-penalty" onclick="openPenalty(${sesionNum},'${p.uid}','${(p.nombre||'').replace(/'/g,'&#39;')}')">⚠️ Penalizar</button>` : ''}
@@ -1815,23 +1925,27 @@ async function confirmDelete() {
   btn.disabled = false; btn.textContent = 'Sí, eliminar';
 }
 
-// Promover en todas las categorías con cupo disponible de una sesión
+// Procesar en todas las categorías con cupo disponible de una sesión:
+// promueve directo a quien ya pagó, invita a pagar a quien no.
 async function autoPromoteAll(sesionNum) {
   const cats = ['principiante','intermedio','open'];
-  let totalPromoted = 0;
+  let total = 0;
   for (const cat of cats) {
-    const inscritos = _allData[sesionNum] || [];
+    const inscritos    = _allData[sesionNum] || [];
     const confirmedCount = inscritos.filter(p => p.status === 'confirmed' && p.categoria === cat).length;
-    const waitlistCount  = inscritos.filter(p => p.status === 'waitlist'  && p.categoria === cat).length;
-    if (confirmedCount < 10 && waitlistCount > 0) {
+    const invitedCount   = inscritos.filter(p => p.status === 'slot_available' && p.categoria === cat).length;
+    const waitlistCount  = inscritos.filter(p => p.status === 'waitlist' && p.categoria === cat).length;
+    if ((confirmedCount + invitedCount) < 10 && waitlistCount > 0) {
       await promoteWaitlist(sesionNum, cat);
-      totalPromoted++;
+      total++;
     }
   }
-  if (totalPromoted === 0) toast('No hay cupos ni jugadores en espera para promover');
+  if (total === 0) toast('No hay cupos ni jugadores en espera para procesar');
 }
 
-// Promover al primer jugador en lista de espera de la categoría dada (FIFO por registeredAt)
+// Llena el primer cupo disponible de una categoría desde la fila de espera (FIFO por registeredAt).
+// Si el primero ya pagó (lista de espera "autorizada" — tarjeta o transferencia previa), lo confirma directo.
+// Si no ha pagado, lo INVITA a pagar (WhatsApp con link) — no lo confirma hasta que complete el pago.
 async function promoteWaitlist(sesionNum, categoria) {
   const docId  = `t1_sesion_${sesionNum}`;
   const docRef = db.collection(COLLECTION).doc(docId);
@@ -1839,9 +1953,10 @@ async function promoteWaitlist(sesionNum, categoria) {
     const snap = await docRef.get();
     const inscritos = snap.exists ? (snap.data().inscritos || []) : [];
 
-    // Verificar que el cupo esté realmente disponible antes de promover
+    // Verificar que el cupo esté realmente disponible (descontando confirmados e invitados) antes de actuar
     const confirmedCount = inscritos.filter(p => p.status === 'confirmed' && p.categoria === categoria).length;
-    if (confirmedCount >= 10) return; // ya está lleno, no promover
+    const invitedCount   = inscritos.filter(p => p.status === 'slot_available' && p.categoria === categoria).length;
+    if ((confirmedCount + invitedCount) >= 10) return; // ya está lleno o ya hay alguien invitado para el cupo
 
     // Encontrar los de lista de espera para esta categoría, ordenados por registeredAt (FIFO)
     const waitlist = inscritos
@@ -1854,26 +1969,37 @@ async function promoteWaitlist(sesionNum, categoria) {
 
     if (waitlist.length === 0) return; // nadie en espera para esta categoría
 
-    const promoted = waitlist[0];
-    const updated  = inscritos.map(p =>
-      p.uid === promoted.uid ? { ...p, status: 'confirmed', promotedAt: firebase.firestore.Timestamp.now() } : p
-    );
-    await docRef.update({ inscritos: updated });
+    const first = waitlist[0];
 
-    // Notificación para el admin (visible en panel)
-    db.collection('ladder_notifications').add({
-      type:        'promoted_from_waitlist',
-      sesionNum,
-      uid:         promoted.uid,
-      nombre:      promoted.nombre,
-      email:       promoted.email || '',
-      categoria,
-      message:     `${promoted.nombre} fue promovido de lista de espera a confirmado (${categoria} · Sesión ${sesionNum})`,
-      resolved:    false,
-      createdAt:   firebase.firestore.Timestamp.now(),
-    }).catch(() => {});
+    if (esPagado(first)) {
+      // Ya pagó (espera autorizada) → confirmar directo, sin pasos adicionales
+      const updated = inscritos.map(p =>
+        p.uid === first.uid ? { ...p, status: 'confirmed', promotedAt: firebase.firestore.Timestamp.now() } : p
+      );
+      await docRef.update({ inscritos: updated });
 
-    toast(`✓ ${promoted.nombre} promovido de lista de espera a confirmado (${categoria})`);
+      db.collection('ladder_notifications').add({
+        type:        'promoted_from_waitlist',
+        sesionNum, uid: first.uid, nombre: first.nombre, email: first.email || '',
+        categoria,
+        message:     `${first.nombre} fue promovido de lista de espera a confirmado (${categoria} · Sesión ${sesionNum})`,
+        resolved:    false,
+        createdAt:   firebase.firestore.Timestamp.now(),
+      }).catch(() => {});
+
+      toast(`✓ ${first.nombre} promovido de lista de espera a confirmado (${categoria})`);
+    } else {
+      // No ha pagado → invitar a pagar (no confirma automáticamente)
+      const updated = inscritos.map(p =>
+        p.uid === first.uid ? { ...p, status: 'slot_available', invitedAt: firebase.firestore.Timestamp.now() } : p
+      );
+      await docRef.update({ inscritos: updated });
+
+      const waLink = waInviteLink(first.nombre, sesionNum, categoria, first.phone);
+      if (waLink) window.open(waLink, '_blank');
+
+      toast(`✉️ ${first.nombre} invitado a pagar el cupo (${categoria})`);
+    }
   } catch (err) {
     console.error('promoteWaitlist error:', err);
   }

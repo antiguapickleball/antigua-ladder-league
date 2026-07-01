@@ -972,6 +972,40 @@ function avisarCupoLiberadoAdmin(sesionNum, categoria, primero, enEspera) {
   try { enviarCorreoAdmin(payload); } catch (_) {}
 }
 
+// Aviso al admin cuando el jugador invitado a un cupo liberado (`slot_available`) completa su pago.
+function avisarPagoCupoAdmin(sesionNum, categoria, entry, quedoEnEspera) {
+  const catLabel = { principiante:'Principiante', intermedio:'Intermedio', open:'Open' }[categoria] || categoria;
+  const sem   = SEMANAS.find(s => s.num === sesionNum);
+  const fecha = sem ? sem.fecha : `Semana ${sesionNum}`;
+  const esTransfer = entry.paymentMethod === 'transfer' && entry.status === 'pending_review';
+
+  let encabezado, accion, asunto;
+  if (esTransfer) {
+    encabezado = '🏦 Cupo liberado — revisar boleta de transferencia';
+    accion     = '⚠️ ACCIÓN REQUERIDA: Revisar la boleta y aprobar en el panel de admin para confirmar el cupo.';
+    asunto     = `🏦 Revisar boleta (cupo liberado) · ${entry.nombre} · Semana ${sesionNum} ${catLabel}`;
+  } else if (quedoEnEspera) {
+    encabezado = '⏳ Cupo liberado — pagó pero alguien más ya tomó el cupo';
+    accion     = 'No requiere acción. El jugador quedó en lista de espera con su pago vigente.';
+    asunto     = `⏳ Pago vigente en espera · ${entry.nombre} · Semana ${sesionNum} ${catLabel}`;
+  } else {
+    encabezado = '✅ Cupo liberado — pago con tarjeta confirmado';
+    accion     = 'No requiere acción. El jugador quedó confirmado automáticamente.';
+    asunto     = `✅ Cupo confirmado · ${entry.nombre} · Semana ${sesionNum} ${catLabel}`;
+  }
+
+  const payload = {
+    to:         'antiguapickleball@gmail.com',
+    encabezado, accion, asunto,
+    jugador:    `${entry.nombre}${entry.duprId ? ' (DUPR: ' + entry.duprId + ')' : ''}`,
+    sesion:     `Semana ${sesionNum} · ${fecha} · ${horaTexto(categoria)}`,
+    categoria:  catLabel,
+    waLink:     '',
+    panelLink:  'https://ladder.antigua-pickleball.com/admin.html',
+  };
+  try { enviarCorreoAdmin(payload); } catch (_) {}
+}
+
 // Envío del correo al admin. Soporta dos backends según se configure window.EMAIL_CFG:
 //   { provider:'emailjs', serviceId, templateId, publicKey }  → llama a EmailJS desde el cliente
 //   { provider:'firestore', collection:'mail' }               → escribe doc para la extensión Trigger Email
@@ -1735,8 +1769,62 @@ function renderYaInscrito(container, user, reg, inscritos) {
 
   // ── Acción según estado / fase ──
   let accionHTML = '', salirHTML = '', forceWaitlistMove = false;
-  if (isDenied || isSlot) {
-    // sin acciones (denied: contacto admin; slot_available: el admin confirma)
+  if (isDenied) {
+    // sin acciones — contacto admin
+  } else if (isSlot) {
+    // Cupo liberado e invitado a pagar: método de pago (tarjeta directo / transferencia por validar)
+    accionHTML = `
+      <div style="border-top:1px solid var(--border);padding-top:14px;margin-top:4px">
+        <div class="cat-select-label" id="slot-pay-method-label">Método de pago</div>
+        <div class="pay-method-toggle" id="slot-pay-method-toggle">
+          <button class="pay-method-btn active" id="btn-slot-pm-paypal" type="button">
+            <span class="pm-icon">💳</span>Tarjeta / PayPal
+          </button>
+          <button class="pay-method-btn" id="btn-slot-pm-transfer" type="button">
+            <span class="pm-icon">🏦</span>Transferencia
+          </button>
+        </div>
+
+        <div id="slot-form-error" class="reg-status-line err" style="display:none"></div>
+
+        <div id="slot-paypal-section">
+          <div id="paypal-button-container-slot" style="min-height:50px"></div>
+          <div style="display:flex;align-items:center;gap:8px;justify-content:center;margin-top:4px">
+            <img src="https://www.paypalobjects.com/webstatic/mktg/Logo/pp-logo-100px.png" alt="PayPal" height="16" style="opacity:.45"/>
+            <span style="font-size:.7rem;color:var(--muted)">Pago seguro · Tarjeta o cuenta PayPal · $10 USD</span>
+          </div>
+        </div>
+
+        <div id="slot-transfer-section" style="display:none">
+          <div class="transfer-form">
+            <div class="bank-info-box">
+              <div class="bank-title">💳 Datos para transferencia</div>
+              <div class="bank-amount">${TRANSFER_PRICE}</div>
+              <div class="bank-row">🏦 <strong>${BANK_INFO.banco}</strong> · ${BANK_INFO.tipo}</div>
+              <div class="bank-row">No. <strong>${BANK_INFO.numero}</strong></div>
+              <div class="bank-row">A nombre de: <strong>${BANK_INFO.nombre}</strong></div>
+            </div>
+            <div class="field-group-reg">
+              <div class="dupr-label" style="margin-bottom:6px">Tu número de teléfono</div>
+              <input class="phone-input" id="slot-phone-input" type="tel"
+                placeholder="Ej: +502 5555-0000" autocomplete="tel" value="${reg.phone||''}"/>
+            </div>
+            <div>
+              <div class="dupr-label" style="margin-bottom:6px">Boleta de pago <span style="color:var(--red)">*</span></div>
+              <div class="upload-area" id="slot-upload-area">
+                <input type="file" id="slot-boleta-file" accept="image/*,application/pdf"/>
+                <div class="upload-icon">📎</div>
+                <div class="upload-label" id="slot-upload-label">Adjunta foto o PDF de tu boleta</div>
+                <div style="font-size:.7rem;color:var(--muted);margin-top:3px">JPG, PNG o PDF · máx 5 MB</div>
+              </div>
+            </div>
+            <div style="background:#fffbeb;border:1px solid #fcd34d;padding:12px 14px;font-size:.82rem;color:#78350f;line-height:1.6">
+              ⏳ Al enviar, tu cupo queda reservado mientras el admin valida la transferencia.
+            </div>
+            <button class="btn-transfer-submit" id="btn-slot-transfer-submit" type="button">Enviar boleta</button>
+          </div>
+        </div>
+      </div>`;
   } else if (isWait) {
     // Lista de espera: se mueve cuando quiera. Si ya pagó, entra directo si hay cupo.
     accionHTML = moveSelector('Mover a otra sesión',
@@ -1778,7 +1866,7 @@ function renderYaInscrito(container, user, reg, inscritos) {
              ⏳ Lista de espera — posición #${waitPos} en ${catLabel}.${pagado ? ' <strong>Tu pago está vigente</strong> — si se libera un cupo, entras directo.' : ''}
            </div>`
         : isSlot
-        ? `<div class="reg-msg success">🎉 ¡Se liberó un cupo para ti en ${catLabel}! El admin te contactará para confirmar.</div>`
+        ? `<div class="reg-msg success">🎉 ¡Se liberó un cupo para ti en ${catLabel}! Completa tu pago para confirmarlo.</div>`
         : isPending
         ? `<div class="reg-msg pending">
              ⏳ En lista de espera — pago por validar.<br>
@@ -1817,6 +1905,37 @@ function renderYaInscrito(container, user, reg, inscritos) {
 
   const btnForfeit = document.getElementById('btn-forfeit');
   if (btnForfeit) btnForfeit.addEventListener('click', () => forfeitSpot(user, reg, faseForfeitPenal));
+
+  if (isSlot) {
+    document.getElementById('btn-slot-pm-paypal').addEventListener('click', () => {
+      document.getElementById('btn-slot-pm-paypal').classList.add('active');
+      document.getElementById('btn-slot-pm-transfer').classList.remove('active');
+      document.getElementById('slot-paypal-section').style.display   = 'block';
+      document.getElementById('slot-transfer-section').style.display = 'none';
+    });
+    document.getElementById('btn-slot-pm-transfer').addEventListener('click', () => {
+      document.getElementById('btn-slot-pm-transfer').classList.add('active');
+      document.getElementById('btn-slot-pm-paypal').classList.remove('active');
+      document.getElementById('slot-paypal-section').style.display   = 'none';
+      document.getElementById('slot-transfer-section').style.display = 'block';
+    });
+    document.getElementById('slot-boleta-file').addEventListener('change', e => {
+      const file  = e.target.files[0];
+      const area  = document.getElementById('slot-upload-area');
+      const label = document.getElementById('slot-upload-label');
+      if (file) {
+        area.classList.add('has-file');
+        label.className = 'upload-label ok';
+        label.textContent = '✓ ' + file.name;
+      } else {
+        area.classList.remove('has-file');
+        label.className = 'upload-label';
+        label.textContent = 'Adjunta foto o PDF de tu boleta';
+      }
+    });
+    document.getElementById('btn-slot-transfer-submit').addEventListener('click', () => submitTransferSlot(user, reg));
+    mountPayPalButtonsSlot(user, reg);
+  }
 }
 
 // ══════════════════════════════════════════════════════
@@ -1915,6 +2034,95 @@ function mountPayPalButtons(user) {
   }).render('#paypal-button-container');
 }
 
+// ── Pago de un cupo liberado (`slot_available`) con tarjeta/PayPal — actualiza el registro existente ──
+function mountPayPalButtonsSlot(user, reg) {
+  paypal.Buttons({
+    style: { layout:'vertical', color:'black', shape:'rect', label:'pay', height:44 },
+
+    createOrder: (data, actions) => {
+      const catLabel = { principiante:'Principiante', intermedio:'Intermedio', open:'Open' }[reg.categoria] || reg.categoria;
+      return actions.order.create({
+        purchase_units: [{
+          description: `Antigua Ladder League Semana ${NUM} ${catLabel} (cupo liberado)`,
+          amount: { currency_code:'USD', value: SESSION_PRICE },
+        }],
+      });
+    },
+
+    onApprove: async (data, actions) => {
+      let order;
+      try {
+        order = await actions.order.capture();
+      } catch (err) {
+        console.error('PayPal capture error:', err);
+        document.getElementById('paypal-button-container-slot').innerHTML =
+          `<div class="reg-msg error">✕ Error al procesar el pago. Intenta de nuevo.</div>`;
+        return;
+      }
+
+      document.getElementById('paypal-button-container-slot').innerHTML =
+        `<div class="reg-msg info" style="text-align:center">⏳ Confirmando tu cupo…</div>`;
+
+      if (order.status !== 'COMPLETED') {
+        document.getElementById('paypal-button-container-slot').innerHTML =
+          `<div class="reg-msg error">✕ Pago no completado (${order.status}). Intenta de nuevo.</div>`;
+        return;
+      }
+
+      try {
+        // Re-verificar cupo justo antes de confirmar (por si alguien más lo tomó mientras pagabas)
+        const freshSnap = await db.collection(COLLECTION).doc(DOC_ID).get();
+        const freshInscritos = freshSnap.exists ? (freshSnap.data().inscritos || []) : [];
+        const lleno = isFull(freshInscritos, reg.categoria);
+
+        const updatedEntry = await updateOwnEntry(user, {
+          status:        lleno ? 'waitlist' : 'confirmed',
+          paid:          true,
+          paypalOrderId: order.id,
+          paidUSD:       SESSION_PRICE,
+        });
+
+        db.collection('ladder_payments').add({
+          uid: user.uid, nombre: reg.nombre, email: user.email||'',
+          sesionNum: NUM, docId: DOC_ID, categoria: reg.categoria, status: updatedEntry.status,
+          paypalOrderId: order.id, amount: SESSION_PRICE, currency: 'USD',
+          paidAt: firebase.firestore.Timestamp.now(), env: PAYPAL_ENV,
+        }).catch(() => {});
+
+        avisarPagoCupoAdmin(NUM, reg.categoria, updatedEntry, lleno);
+
+        const catLabel = { principiante:'Principiante', intermedio:'Intermedio', open:'Open' }[reg.categoria] || reg.categoria;
+        document.getElementById('reg-container').innerHTML = lleno ? `
+          <div class="reg-box">
+            <div class="reg-msg" style="border-color:#f59e0b;background:#fffbeb;color:#92400e">
+              ⏳ Alguien más tomó el cupo justo antes que tú. Tu pago quedó registrado — sigues en <strong>lista de espera con pago vigente</strong>, entras directo en el próximo cupo libre.
+            </div>
+          </div>` : `
+          <div class="reg-box">
+            <div class="reg-msg success">🎉 ¡Cupo confirmado — ${catLabel}!</div>
+            <div style="display:flex;flex-direction:column;gap:5px;font-size:.82rem;color:var(--muted)">
+              <span>Pago: <strong style="color:var(--court)">$10 USD ✓</strong></span>
+              <span style="font-family:'Space Mono',monospace;font-size:.65rem;word-break:break-all">PayPal: ${order.id}</span>
+            </div>
+          </div>`;
+      } catch (err) {
+        console.error('Firestore save error:', err);
+        document.getElementById('paypal-button-container-slot').innerHTML =
+          `<div class="reg-msg error">
+            ✕ Pago recibido (${order.id.slice(0,14)}…) pero error al guardar.
+            Envía el ID por <a href="https://wa.me/50230912707?text=Ladder+pago+${order.id}" style="color:var(--red)">WhatsApp</a>.
+          </div>`;
+      }
+    },
+
+    onError: (err) => {
+      const c = document.getElementById('paypal-button-container-slot');
+      if (c) c.innerHTML = `<div class="reg-msg error">✕ Error con PayPal. Intenta de nuevo.</div>`;
+    },
+    onCancel: () => {},
+  }).render('#paypal-button-container-slot');
+}
+
 // ── Inscripción por transferencia bancaria ──
 async function submitTransfer(user) {
   const duprId = (document.getElementById('dupr-input')?.value||'').trim();
@@ -1999,6 +2207,69 @@ async function submitTransfer(user) {
   } catch (err) {
     console.error('Transfer submit error:', err);
     btn.disabled = false; btn.textContent = 'Enviar inscripción con boleta';
+    errEl.textContent = '✕ Error al enviar. Intenta de nuevo o contacta por WhatsApp.';
+    errEl.style.display = 'block';
+  }
+}
+
+// ── Pago de un cupo liberado (`slot_available`) por transferencia — actualiza el registro existente ──
+async function submitTransferSlot(user, reg) {
+  const phone = (document.getElementById('slot-phone-input')?.value||'').trim();
+  const file  = document.getElementById('slot-boleta-file')?.files[0];
+  const errEl = document.getElementById('slot-form-error');
+
+  if (!phone || phone.replace(/\D/g,'').length < 8) {
+    errEl.textContent = '✕ Ingresa tu número de teléfono.'; errEl.style.display='block'; return;
+  }
+  if (!file) {
+    errEl.textContent = '✕ Adjunta la boleta de pago.'; errEl.style.display='block'; return;
+  }
+  if (file.size > 5 * 1024 * 1024) {
+    errEl.textContent = '✕ La boleta no debe superar 5 MB.'; errEl.style.display='block'; return;
+  }
+
+  const btn = document.getElementById('btn-slot-transfer-submit');
+  btn.disabled = true; btn.textContent = 'Subiendo boleta…';
+  errEl.style.display = 'none';
+
+  try {
+    let boletaDocId = null;
+    try {
+      btn.textContent = 'Procesando boleta…';
+      const base64 = await compressBoleta(file);
+      boletaDocId  = await saveBoleta(user.uid, NUM, base64);
+    } catch (e) {
+      console.warn('Boleta no se pudo subir; la inscripción continúa:', e);
+    }
+
+    btn.textContent = 'Guardando…';
+    db.collection('users').doc(user.uid).set({ phone }, { merge: true }).catch(()=>{});
+
+    const updatedEntry = await updateOwnEntry(user, {
+      status:         'pending_review',
+      paymentMethod:  'transfer',
+      transferAmount: TRANSFER_PRICE,
+      phone,
+      ...(boletaDocId ? { boletaDocId } : { boletaPendiente: true }),
+    });
+
+    avisarPagoCupoAdmin(NUM, reg.categoria, updatedEntry, false);
+
+    document.getElementById('reg-container').innerHTML = `
+      <div class="reg-box">
+        <div class="reg-msg pending">
+          ⏳ ¡Boleta recibida! Tu cupo queda reservado mientras el admin valida la transferencia.<br>
+          <span style="font-size:.8rem;font-family:'Barlow',sans-serif;font-weight:400">
+            ${boletaDocId
+              ? `Te confirmamos por WhatsApp al <strong>${phone}</strong> apenas se valide.`
+              : `No pudimos recibir tu boleta — envíala por <a href="https://wa.me/50230912707?text=Boleta+Ladder+Semana+${NUM}" style="color:var(--red);font-weight:700">WhatsApp</a> para validar tu pago.`}
+          </span>
+        </div>
+      </div>`;
+
+  } catch (err) {
+    console.error('Slot transfer submit error:', err);
+    btn.disabled = false; btn.textContent = 'Enviar boleta';
     errEl.textContent = '✕ Error al enviar. Intenta de nuevo o contacta por WhatsApp.';
     errEl.style.display = 'block';
   }
@@ -2192,6 +2463,17 @@ async function saveRegistration(user, duprId, categoria, paypalOrderId, status, 
 
   // Avisar al admin de la nueva inscripción
   avisarNuevoRegistroAdmin(NUM, categoria, entry);
+}
+
+// Actualiza en el sitio el registro EXISTENTE del jugador (no agrega uno nuevo) — se usa cuando
+// alguien invitado a un cupo liberado (`slot_available`) completa su pago (tarjeta o transferencia).
+async function updateOwnEntry(user, patch) {
+  const docRef = db.collection(COLLECTION).doc(DOC_ID);
+  const snap = await docRef.get();
+  const inscritos = snap.exists ? (snap.data().inscritos || []) : [];
+  const updated = inscritos.map(p => p.uid === user.uid ? { ...p, ...patch } : p);
+  await docRef.update({ inscritos: updated });
+  return updated.find(p => p.uid === user.uid);
 }
 
 // Salir de lista de espera — único caso de retiro (gratis, no ocupa cupo pagado).
