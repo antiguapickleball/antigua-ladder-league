@@ -148,6 +148,14 @@
     .cat-badge.intermedio   { background: #dbeafe; color: #1e40af; }
     .cat-badge.open         { background: #ede9fe; color: #5b21b6; }
 
+    /* DUPR RATING BADGE */
+    .dupr-rating-badge {
+      display: inline-block; font-family: 'Space Mono', monospace;
+      font-size: .68rem; font-weight: 700; color: #1d4ed8; background: #eff6ff;
+      border: 1px solid #bfdbfe; padding: 1px 6px; margin-left: 6px; border-radius: 3px;
+      vertical-align: middle;
+    }
+
     /* ACTION BUTTONS */
     .btn-action {
       font-family: 'Barlow Condensed', sans-serif;
@@ -1502,7 +1510,7 @@ function renderTable(sesionNum) {
     const rowClass = isWait ? 'waitlist-row' : isPending ? 'pending-row' : '';
     return `<tr class="${rowClass}">
       <td class="num">${i+1}</td>
-      <td class="nombre">${p.nombre || '—'}</td>
+      <td class="nombre">${p.nombre || '—'}${duprRatingBadge(p.duprId)}</td>
       <td class="dupr">${p.duprId || '—'}</td>
       <td>${p.categoria ? `<span class="cat-badge ${p.categoria}">${catLabels[p.categoria]||p.categoria}</span>` : '—'}</td>
       <td>
@@ -1533,6 +1541,11 @@ function renderTable(sesionNum) {
       </td>
     </tr>`;
   }).join('');
+
+  // Rating DUPR: traer los que falten en segundo plano y re-renderizar cuando lleguen
+  prefetchDuprRatings(inscritos.map(p => p.duprId)).then(changed => {
+    if (changed && _currentSession === sesionNum) renderTable(sesionNum);
+  });
 }
 
 /* ══════════════════════════════════════════════════════
@@ -3186,6 +3199,9 @@ async function doGenerateFixture(sesionNum, categoria) {
 
   const playerNames = {};
   confirmed.forEach(p => playerNames[p.uid] = p.nombre);
+  const playerDupr = {};
+  confirmed.forEach(p => { if (p.duprId) playerDupr[p.uid] = p.duprId.trim(); });
+  await prefetchDuprRatings(confirmed.map(p => p.duprId));
 
   const n = confirmed.length;
   let fixture;
@@ -3229,6 +3245,7 @@ async function doGenerateFixture(sesionNum, categoria) {
   fixture.categoria    = categoria;
   fixture.isSession1   = isS1;
   fixture.playerNames  = playerNames;
+  fixture.playerDupr   = playerDupr;
   fixture.status       = 'r1_active';
   fixture.generatedAt  = firebase.firestore.Timestamp.now();
 
@@ -3238,6 +3255,46 @@ async function doGenerateFixture(sesionNum, categoria) {
   openFixtureForCat(sesionNum, categoria);
 }
 
+// ── DUPR doubles rating cache (shared: sorting + display) ──
+let _duprRatingCache   = {};  // duprId -> number|null
+let _duprFetchInFlight = {};  // duprId -> Promise
+
+function fetchDuprRating(duprId) {
+  const id = (duprId || '').trim();
+  if (!id) return Promise.resolve(null);
+  if (_duprRatingCache[id] !== undefined) return Promise.resolve(_duprRatingCache[id]);
+  if (_duprFetchInFlight[id]) return _duprFetchInFlight[id];
+  const p = fetch(`https://ap-dupr-api.netlify.app/.netlify/functions/dupr?id=${encodeURIComponent(id)}`)
+    .then(res => res.json())
+    .then(data => {
+      const rating = parseFloat(data.doubles ?? data.doublesVerified ?? 0) || null;
+      _duprRatingCache[id] = rating;
+      return rating;
+    })
+    .catch(() => { _duprRatingCache[id] = null; return null; })
+    .finally(() => { delete _duprFetchInFlight[id]; });
+  _duprFetchInFlight[id] = p;
+  return p;
+}
+
+// Fetch (and cache) ratings for any duprIds not yet resolved. Returns true if new data was fetched.
+async function prefetchDuprRatings(duprIds) {
+  const ids = [...new Set((duprIds || []).map(id => (id || '').trim()).filter(Boolean))];
+  const pending = ids.filter(id => _duprRatingCache[id] === undefined);
+  if (!pending.length) return false;
+  await Promise.all(pending.map(fetchDuprRating));
+  return true;
+}
+
+// Small inline badge with the cached DUPR doubles rating (blank until fetched)
+function duprRatingBadge(duprId) {
+  const id = (duprId || '').trim();
+  if (!id) return '';
+  const r = _duprRatingCache[id];
+  if (r === undefined || r === null) return '';
+  return ` <span class="dupr-rating-badge" title="DUPR dobles">${r.toFixed(2)}</span>`;
+}
+
 // Sort confirmed players for court assignment:
 // Session 1 → sort by DUPR doubles rating desc (higher rating = Court A)
 // Session 2+ → sort by ladder ranking avg desc
@@ -3245,16 +3302,11 @@ async function doGenerateFixture(sesionNum, categoria) {
 async function sortByRanking(confirmed, sesionNum) {
   if (sesionNum === 1) {
     // Session 1: use DUPR doubles rating from users collection
+    await prefetchDuprRatings(confirmed.map(p => p.duprId));
     const ratingByUid = {};
-    await Promise.all(confirmed.map(async p => {
-      if (!p.duprId) return;
-      try {
-        const res = await fetch(`https://ap-dupr-api.netlify.app/.netlify/functions/dupr?id=${encodeURIComponent(p.duprId)}`);
-        const data = await res.json();
-        const rating = parseFloat(data.doubles ?? data.doublesVerified ?? 0) || 0;
-        ratingByUid[p.uid] = rating;
-      } catch(_) {}
-    }));
+    confirmed.forEach(p => {
+      ratingByUid[p.uid] = _duprRatingCache[(p.duprId || '').trim()] || 0;
+    });
     return [...confirmed].sort((a, b) => (ratingByUid[b.uid] || 0) - (ratingByUid[a.uid] || 0));
   }
 
@@ -3442,6 +3494,7 @@ async function loadAndRenderFixture(sesionNum, categoria) {
       return;
     }
     const fx = snap.data();
+    await prefetchDuprRatings(Object.values(fx.playerDupr || {}));
     console.log('[fixture] rendering HTML...');
     inner.innerHTML = renderFixtureHTML(fx, sesionNum, categoria);
     console.log('[fixture] render done');
@@ -3514,6 +3567,7 @@ async function generateRound2(sesionNum, categoria) {
 
 function renderFixtureHTML(fx, sesionNum, categoria) {
   const pn = fx.playerNames || {};
+  const pd = fx.playerDupr  || {};
   const isS1 = fx.isSession1;
   let html = '';
 
@@ -3522,18 +3576,18 @@ function renderFixtureHTML(fx, sesionNum, categoria) {
     html += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px">
       <div class="court-block court-a">
         <div class="court-label">🏆 Cancha A</div>
-        ${(fx.courtA||[]).map((u,i)=>`<div class="court-player"><span style="color:var(--muted);font-size:.7rem;margin-right:6px">${i+1}.</span>${pn[u]||u}</div>`).join('')}
+        ${(fx.courtA||[]).map((u,i)=>`<div class="court-player"><span style="color:var(--muted);font-size:.7rem;margin-right:6px">${i+1}.</span>${pn[u]||u}${duprRatingBadge(pd[u])}</div>`).join('')}
       </div>
       <div class="court-block court-b">
         <div class="court-label">Cancha B</div>
-        ${(fx.courtB||[]).map((u,i)=>`<div class="court-player"><span style="color:var(--muted);font-size:.7rem;margin-right:6px">${i+1}.</span>${pn[u]||u}</div>`).join('')}
+        ${(fx.courtB||[]).map((u,i)=>`<div class="court-player"><span style="color:var(--muted);font-size:.7rem;margin-right:6px">${i+1}.</span>${pn[u]||u}${duprRatingBadge(pd[u])}</div>`).join('')}
       </div>
     </div>`;
   } else {
     const uids = fx.courtA || [];
     html += `<div style="margin-bottom:16px;font-size:.82rem;color:var(--muted)">
       📋 <strong>${uids.length}</strong> jugadores · <strong>${fx.totalRounds}</strong> ronda${fx.totalRounds>1?'s':''} · 1 cancha
-      <span style="margin-left:12px">${uids.map(u=>`<span style="background:#f0f0ee;padding:2px 7px;margin-right:4px;font-size:.78rem">${pn[u]||u}</span>`).join('')}</span>
+      <span style="margin-left:12px">${uids.map(u=>`<span style="background:#f0f0ee;padding:2px 7px;margin-right:4px;font-size:.78rem">${pn[u]||u}${duprRatingBadge(pd[u])}</span>`).join('')}</span>
     </div>`;
   }
 
