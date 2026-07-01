@@ -393,6 +393,7 @@
       <div style="display:flex;gap:8px;flex-wrap:wrap">
         <button class="btn-action" style="padding:9px 16px;font-size:.82rem;background:#f0fdf4;color:#065f46;border-color:#6ee7b7" onclick="toggleLadderPanel()">📊 Tabla Ladder</button>
         <button class="btn-action" style="padding:9px 16px;font-size:.82rem;background:#eff6ff;color:#1d4ed8;border-color:#bfdbfe" onclick="openModal('modal-copiar')">📋 Copiar registro</button>
+        <button class="btn-action" style="padding:9px 16px;font-size:.82rem;background:#f0fdf4;color:#065f46;border-color:#6ee7b7" onclick="openRecordatorioModal()">📣 Recordatorio WA</button>
         <button class="btn-action" style="padding:9px 16px;font-size:.82rem;background:#fef2f2;color:#991b1b;border-color:#fca5a5" onclick="openModal('modal-danger')">⚙️ Peligro</button>
       </div>
     </div>
@@ -691,6 +692,22 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="modal-recordatorio" style="display:none" onclick="if(event.target===this)closeModal('modal-recordatorio')">
+  <div class="modal" style="max-width:640px">
+    <div class="modal-header">
+      <span class="modal-title">📣 Recordatorio de sesión — WhatsApp</span>
+      <button class="modal-close" onclick="closeModal('modal-recordatorio')">×</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:.82rem;color:var(--muted);margin-top:-4px;line-height:1.5">Un mensaje ya personalizado por jugador confirmado, con su horario y las reglas básicas. Clic en <strong>Enviar</strong> abre WhatsApp con el texto listo — solo falta darle enviar.</p>
+      <div id="recordatorio-list" style="display:flex;flex-direction:column;gap:18px;max-height:60vh;overflow-y:auto"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-modal btn-cancel-modal" onclick="closeModal('modal-recordatorio')">Cerrar</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modal-add" style="display:none" onclick="if(event.target===this)closeModal('modal-add')">
   <div class="modal" style="max-width:560px">
     <div class="modal-header">
@@ -936,6 +953,30 @@ function waPromoLink(nombre, sesionNum, categoria, phone) {
   const fecha = s ? s.fecha : `Semana ${sesionNum}`;
   const msg = `¡Hola ${nombre}! Te saluda *Antigua Pickleball* 🎾 Se ha liberado un espacio en el Antigua Ladder League y esperamos tu confirmación para incluirte en la *Sesión ${sesionNum}* (${fecha}), categoría *${catLabels[categoria]||categoria}*, que inicia a las *${horaTexto(categoria)}*. Responde *SÍ* para confirmar tu cupo. ¡Te esperamos en cancha!`;
   return `https://wa.me/${phone.replace(/\D/g,'')}?text=${encodeURIComponent(msg)}`;
+}
+
+// Recordatorio de sesión (horario + reglas) — mensaje individual por jugador confirmado
+function recordatorioMsg(nombre, sesionNum, categoria) {
+  const catLabels = { principiante:'Principiante', intermedio:'Intermedio', open:'Open' };
+  const s = SEMANAS.find(x => x.num === sesionNum);
+  const fecha = s ? `${s.dia} ${s.fecha}` : `Semana ${sesionNum}`;
+  return `¡Hola ${nombre}! 🎾 Recordatorio de tu Sesión ${sesionNum} del Antigua Ladder League — categoría ${catLabels[categoria]||categoria}.
+
+📅 ${fecha}
+🕐 Inicio: ${horaTexto(categoria)} (llega 10-15 min antes)
+📍 Club Quattro, Antigua Guatemala
+
+Reglas rápidas:
+• Partidos a 11 puntos, side-out scoring
+• 5-8 partidos con rotación automática de parejas y rivales
+• Cancha A y Cancha B — asignación según ranking/DUPR
+• Trae tu propia paleta y agua
+
+¡Nos vemos en cancha! 🏓`;
+}
+function recordatorioLink(nombre, sesionNum, categoria, phone) {
+  if (!phone) return '';
+  return `https://wa.me/${phone.replace(/\D/g,'')}?text=${encodeURIComponent(recordatorioMsg(nombre, sesionNum, categoria))}`;
 }
 
 /* ══════════════════════════════════════════════════════
@@ -1856,6 +1897,62 @@ function openModal(id) {
 function closeModal(id) {
   document.getElementById(id).style.display = 'none';
   document.body.style.overflow = '';
+}
+
+/* ══════════════════════════════════════════════════════
+   RECORDATORIO DE SESIÓN (WhatsApp por jugador confirmado)
+══════════════════════════════════════════════════════ */
+function recordatorioSentKey(sesionNum, uid) { return `recordatorio_${sesionNum}_${uid}`; }
+
+function openRecordatorioModal() {
+  const catLabels = { principiante:'Principiante', intermedio:'Intermedio', open:'Open' };
+  const cats      = ['principiante', 'intermedio', 'open'];
+  const confirmados = (_allData[_currentSession] || []).filter(p => p.status === 'confirmed');
+  const wrap = document.getElementById('recordatorio-list');
+
+  if (!confirmados.length) {
+    wrap.innerHTML = `<div class="empty-state">No hay jugadores confirmados en esta sesión todavía.</div>`;
+    openModal('modal-recordatorio');
+    return;
+  }
+
+  wrap.innerHTML = cats.map(cat => {
+    const players = confirmados
+      .filter(p => p.categoria === cat)
+      .sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''));
+    if (!players.length) return '';
+
+    const rows = players.map(p => {
+      const sentKey = recordatorioSentKey(_currentSession, p.uid);
+      const sent    = localStorage.getItem(sentKey) === '1';
+      const waLink  = recordatorioLink(p.nombre, _currentSession, cat, p.phone);
+      return `<div id="rec-row-${p.uid}" style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;${sent ? 'background:#f0fdf4' : ''}">
+        <div>
+          <div style="font-weight:700;font-size:.88rem">${p.nombre || '—'}</div>
+          <div style="font-size:.75rem;color:var(--muted);font-family:'Space Mono',monospace">${p.phone || 'sin teléfono'}</div>
+        </div>
+        ${p.phone
+          ? `<a href="${waLink}" target="_blank" class="btn-action ${sent ? '' : 'btn-wa'}" style="text-decoration:none;white-space:nowrap" onclick="marcarRecordatorioEnviado('${p.uid}')">${sent ? '✓ Enviado' : '💬 Enviar'}</a>`
+          : `<span style="font-size:.75rem;color:#991b1b">Sin teléfono</span>`}
+      </div>`;
+    }).join('');
+
+    return `<div>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:.85rem;font-weight:900;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:8px">${catLabels[cat]} · ${players.length}</div>
+      <div style="display:flex;flex-direction:column;gap:6px">${rows}</div>
+    </div>`;
+  }).join('') || `<div class="empty-state">No hay jugadores confirmados en esta sesión todavía.</div>`;
+
+  openModal('modal-recordatorio');
+}
+
+function marcarRecordatorioEnviado(uid) {
+  localStorage.setItem(recordatorioSentKey(_currentSession, uid), '1');
+  const row = document.getElementById(`rec-row-${uid}`);
+  if (!row) return;
+  row.style.background = '#f0fdf4';
+  const btn = row.querySelector('a');
+  if (btn) { btn.textContent = '✓ Enviado'; btn.classList.remove('btn-wa'); }
 }
 
 var _toastTimer;
