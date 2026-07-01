@@ -3198,12 +3198,20 @@ async function doGenerateFixture(sesionNum, categoria, btn) {
   if (confirmed.length < 4) { toast('Necesitas al menos 4 jugadores confirmados', true); return; }
 
   if (btn) { btn.disabled = true; btn.dataset.origText = btn.textContent; btn.textContent = '⏳ Generando…'; }
-  if (isS1 && confirmed.length >= 8) toast('⏳ Consultando ratings DUPR para ordenar canchas, puede tardar unos segundos…');
+  toast('⏳ Consultando ratings DUPR (una sola vez, se guardan en el fixture)…');
 
   const playerNames = {};
   confirmed.forEach(p => playerNames[p.uid] = p.nombre);
   const playerDupr = {};
   confirmed.forEach(p => { if (p.duprId) playerDupr[p.uid] = p.duprId.trim(); });
+
+  // Traer y persistir el rating DUPR de dobles una sola vez (aquí, no en cada vista del fixture)
+  await prefetchDuprRatings(confirmed.map(p => p.duprId));
+  const playerDuprRating = {};
+  Object.entries(playerDupr).forEach(([uid, id]) => {
+    const r = _duprRatingCache[id];
+    if (r != null) playerDuprRating[uid] = r;
+  });
 
   const n = confirmed.length;
   let fixture;
@@ -3248,6 +3256,7 @@ async function doGenerateFixture(sesionNum, categoria, btn) {
   fixture.isSession1   = isS1;
   fixture.playerNames  = playerNames;
   fixture.playerDupr   = playerDupr;
+  fixture.playerDuprRating = playerDuprRating;
   fixture.status       = 'r1_active';
   fixture.generatedAt  = firebase.firestore.Timestamp.now();
 
@@ -3496,7 +3505,18 @@ async function loadAndRenderFixture(sesionNum, categoria) {
       return;
     }
     const fx = snap.data();
-    await prefetchDuprRatings(Object.values(fx.playerDupr || {}));
+    // Migración: fixtures generados antes de guardar playerDuprRating → resolverlo UNA vez y persistirlo
+    if (!fx.playerDuprRating && fx.playerDupr && Object.keys(fx.playerDupr).length) {
+      await prefetchDuprRatings(Object.values(fx.playerDupr));
+      const playerDuprRating = {};
+      Object.entries(fx.playerDupr).forEach(([uid, id]) => {
+        const r = _duprRatingCache[id];
+        if (r != null) playerDuprRating[uid] = r;
+      });
+      fx.playerDuprRating = playerDuprRating;
+      db.collection(COLN('ladder_fixtures')).doc(`t1_sesion_${sesionNum}_${categoria}`)
+        .update({ playerDuprRating }).catch(() => {});
+    }
     console.log('[fixture] rendering HTML...');
     inner.innerHTML = renderFixtureHTML(fx, sesionNum, categoria);
     console.log('[fixture] render done');
@@ -3569,8 +3589,11 @@ async function generateRound2(sesionNum, categoria) {
 
 function renderFixtureHTML(fx, sesionNum, categoria) {
   const pn = fx.playerNames || {};
-  const pd = fx.playerDupr  || {};
+  const pr = fx.playerDuprRating || {};
   const isS1 = fx.isSession1;
+  // Rating guardado en el fixture — sin llamadas de red al renderizar
+  const ratingBadge = (u) => pr[u] != null
+    ? ` <span class="dupr-rating-badge" title="DUPR dobles">${pr[u].toFixed(2)}</span>` : '';
   let html = '';
 
   // Court assignment display
@@ -3578,18 +3601,18 @@ function renderFixtureHTML(fx, sesionNum, categoria) {
     html += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px">
       <div class="court-block court-a">
         <div class="court-label">🏆 Cancha A</div>
-        ${(fx.courtA||[]).map((u,i)=>`<div class="court-player"><span style="color:var(--muted);font-size:.7rem;margin-right:6px">${i+1}.</span>${pn[u]||u}${duprRatingBadge(pd[u])}</div>`).join('')}
+        ${(fx.courtA||[]).map((u,i)=>`<div class="court-player"><span style="color:var(--muted);font-size:.7rem;margin-right:6px">${i+1}.</span>${pn[u]||u}${ratingBadge(u)}</div>`).join('')}
       </div>
       <div class="court-block court-b">
         <div class="court-label">Cancha B</div>
-        ${(fx.courtB||[]).map((u,i)=>`<div class="court-player"><span style="color:var(--muted);font-size:.7rem;margin-right:6px">${i+1}.</span>${pn[u]||u}${duprRatingBadge(pd[u])}</div>`).join('')}
+        ${(fx.courtB||[]).map((u,i)=>`<div class="court-player"><span style="color:var(--muted);font-size:.7rem;margin-right:6px">${i+1}.</span>${pn[u]||u}${ratingBadge(u)}</div>`).join('')}
       </div>
     </div>`;
   } else {
     const uids = fx.courtA || [];
     html += `<div style="margin-bottom:16px;font-size:.82rem;color:var(--muted)">
       📋 <strong>${uids.length}</strong> jugadores · <strong>${fx.totalRounds}</strong> ronda${fx.totalRounds>1?'s':''} · 1 cancha
-      <span style="margin-left:12px">${uids.map(u=>`<span style="background:#f0f0ee;padding:2px 7px;margin-right:4px;font-size:.78rem">${pn[u]||u}${duprRatingBadge(pd[u])}</span>`).join('')}</span>
+      <span style="margin-left:12px">${uids.map(u=>`<span style="background:#f0f0ee;padding:2px 7px;margin-right:4px;font-size:.78rem">${pn[u]||u}${ratingBadge(u)}</span>`).join('')}</span>
     </div>`;
   }
 
