@@ -2774,7 +2774,12 @@ function deleteCurrentFixture() {
   db.collection('ladder_fixtures').doc(docId).delete()
     .then(() => {
       toast(`✓ Fixture de ${_fixtureCat} · Sesión ${_currentSession} eliminado`);
-      loadAndRenderFixture(_currentSession, _fixtureCat);
+      document.getElementById('fixture-panel').style.display = 'none';
+      const counts = {};
+      ['principiante','intermedio','open'].forEach(c => {
+        counts[c] = (_allData[_currentSession]||[]).filter(p=>p.status==='confirmed'&&p.categoria===c).length;
+      });
+      renderFixtureCatSection(_currentSession, counts);
     })
     .catch(e => toast('✕ Error: ' + e.message, true));
 }
