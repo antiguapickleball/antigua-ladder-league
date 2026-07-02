@@ -745,6 +745,7 @@ let _pendingDuprId    = '';
 let _pendingCategoria = '';
 
 // ── Helpers de capacidad ──
+const HOLD_HOURS = 3; // horas que tiene un invitado (slot_available) para pagar antes de que venza
 function getCounts(inscritos) {
   const counts = { principiante: 0, intermedio: 0, open: 0 };
   inscritos.forEach(p => {
@@ -760,6 +761,29 @@ function getWaitCounts(inscritos) {
       counts[p.categoria]++;
   });
   return counts;
+}
+// ¿La invitación a pagar un cupo liberado (`slot_available`) sigue vigente?
+// Sin invitedAt = cupo congelado pero aún no avisado (sigue bloqueando, no vence).
+function isInviteLive(p) {
+  if (p.status !== 'slot_available') return false;
+  if (!p.invitedAt) return true;
+  const invitedAtMs = p.invitedAt.toMillis ? p.invitedAt.toMillis() : (p.invitedAt.seconds || 0) * 1000;
+  return Date.now() < invitedAtMs + HOLD_HOURS * 3_600_000;
+}
+// Cupos "ocupados" para efectos de gente NUEVA (registro, elegir categoría, mover de sesión):
+// confirmados + invitados con cupo congelado vigente (bloquea al público mientras dura la reserva).
+function getOccupiedCounts(inscritos) {
+  const counts = { principiante: 0, intermedio: 0, open: 0 };
+  inscritos.forEach(p => {
+    if (counts[p.categoria] === undefined) return;
+    if (p.status === 'confirmed' || isInviteLive(p)) counts[p.categoria]++;
+  });
+  return counts;
+}
+// Cupo lleno para gente NUEVA (usa getOccupiedCounts). NO usar para el chequeo de
+// "¿ya me ganaron el cupo?" de quien ya fue invitado — eso sigue usando isFull() (solo confirmed).
+function isFullForNew(inscritos, cat) {
+  return getOccupiedCounts(inscritos)[cat] >= CAP_POR_CAT;
 }
 function isFull(inscritos, cat) {
   return getCounts(inscritos)[cat] >= CAP_POR_CAT;
@@ -782,7 +806,7 @@ async function loadAltSessions(categoria) {
     await Promise.all(otherSessions.map(async s => {
       const snap = await db.collection(COLLECTION).doc(`t1_sesion_${s.num}`).get();
       const inscritos = snap.exists ? (snap.data().inscritos || []) : [];
-      const count = inscritos.filter(p => p.status === 'confirmed' && p.categoria === categoria).length;
+      const count = getOccupiedCounts(inscritos)[categoria] || 0;
       if (count < CAP_POR_CAT) {
         results.push({ num: s.num, fecha: s.fecha, disponibles: CAP_POR_CAT - count });
       }
@@ -862,9 +886,8 @@ function esPagado(reg) {
       || (reg.paymentMethod === 'transfer' && reg.status === 'confirmed');
 }
 
-// Quita a `uid` de la sesión `sesionNum`. La promoción de lista de espera → titular
-// es MANUAL desde el panel admin; aquí, si se liberó un cupo confirmado y hay gente
-// en espera de esa categoría, solo avisamos al admin por correo para que promueva.
+// Quita a `uid` de la sesión `sesionNum`. Si se liberó un cupo confirmado y hay gente
+// en espera de esa categoría, se congela el cupo automáticamente (ver liberarCupoParaEspera).
 async function salirDeSesion(sesionNum, categoria, uid, eraConfirmado) {
   const ref  = db.collection(COLLECTION).doc(`t1_sesion_${sesionNum}`);
   const snap = await ref.get();
@@ -872,12 +895,40 @@ async function salirDeSesion(sesionNum, categoria, uid, eraConfirmado) {
   const updated = (snap.data().inscritos || []).filter(p => p.uid !== uid);
   await ref.update({ inscritos: updated });
 
-  if (eraConfirmado) {
-    const espera = updated
-      .filter(p => p.status === 'waitlist' && p.categoria === categoria)
-      .sort((a, b) => (a.registeredAt?.seconds || 0) - (b.registeredAt?.seconds || 0));
-    if (espera.length) avisarCupoLiberadoAdmin(sesionNum, categoria, espera[0], espera.length);
+  if (eraConfirmado) await liberarCupoParaEspera(sesionNum, categoria);
+}
+
+// Al liberarse un cupo confirmado: si alguien de la lista de espera de esa categoría YA
+// pagó (tarjeta o transferencia previa — "espera autorizada"), se confirma directo, igual
+// que siempre. Si no, el cupo se CONGELA (todos los de espera sin pagar pasan a
+// `slot_available` sin `invitedAt`) para que nadie ajeno lo tome mientras el admin avisa
+// a la lista de espera desde el panel (botón "🔔 avisar cupo", ventana de HOLD_HOURS).
+async function liberarCupoParaEspera(sesionNum, categoria) {
+  const ref  = db.collection(COLLECTION).doc(`t1_sesion_${sesionNum}`);
+  const snap = await ref.get();
+  if (!snap.exists) return;
+  const inscritos = snap.data().inscritos || [];
+
+  const espera = inscritos
+    .filter(p => p.status === 'waitlist' && p.categoria === categoria)
+    .sort((a, b) => (a.registeredAt?.seconds || 0) - (b.registeredAt?.seconds || 0));
+  if (!espera.length) return;
+
+  const pagado = espera.find(esPagado);
+  if (pagado) {
+    const updated = inscritos.map(p =>
+      p.uid === pagado.uid ? { ...p, status: 'confirmed', promotedAt: firebase.firestore.Timestamp.now() } : p
+    );
+    await ref.update({ inscritos: updated });
+    avisarCupoLiberadoAdmin(sesionNum, categoria, pagado, espera.length, true);
+    return;
   }
+
+  const updated = inscritos.map(p =>
+    (p.status === 'waitlist' && p.categoria === categoria) ? { ...p, status: 'slot_available' } : p
+  );
+  await ref.update({ inscritos: updated });
+  avisarCupoLiberadoAdmin(sesionNum, categoria, espera[0], espera.length, false);
 }
 
 function horaTexto(categoria) {
@@ -949,7 +1000,7 @@ function avisarNuevoRegistroAdmin(sesionNum, categoria, entry) {
   try { enviarCorreoAdmin(payload); } catch (_) {}
 }
 
-function avisarCupoLiberadoAdmin(sesionNum, categoria, primero, enEspera) {
+function avisarCupoLiberadoAdmin(sesionNum, categoria, primero, enEspera, yaConfirmado) {
   const catLabel = { principiante:'Principiante', intermedio:'Intermedio', open:'Open' }[categoria] || categoria;
   const sem   = SEMANAS.find(s => s.num === sesionNum);
   const fecha = sem ? sem.fecha : `Semana ${sesionNum}`;
@@ -960,13 +1011,15 @@ function avisarCupoLiberadoAdmin(sesionNum, categoria, primero, enEspera) {
     : '(el jugador no tiene teléfono registrado)';
   const payload = {
     to:         'antiguapickleball@gmail.com',
-    encabezado: '🔔 Se liberó un cupo — Antigua Ladder League',
-    accion:     '⚠️ ACCIÓN REQUERIDA: Avisar al jugador por WhatsApp para confirmar su lugar.',
-    asunto:     `🔔 Cupo liberado · Semana ${sesionNum} ${catLabel}`,
+    encabezado: yaConfirmado ? '✅ Cupo liberado — confirmado automáticamente' : '🔔 Se liberó un cupo — cupo congelado para la lista de espera',
+    accion:     yaConfirmado
+      ? `No requiere acción. ${primero.nombre} ya había pagado y quedó confirmado automáticamente.`
+      : `⚠️ ACCIÓN REQUERIDA: el cupo quedó congelado (nadie más lo puede tomar). Entra al panel de admin y usa "🔔 Avisar cupo" para notificar a los ${enEspera} jugadores en lista de espera — tienen ${HOLD_HOURS} horas desde que los avises para pagar.`,
+    asunto:     yaConfirmado ? `✅ Cupo confirmado · Semana ${sesionNum} ${catLabel}` : `🔔 Cupo congelado · Semana ${sesionNum} ${catLabel}`,
     jugador:    `${primero.nombre} (1° de ${enEspera} en lista de espera)`,
     sesion:     `Semana ${sesionNum} · ${fecha} · ${hora}`,
     categoria:  catLabel,
-    waLink,
+    waLink:     yaConfirmado ? '' : waLink,
     panelLink:  'https://ladder.antigua-pickleball.com/admin.html',
   };
   try { enviarCorreoAdmin(payload); } catch (_) {}
@@ -1213,7 +1266,8 @@ function renderRegContainer(user, inscritos) {
   }
 
   // Formulario: DUPR (auto-fill) + categoría + método de pago
-  const counts = getCounts(inscritos);
+  const counts   = getCounts(inscritos);
+  const occupied = getOccupiedCounts(inscritos);
   container.innerHTML = `
     <div class="reg-box">
 
@@ -1260,7 +1314,7 @@ function renderRegContainer(user, inscritos) {
       <div class="cat-options" id="cat-options">
         ${CATEGORIAS.map(c => {
           const count = counts[c.id];
-          const full  = count >= CAP_POR_CAT;
+          const full  = occupied[c.id] >= CAP_POR_CAT;
           const waitCount = getWaitCounts(_inscritos)[c.id] || 0;
           const yaEnCat = myRegs.some(r => r.categoria === c.id);
           return `<label class="cat-option${full?' cat-full':''}${yaEnCat?' cat-full':''}" ${yaEnCat?'title="Ya estás inscrito en esta categoría"':''}>
@@ -1465,7 +1519,7 @@ function renderRegContainer(user, inscritos) {
 
     // Todo OK — mostrar pago
     duprError.style.display = 'none';
-    const full = isFull(_inscritos, _pendingCategoria);
+    const full = isFullForNew(_inscritos, _pendingCategoria);
     const notice = document.getElementById('cat-full-notice');
     notice.classList.toggle('visible', full);
     document.getElementById('pay-method-label').style.display  = full ? 'none' : 'block';
@@ -1520,7 +1574,7 @@ function renderRegContainer(user, inscritos) {
     const radio = document.querySelector(`input[name="categoria"][value="${_pendingCategoria}"]`);
     if (radio) {
       radio.checked = true;
-      const full = isFull(_inscritos, _pendingCategoria);
+      const full = isFullForNew(_inscritos, _pendingCategoria);
       const notice = document.getElementById('cat-full-notice');
       notice.classList.toggle('visible', full);
       document.getElementById('pay-method-label').style.display  = full ? 'none' : 'block';
@@ -1551,6 +1605,7 @@ function appendSegundaCategoria(container, user, myRegs, inscritos) {
     document.getElementById('btn-show-segunda').style.display = 'none';
     const formDiv = document.getElementById('segunda-cat-form');
     const counts  = getCounts(inscritos);
+    const occupied = getOccupiedCounts(inscritos);
     const waitCounts = getWaitCounts(inscritos);
     formDiv.innerHTML = `
       <div class="reg-box" style="margin-top:0;border-top:2px dashed var(--border);padding-top:20px">
@@ -1560,7 +1615,7 @@ function appendSegundaCategoria(container, user, myRegs, inscritos) {
           ${CATEGORIAS.map(c => {
             const yaEn  = catsInscritas.has(c.id);
             const count = counts[c.id] || 0;
-            const full  = count >= CAP_POR_CAT;
+            const full  = (occupied[c.id] || 0) >= CAP_POR_CAT;
             const wc    = waitCounts[c.id] || 0;
             return `<label class="cat-option${yaEn||full?' cat-full':''}">
               <input type="radio" name="categoria2" value="${c.id}" ${yaEn?'disabled':''} />
@@ -1697,7 +1752,7 @@ function appendSegundaCategoria(container, user, myRegs, inscritos) {
         } catch (_) {}
       }
       duprError2.style.display = 'none';
-      const full2 = isFull(inscritos, cat2);
+      const full2 = isFullForNew(inscritos, cat2);
       document.getElementById('pay-method-label-2').style.display  = full2 ? 'none' : 'block';
       document.getElementById('pay-method-toggle-2').style.display = full2 ? 'none' : 'grid';
       document.getElementById('paypal-section-2').style.display    = full2 ? 'none' : 'block';
@@ -1736,6 +1791,17 @@ function renderYaInscrito(container, user, reg, inscritos) {
   const pagado      = esPagado(reg);
   const catLabel    = { principiante:'Principiante', intermedio:'Intermedio', open:'Open' }[reg.categoria] || reg.categoria;
 
+  // Invitación a pagar un cupo liberado: sin invitedAt = congelado, aún no avisado (sin límite todavía).
+  // Con invitedAt = tiene HOLD_HOURS desde que el admin avisó.
+  const slotInvitedAtMs = reg.invitedAt
+    ? (reg.invitedAt.toMillis ? reg.invitedAt.toMillis() : (reg.invitedAt.seconds || 0) * 1000)
+    : null;
+  const slotDeadlineMs  = slotInvitedAtMs ? slotInvitedAtMs + HOLD_HOURS * 3_600_000 : null;
+  const slotVencido     = isSlot && slotDeadlineMs !== null && Date.now() >= slotDeadlineMs;
+  const slotHoraLimite  = slotDeadlineMs
+    ? new Date(slotDeadlineMs).toLocaleTimeString('es-GT', { hour:'numeric', minute:'2-digit' })
+    : null;
+
   // Ventanas de tiempo — SOLO aplican a quien tiene un cupo CONFIRMADO.
   // (Lista de espera y "por validar" no ocupan cupo confirmado → se mueven cuando quieran.)
   const horas  = isConfirmed ? horasHastaInicio(NUM, reg.categoria) : Infinity;
@@ -1771,10 +1837,16 @@ function renderYaInscrito(container, user, reg, inscritos) {
   let accionHTML = '', salirHTML = '', forceWaitlistMove = false;
   if (isDenied) {
     // sin acciones — contacto admin
+  } else if (isSlot && slotVencido) {
+    // Venció su ventana de HOLD_HOURS para pagar — vuelve a lista de espera normal.
+    accionHTML = `<div style="border:1px solid #fcd34d;background:#fffbeb;padding:12px 14px;font-size:.84rem;color:#92400e;line-height:1.6">
+        ⏰ Tu tiempo para reclamar este cupo venció. Sigues en <strong>lista de espera</strong> — te avisaremos si se libera otro cupo.
+      </div>`;
   } else if (isSlot) {
     // Cupo liberado e invitado a pagar: método de pago (tarjeta directo / transferencia por validar)
     accionHTML = `
       <div style="border-top:1px solid var(--border);padding-top:14px;margin-top:4px">
+        ${slotHoraLimite ? `<div style="background:#fef3c7;border:1px solid #f59e0b;padding:9px 12px;font-size:.8rem;color:#92400e;font-weight:600;margin-bottom:12px">⏰ Tienes hasta las ${slotHoraLimite} para completar tu pago — el primero en pagar se queda con el cupo.</div>` : ''}
         <div class="cat-select-label" id="slot-pay-method-label">Método de pago</div>
         <div class="pay-method-toggle" id="slot-pay-method-toggle">
           <button class="pay-method-btn active" id="btn-slot-pm-paypal" type="button">
@@ -1865,6 +1937,8 @@ function renderYaInscrito(container, user, reg, inscritos) {
         ? `<div class="reg-msg" style="border-color:#f59e0b;background:#fffbeb;color:#92400e">
              ⏳ Lista de espera — posición #${waitPos} en ${catLabel}.${pagado ? ' <strong>Tu pago está vigente</strong> — si se libera un cupo, entras directo.' : ''}
            </div>`
+        : (isSlot && slotVencido)
+        ? `<div class="reg-msg" style="border-color:#f59e0b;background:#fffbeb;color:#92400e">⏰ Tu invitación a pagar el cupo de ${catLabel} venció.</div>`
         : isSlot
         ? `<div class="reg-msg success">🎉 ¡Se liberó un cupo para ti en ${catLabel}! Completa tu pago para confirmarlo.</div>`
         : isPending
@@ -1906,7 +1980,7 @@ function renderYaInscrito(container, user, reg, inscritos) {
   const btnForfeit = document.getElementById('btn-forfeit');
   if (btnForfeit) btnForfeit.addEventListener('click', () => forfeitSpot(user, reg, faseForfeitPenal));
 
-  if (isSlot) {
+  if (isSlot && !slotVencido) {
     document.getElementById('btn-slot-pm-paypal').addEventListener('click', () => {
       document.getElementById('btn-slot-pm-paypal').classList.add('active');
       document.getElementById('btn-slot-pm-transfer').classList.remove('active');
@@ -1960,7 +2034,7 @@ function mountPayPalButtons(user) {
         errEl.style.display = 'block';
         return Promise.reject(new Error('Categoría requerida'));
       }
-      if (isFull(_inscritos, cat)) {
+      if (isFullForNew(_inscritos, cat)) {
         errEl.textContent = '✕ Esta categoría está llena. Usa la lista de espera.';
         errEl.style.display = 'block';
         return Promise.reject(new Error('Categoría llena'));
@@ -2150,7 +2224,7 @@ async function submitTransfer(user) {
   // Verificar capacidad antes de procesar
   const docSnapT = await db.collection(COLLECTION).doc(DOC_ID).get();
   const inscritosT = docSnapT.exists ? (docSnapT.data().inscritos || []) : [];
-  if (isFull(inscritosT, cat)) {
+  if (isFullForNew(inscritosT, cat)) {
     errEl.textContent = '✕ Esta categoría ya está llena. Usa la lista de espera (gratis).';
     errEl.style.display = 'block';
     // Scroll to waitlist button
@@ -2326,7 +2400,7 @@ async function moveToSession(user, reg, forceWaitlist) {
     const dstRef  = db.collection(COLLECTION).doc(`t1_sesion_${targetNum}`);
     const dstSnap = await dstRef.get();
     const dstInscritos = dstSnap.exists ? (dstSnap.data().inscritos || []) : [];
-    const dstFull = isFull(dstInscritos, reg.categoria);
+    const dstFull = isFullForNew(dstInscritos, reg.categoria);
 
     // Estado en el destino según quién se mueve:
     //  • Confirmado: conserva confirmado si hay cupo (salvo forceWaitlist 24-48h) → si no, lista de espera con pago vigente.
@@ -2421,7 +2495,7 @@ async function saveRegistration(user, duprId, categoria, paypalOrderId, status, 
   const freshInscritos2 = freshSnap2.exists ? (freshSnap2.data().inscritos || []) : [];
   // Bloquear si ya está inscrito en esta misma categoría (doble submit)
   if (freshInscritos2.some(p => p.uid === user.uid && p.categoria === categoria)) return;
-  if (status === 'confirmed' && isFull(freshInscritos2, categoria)) {
+  if (status === 'confirmed' && isFullForNew(freshInscritos2, categoria)) {
     status = 'waitlist';
   }
 

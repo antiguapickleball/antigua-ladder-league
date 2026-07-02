@@ -329,6 +329,16 @@
 
   await signInAnonymously(auth).catch(()=>{});
 
+  // ¿Invitación a pagar un cupo liberado (slot_available) vigente? Sin invitedAt = congelado,
+  // aún no avisado (sigue bloqueando, no vence hasta que se avise). Mismo criterio que sesion.html/admin.html.
+  const HOLD_HOURS = 3;
+  function isInviteLive(p) {
+    if (p.status !== 'slot_available') return false;
+    if (!p.invitedAt) return true;
+    const invitedAtMs = p.invitedAt.toMillis ? p.invitedAt.toMillis() : (p.invitedAt.seconds || 0) * 1000;
+    return Date.now() < invitedAtMs + HOLD_HOURS * 3_600_000;
+  }
+
   // ── Load counts from Firestore ────────────────────────────────────────────
   async function loadCounts() {
     const counts = {};
@@ -344,7 +354,9 @@
         inscritos.forEach(p => {
           const cat = p.categoria;
           if (!counts[s.num][cat]) return;
-          if (p.status === 'confirmed') counts[s.num][cat].confirmed++;
+          // Un cupo congelado (slot_available vigente) cuenta como ocupado para el público:
+          // nadie ajeno a la lista de espera debe ver ese cupo como disponible.
+          if (p.status === 'confirmed' || isInviteLive(p)) counts[s.num][cat].confirmed++;
           else if (p.status === 'waitlist' || p.status === 'pending_review') counts[s.num][cat].waitlist++;
         });
       }));
