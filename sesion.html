@@ -1906,11 +1906,65 @@ function renderYaInscrito(container, user, reg, inscritos) {
           </div>
         </div>
       </div>`;
+  } else if (isWait && pagado) {
+    // Espera autorizada (ya pagó antes): moveToSession() la confirma directo si hay cupo.
+    accionHTML = moveSelector('Mover a otra sesión', 'Pasar a esa sesión');
   } else if (isWait) {
-    // Lista de espera: se mueve cuando quiera. Si ya pagó, entra directo si hay cupo.
-    accionHTML = moveSelector('Mover a otra sesión',
-      pagado ? 'Pasar a esa sesión' : 'Pasar a lista de espera de esa sesión');
-    if (!pagado) salirHTML = `<button class="btn-unregister" id="btn-cancel-reg">Salir de lista de espera</button>`;
+    // Lista de espera SIN pagar: si el destino elegido tiene cupo real, se le pide pagar
+    // ahí mismo para tomarlo (en vez de solo pasar a la lista de espera del destino).
+    accionHTML = `
+      <div style="border-top:1px solid var(--border);padding-top:14px;margin-top:4px">
+        <div class="dupr-label" style="margin-bottom:8px">Mover a otra sesión</div>
+        <select id="move-sesion-select" style="width:100%;font-family:'Barlow Condensed',sans-serif;font-size:.95rem;padding:9px 12px;border:2px solid var(--border);background:#fff;outline:none">
+          <option value="">— Selecciona una fecha —</option>
+          ${SEMANAS.filter(s => s.num !== NUM && s.estado !== 'cancelada' && s.estado !== 'jugada')
+                   .map(s => `<option value="${s.num}">Semana ${s.num} · ${s.fecha}</option>`)
+                   .join('')}
+        </select>
+        <div id="move-wait-status" style="font-size:.78rem;color:var(--muted);margin-top:6px"></div>
+
+        <button class="btn-register" id="btn-move" style="margin-top:10px;width:100%;display:none">Pasar a lista de espera de esa sesión</button>
+
+        <div id="move-pay-wrap" style="display:none;margin-top:10px">
+          <div class="cat-select-label">🎉 ¡Hay cupo disponible! Método de pago para tomarlo</div>
+          <div class="pay-method-toggle" id="move-pm-toggle">
+            <button class="pay-method-btn active" id="btn-move-pm-paypal" type="button"><span class="pm-icon">💳</span>Tarjeta / PayPal</button>
+            <button class="pay-method-btn" id="btn-move-pm-transfer" type="button"><span class="pm-icon">🏦</span>Transferencia</button>
+          </div>
+          <div id="move-form-error" class="reg-status-line err" style="display:none"></div>
+          <div id="move-paypal-section"><div id="paypal-button-container-move" style="min-height:50px"></div></div>
+          <div id="move-transfer-section" style="display:none">
+            <div class="transfer-form">
+              <div class="bank-info-box">
+                <div class="bank-title">💳 Datos para transferencia</div>
+                <div class="bank-amount">${TRANSFER_PRICE}</div>
+                <div class="bank-row">🏦 <strong>${BANK_INFO.banco}</strong> · ${BANK_INFO.tipo}</div>
+                <div class="bank-row">No. <strong>${BANK_INFO.numero}</strong></div>
+                <div class="bank-row">A nombre de: <strong>${BANK_INFO.nombre}</strong></div>
+              </div>
+              <div class="field-group-reg">
+                <div class="dupr-label" style="margin-bottom:6px">Tu número de teléfono</div>
+                <input class="phone-input" id="move-phone-input" type="tel"
+                  placeholder="Ej: +502 5555-0000" autocomplete="tel" value="${reg.phone||''}"/>
+              </div>
+              <div>
+                <div class="dupr-label" style="margin-bottom:6px">Boleta de pago <span style="color:var(--red)">*</span></div>
+                <div class="upload-area" id="move-upload-area">
+                  <input type="file" id="move-boleta-file" accept="image/*,application/pdf"/>
+                  <div class="upload-icon">📎</div>
+                  <div class="upload-label" id="move-upload-label">Adjunta foto o PDF de tu boleta</div>
+                  <div style="font-size:.7rem;color:var(--muted);margin-top:3px">JPG, PNG o PDF · máx 5 MB</div>
+                </div>
+              </div>
+              <div style="background:#fffbeb;border:1px solid #fcd34d;padding:12px 14px;font-size:.82rem;color:#78350f;line-height:1.6">
+                ⏳ Al enviar, tu cupo en esa sesión queda reservado mientras el admin valida la transferencia.
+              </div>
+              <button class="btn-transfer-submit" id="btn-move-transfer-submit" type="button">Enviar boleta</button>
+            </div>
+          </div>
+        </div>
+      </div>`;
+    salirHTML = `<button class="btn-unregister" id="btn-cancel-reg">Salir de lista de espera</button>`;
   } else if (isPending) {
     // Pago por validar: se mueve cuando quiera; sigue "por validar" en el destino.
     accionHTML = moveSelector('Mover a otra sesión', 'Cambiar de sesión');
@@ -1988,6 +2042,64 @@ function renderYaInscrito(container, user, reg, inscritos) {
 
   const btnForfeit = document.getElementById('btn-forfeit');
   if (btnForfeit) btnForfeit.addEventListener('click', () => forfeitSpot(user, reg, faseForfeitPenal));
+
+  if (isWait && !pagado) {
+    const moveSelect = document.getElementById('move-sesion-select');
+    const statusEl    = document.getElementById('move-wait-status');
+    moveSelect.addEventListener('change', async () => {
+      const targetNum = parseInt(moveSelect.value);
+      document.getElementById('btn-move').style.display      = 'none';
+      document.getElementById('move-pay-wrap').style.display = 'none';
+      statusEl.textContent = '';
+      if (!targetNum) return;
+      statusEl.textContent = 'Revisando cupo…';
+      const dstSnap = await db.collection(COLLECTION).doc(`t1_sesion_${targetNum}`).get();
+      const dstInscritos = dstSnap.exists ? (dstSnap.data().inscritos || []) : [];
+      const dstFull = isFullForNew(dstInscritos, reg.categoria);
+      statusEl.textContent = '';
+      if (dstFull) {
+        document.getElementById('btn-move').style.display = 'block';
+      } else {
+        document.getElementById('move-pay-wrap').style.display = 'block';
+        document.getElementById('btn-move-pm-paypal').classList.add('active');
+        document.getElementById('btn-move-pm-transfer').classList.remove('active');
+        document.getElementById('move-paypal-section').style.display   = 'block';
+        document.getElementById('move-transfer-section').style.display = 'none';
+        mountPayPalButtonsMove(user, reg, targetNum);
+      }
+    });
+
+    document.getElementById('btn-move-pm-paypal').addEventListener('click', () => {
+      document.getElementById('btn-move-pm-paypal').classList.add('active');
+      document.getElementById('btn-move-pm-transfer').classList.remove('active');
+      document.getElementById('move-paypal-section').style.display   = 'block';
+      document.getElementById('move-transfer-section').style.display = 'none';
+    });
+    document.getElementById('btn-move-pm-transfer').addEventListener('click', () => {
+      document.getElementById('btn-move-pm-transfer').classList.add('active');
+      document.getElementById('btn-move-pm-paypal').classList.remove('active');
+      document.getElementById('move-paypal-section').style.display   = 'none';
+      document.getElementById('move-transfer-section').style.display = 'block';
+    });
+    document.getElementById('move-boleta-file').addEventListener('change', e => {
+      const file  = e.target.files[0];
+      const area  = document.getElementById('move-upload-area');
+      const label = document.getElementById('move-upload-label');
+      if (file) {
+        area.classList.add('has-file');
+        label.className = 'upload-label ok';
+        label.textContent = '✓ ' + file.name;
+      } else {
+        area.classList.remove('has-file');
+        label.className = 'upload-label';
+        label.textContent = 'Adjunta foto o PDF de tu boleta';
+      }
+    });
+    document.getElementById('btn-move-transfer-submit').addEventListener('click', () => {
+      const targetNum = parseInt(moveSelect.value);
+      if (targetNum) submitTransferMove(user, reg, targetNum);
+    });
+  }
 
   if (isSlot && !slotVencido) {
     document.getElementById('btn-slot-pm-paypal').addEventListener('click', () => {
@@ -2452,6 +2564,184 @@ async function moveToSession(user, reg, forceWaitlist) {
     console.error(err);
     btn.disabled = false; btn.textContent = 'Confirmar cambio de fecha';
     alert('Error al mover. Intenta de nuevo.');
+  }
+}
+
+// ── Mover de lista de espera (sin pagar) a una sesión CON cupo real: paga ahí para tomarlo ──
+function mountPayPalButtonsMove(user, reg, targetNum) {
+  const container = document.getElementById('paypal-button-container-move');
+  if (!container) return;
+  container.innerHTML = '';
+  paypal.Buttons({
+    style: { layout:'vertical', color:'black', shape:'rect', label:'pay', height:44 },
+
+    createOrder: (data, actions) => {
+      const catLabel = { principiante:'Principiante', intermedio:'Intermedio', open:'Open' }[reg.categoria] || reg.categoria;
+      return actions.order.create({
+        purchase_units: [{
+          description: `Antigua Ladder League Semana ${targetNum} ${catLabel} (cambio de sesión)`,
+          amount: { currency_code:'USD', value: SESSION_PRICE },
+        }],
+      });
+    },
+
+    onApprove: async (data, actions) => {
+      let order;
+      try {
+        order = await actions.order.capture();
+      } catch (err) {
+        console.error('PayPal capture error:', err);
+        document.getElementById('paypal-button-container-move').innerHTML =
+          `<div class="reg-msg error">✕ Error al procesar el pago. Intenta de nuevo.</div>`;
+        return;
+      }
+
+      document.getElementById('paypal-button-container-move').innerHTML =
+        `<div class="reg-msg info" style="text-align:center">⏳ Confirmando tu cupo…</div>`;
+
+      if (order.status !== 'COMPLETED') {
+        document.getElementById('paypal-button-container-move').innerHTML =
+          `<div class="reg-msg error">✕ Pago no completado (${order.status}). Intenta de nuevo.</div>`;
+        return;
+      }
+
+      try {
+        // Re-verificar cupo en el destino justo antes de confirmar (por si alguien más lo tomó mientras pagabas)
+        const dstRef  = db.collection(COLLECTION).doc(`t1_sesion_${targetNum}`);
+        const dstSnap = await dstRef.get();
+        const dstInscritos = dstSnap.exists ? (dstSnap.data().inscritos || []) : [];
+        const lleno = isFullForNew(dstInscritos, reg.categoria);
+
+        const entry = {
+          ...reg,
+          sesionNum:     targetNum,
+          status:        lleno ? 'waitlist' : 'confirmed',
+          paid:          true,
+          paypalOrderId: order.id,
+          paidUSD:       SESSION_PRICE,
+          movedFrom:     NUM,
+          movedAt:       firebase.firestore.Timestamp.now(),
+        };
+        await dstRef.set({
+          sesionNum: targetNum,
+          inscritos: firebase.firestore.FieldValue.arrayUnion(entry),
+        }, { merge: true });
+
+        db.collection('ladder_payments').add({
+          uid: user.uid, nombre: reg.nombre, email: user.email||'',
+          sesionNum: targetNum, docId: `t1_sesion_${targetNum}`, categoria: reg.categoria, status: entry.status,
+          paypalOrderId: order.id, amount: SESSION_PRICE, currency: 'USD',
+          paidAt: firebase.firestore.Timestamp.now(), env: PAYPAL_ENV,
+        }).catch(() => {});
+
+        avisarNuevoRegistroAdmin(targetNum, reg.categoria, entry);
+
+        // Quitar del origen (estaba en lista de espera, no confirmado → no dispara congelamiento)
+        await salirDeSesion(NUM, reg.categoria, user.uid, false);
+
+        const catLabel = { principiante:'Principiante', intermedio:'Intermedio', open:'Open' }[reg.categoria] || reg.categoria;
+        document.getElementById('reg-container').innerHTML = lleno ? `
+          <div class="reg-box">
+            <div class="reg-msg" style="border-color:#f59e0b;background:#fffbeb;color:#92400e">
+              ⏳ Alguien más tomó el cupo justo antes que tú. Tu pago quedó registrado — quedaste en <strong>lista de espera de la Semana ${targetNum} con pago vigente</strong>, entras directo en el próximo cupo libre.
+            </div>
+          </div>` : `
+          <div class="reg-box">
+            <div class="reg-msg success">🎉 ¡Cupo confirmado — Semana ${targetNum} · ${catLabel}!</div>
+            <div style="display:flex;flex-direction:column;gap:5px;font-size:.82rem;color:var(--muted)">
+              <span>Pago: <strong style="color:var(--court)">$10 USD ✓</strong></span>
+              <span style="font-family:'Space Mono',monospace;font-size:.65rem;word-break:break-all">PayPal: ${order.id}</span>
+            </div>
+          </div>`;
+      } catch (err) {
+        console.error('Firestore save error:', err);
+        document.getElementById('paypal-button-container-move').innerHTML =
+          `<div class="reg-msg error">
+            ✕ Pago recibido (${order.id.slice(0,14)}…) pero error al guardar.
+            Envía el ID por <a href="https://wa.me/50230912707?text=Ladder+pago+${order.id}" style="color:var(--red)">WhatsApp</a>.
+          </div>`;
+      }
+    },
+
+    onError: (err) => {
+      const c = document.getElementById('paypal-button-container-move');
+      if (c) c.innerHTML = `<div class="reg-msg error">✕ Error con PayPal. Intenta de nuevo.</div>`;
+    },
+    onCancel: () => {},
+  }).render('#paypal-button-container-move');
+}
+
+async function submitTransferMove(user, reg, targetNum) {
+  const phone = (document.getElementById('move-phone-input')?.value||'').trim();
+  const file  = document.getElementById('move-boleta-file')?.files[0];
+  const errEl = document.getElementById('move-form-error');
+
+  if (!phone || phone.replace(/\D/g,'').length < 8) {
+    errEl.textContent = '✕ Ingresa tu número de teléfono.'; errEl.style.display='block'; return;
+  }
+  if (!file) {
+    errEl.textContent = '✕ Adjunta la boleta de pago.'; errEl.style.display='block'; return;
+  }
+  if (file.size > 5 * 1024 * 1024) {
+    errEl.textContent = '✕ La boleta no debe superar 5 MB.'; errEl.style.display='block'; return;
+  }
+
+  const btn = document.getElementById('btn-move-transfer-submit');
+  btn.disabled = true; btn.textContent = 'Subiendo boleta…';
+  errEl.style.display = 'none';
+
+  try {
+    let boletaDocId = null;
+    try {
+      btn.textContent = 'Procesando boleta…';
+      const base64 = await compressBoleta(file);
+      boletaDocId  = await saveBoleta(user.uid, targetNum, base64);
+    } catch (e) {
+      console.warn('Boleta no se pudo subir; la inscripción continúa:', e);
+    }
+
+    btn.textContent = 'Guardando…';
+    db.collection('users').doc(user.uid).set({ phone }, { merge: true }).catch(()=>{});
+
+    const entry = {
+      ...reg,
+      sesionNum:      targetNum,
+      status:         'pending_review',
+      paymentMethod:  'transfer',
+      transferAmount: TRANSFER_PRICE,
+      phone,
+      movedFrom:      NUM,
+      movedAt:        firebase.firestore.Timestamp.now(),
+      ...(boletaDocId ? { boletaDocId } : { boletaPendiente: true }),
+    };
+    const dstRef = db.collection(COLLECTION).doc(`t1_sesion_${targetNum}`);
+    await dstRef.set({
+      sesionNum: targetNum,
+      inscritos: firebase.firestore.FieldValue.arrayUnion(entry),
+    }, { merge: true });
+
+    avisarNuevoRegistroAdmin(targetNum, reg.categoria, entry);
+
+    // Quitar del origen (estaba en lista de espera, no confirmado → no dispara congelamiento)
+    await salirDeSesion(NUM, reg.categoria, user.uid, false);
+
+    document.getElementById('reg-container').innerHTML = `
+      <div class="reg-box">
+        <div class="reg-msg pending">
+          ⏳ ¡Boleta recibida! Tu cupo en la Semana ${targetNum} queda reservado mientras el admin valida la transferencia.<br>
+          <span style="font-size:.8rem;font-family:'Barlow',sans-serif;font-weight:400">
+            ${boletaDocId
+              ? `Te confirmamos por WhatsApp al <strong>${phone}</strong> apenas se valide.`
+              : `No pudimos recibir tu boleta — envíala por <a href="https://wa.me/50230912707?text=Boleta+Ladder+Semana+${targetNum}" style="color:var(--red);font-weight:700">WhatsApp</a> para validar tu pago.`}
+          </span>
+        </div>
+      </div>`;
+
+  } catch (err) {
+    console.error('Move transfer submit error:', err);
+    btn.disabled = false; btn.textContent = 'Enviar boleta';
+    errEl.textContent = '✕ Error al enviar. Intenta de nuevo o contacta por WhatsApp.';
+    errEl.style.display = 'block';
   }
 }
 
