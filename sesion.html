@@ -757,8 +757,9 @@ function getCounts(inscritos) {
 function getWaitCounts(inscritos) {
   const counts = { principiante: 0, intermedio: 0, open: 0 };
   inscritos.forEach(p => {
-    if (p.status === 'waitlist' && counts[p.categoria] !== undefined)
-      counts[p.categoria]++;
+    if (counts[p.categoria] === undefined) return;
+    // Cuenta espera "clásica" + invitados a pagar un cupo liberado (siguen sin ser titulares).
+    if (p.status === 'waitlist' || p.status === 'slot_available') counts[p.categoria]++;
   });
   return counts;
 }
@@ -769,6 +770,9 @@ function isInviteLive(p) {
   if (!p.invitedAt) return true;
   const invitedAtMs = p.invitedAt.toMillis ? p.invitedAt.toMillis() : (p.invitedAt.seconds || 0) * 1000;
   return Date.now() < invitedAtMs + HOLD_HOURS * 3_600_000;
+}
+function isInviteVencida(p) {
+  return p.status === 'slot_available' && !!p.invitedAt && !isInviteLive(p);
 }
 // Cupos "ocupados" para efectos de gente NUEVA (registro, elegir categoría, mover de sesión):
 // confirmados + invitados con cupo congelado vigente (bloquea al público mientras dura la reserva).
@@ -1157,7 +1161,9 @@ function renderInscritos(inscritos, currentUser) {
   const counts     = getCounts(inscritos);
   const waitCounts = getWaitCounts(inscritos);
   const total       = inscritos.filter(p => p.status === 'confirmed').length;
-  const totalEspera = inscritos.filter(p => p.status === 'waitlist').length;
+  // "En espera" para el público incluye a quien está congelado/invitado a pagar un cupo
+  // liberado (slot_available) — sigue sin ser titular, así que sigue contando como espera.
+  const totalEspera = inscritos.filter(p => p.status === 'waitlist' || p.status === 'slot_available').length;
   const totalPending= inscritos.filter(p => p.status === 'pending_review').length;
 
   document.getElementById('inscritos-count').textContent =
@@ -1200,7 +1206,7 @@ function renderRows(inscritos, currentUser, filter) {
 
   let filtered = inscritos.filter(p => {
     if (filter === 'todos')     return p.status === 'confirmed';
-    if (filter === 'espera')    return p.status === 'waitlist';
+    if (filter === 'espera')    return p.status === 'waitlist' || p.status === 'slot_available';
     if (filter === 'pendiente') return p.status === 'pending_review';
     return p.status === 'confirmed' && p.categoria === filter;
   }).sort((a,b) => (a.registeredAt?.seconds||0) - (b.registeredAt?.seconds||0));
@@ -1218,13 +1224,16 @@ function renderRows(inscritos, currentUser, filter) {
       ? new Date(p.registeredAt.seconds*1000).toLocaleDateString('es-GT',{month:'short',day:'numeric'})
       : '';
     const isWait   = p.status === 'waitlist';
-    return `<div class="inscrito-row${isWait?' waitlist-row':''}">
+    const isSlotP  = p.status === 'slot_available';
+    const slotLabel = isSlotP ? (isInviteVencida(p) ? '⏰ Invitado (vencida)' : 'Invitado a pagar') : '';
+    return `<div class="inscrito-row${(isWait||isSlotP)?' waitlist-row':''}">
       <span class="inscrito-num">${i+1}</span>
       <div class="inscrito-avatar" style="${isMe?'':'background:#aaa'}">${initials}</div>
       <span class="inscrito-name ${isMe?'me':''}">${isMe?'▶ ':''}${p.nombre}</span>
       ${p.duprId ? `<span class="inscrito-dupr">${p.duprId}</span>` : ''}
       ${p.categoria ? `<span class="inscrito-cat-badge ${p.categoria}">${catLabels[p.categoria]||p.categoria}</span>` : ''}
       ${isWait ? `<span style="font-family:'Space Mono',monospace;font-size:.58rem;color:#b45309;border:1px solid #fbbf24;padding:2px 6px;background:#fffbeb">Espera</span>` : ''}
+      ${isSlotP ? `<span style="font-family:'Space Mono',monospace;font-size:.58rem;color:#1e40af;border:1px solid #93c5fd;padding:2px 6px;background:#eff6ff">${slotLabel}</span>` : ''}
       <span class="inscrito-date">${fecha}</span>
     </div>`;
   }).join('');
