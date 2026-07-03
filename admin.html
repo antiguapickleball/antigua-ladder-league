@@ -1096,6 +1096,16 @@ function recordatorioLink(nombre, sesionNum, categoria, phone) {
   if (!phone) return '';
   return `https://wa.me/${phone.replace(/\D/g,'')}?text=${encodeURIComponent(recordatorioMsg(nombre, sesionNum, categoria))}`;
 }
+function recordatorioMailSubject(sesionNum, categoria) {
+  const catLabels = { principiante:'Principiante', intermedio:'Intermedio', open:'Open' };
+  return `Recordatorio Sesión ${sesionNum} · ${catLabels[categoria]||categoria} · Antigua Ladder League`;
+}
+function recordatorioMailLink(nombre, sesionNum, categoria, email) {
+  if (!email) return '';
+  const subject = encodeURIComponent(recordatorioMailSubject(sesionNum, categoria));
+  const body    = encodeURIComponent(recordatorioMsg(nombre, sesionNum, categoria));
+  return `mailto:${email}?subject=${subject}&body=${body}`;
+}
 
 /* ══════════════════════════════════════════════════════
    FIREBASE
@@ -2099,9 +2109,9 @@ function closeModal(id) {
 }
 
 /* ══════════════════════════════════════════════════════
-   RECORDATORIO DE SESIÓN (WhatsApp por jugador confirmado)
+   RECORDATORIO DE SESIÓN (WhatsApp + Email por jugador confirmado)
 ══════════════════════════════════════════════════════ */
-function recordatorioSentKey(sesionNum, uid) { return `recordatorio_${sesionNum}_${uid}`; }
+function recordatorioSentKey(canal, sesionNum, uid) { return `recordatorio_${canal}_${sesionNum}_${uid}`; }
 
 function openRecordatorioModal() {
   const catLabels = { principiante:'Principiante', intermedio:'Intermedio', open:'Open' };
@@ -2122,17 +2132,27 @@ function openRecordatorioModal() {
     if (!players.length) return '';
 
     const rows = players.map(p => {
-      const sentKey = recordatorioSentKey(_currentSession, p.uid);
-      const sent    = localStorage.getItem(sentKey) === '1';
-      const waLink  = recordatorioLink(p.nombre, _currentSession, cat, p.phone);
-      return `<div id="rec-row-${p.uid}" style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;${sent ? 'background:#f0fdf4' : ''}">
+      const waSentKey   = recordatorioSentKey('wa', _currentSession, p.uid);
+      const waSent      = localStorage.getItem(waSentKey) === '1';
+      const waLink      = recordatorioLink(p.nombre, _currentSession, cat, p.phone);
+      const mailSentKey = recordatorioSentKey('email', _currentSession, p.uid);
+      const mailSent    = localStorage.getItem(mailSentKey) === '1';
+      const mailLink    = recordatorioMailLink(p.nombre, _currentSession, cat, p.email);
+      const rowSent     = (!p.phone || waSent) && (!p.email || mailSent);
+      return `<div id="rec-row-${p.uid}" data-has-phone="${p.phone?1:0}" data-has-email="${p.email?1:0}" style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;${rowSent ? 'background:#f0fdf4' : ''}">
         <div>
           <div style="font-weight:700;font-size:.88rem">${p.nombre || '—'}</div>
-          <div style="font-size:.75rem;color:var(--muted);font-family:'Space Mono',monospace">${p.phone || 'sin teléfono'}</div>
+          <div style="font-size:.75rem;color:var(--muted);font-family:'Space Mono',monospace">${p.phone || 'sin teléfono'}${p.email ? ' · ' + p.email : ''}</div>
         </div>
-        ${p.phone
-          ? `<a href="${waLink}" target="_blank" class="btn-action ${sent ? '' : 'btn-wa'}" style="text-decoration:none;white-space:nowrap" onclick="marcarRecordatorioEnviado('${p.uid}')">${sent ? '✓ Enviado' : '💬 Enviar'}</a>`
-          : `<span style="font-size:.75rem;color:#991b1b">Sin teléfono</span>`}
+        <div style="display:flex;gap:6px;white-space:nowrap">
+          ${p.phone
+            ? `<a href="${waLink}" target="_blank" class="btn-action ${waSent ? '' : 'btn-wa'}" style="text-decoration:none" onclick="marcarRecordatorioEnviado('wa','${p.uid}')">${waSent ? '✓ WA' : '💬 WA'}</a>`
+            : ''}
+          ${p.email
+            ? `<a href="${mailLink}" class="btn-action ${mailSent ? '' : ''}" style="text-decoration:none;${mailSent ? 'background:#f0fdf4;color:#065f46;border-color:#6ee7b7' : 'background:#eff6ff;color:#1d4ed8;border-color:#bfdbfe'}" onclick="marcarRecordatorioEnviado('email','${p.uid}')">${mailSent ? '✓ Email' : '✉️ Email'}</a>`
+            : ''}
+          ${(!p.phone && !p.email) ? `<span style="font-size:.75rem;color:#991b1b">Sin contacto</span>` : ''}
+        </div>
       </div>`;
     }).join('');
 
@@ -2145,13 +2165,24 @@ function openRecordatorioModal() {
   openModal('modal-recordatorio');
 }
 
-function marcarRecordatorioEnviado(uid) {
-  localStorage.setItem(recordatorioSentKey(_currentSession, uid), '1');
+function marcarRecordatorioEnviado(canal, uid) {
+  localStorage.setItem(recordatorioSentKey(canal, _currentSession, uid), '1');
   const row = document.getElementById(`rec-row-${uid}`);
   if (!row) return;
-  row.style.background = '#f0fdf4';
-  const btn = row.querySelector('a');
-  if (btn) { btn.textContent = '✓ Enviado'; btn.classList.remove('btn-wa'); }
+
+  const btn = canal === 'wa' ? row.querySelector('.btn-wa') : Array.from(row.querySelectorAll('a')).find(a => a.href.startsWith('mailto:'));
+  if (btn) {
+    btn.textContent = canal === 'wa' ? '✓ WA' : '✓ Email';
+    if (canal === 'wa') { btn.classList.remove('btn-wa'); }
+    else { btn.style.background = '#f0fdf4'; btn.style.color = '#065f46'; btn.style.borderColor = '#6ee7b7'; }
+  }
+
+  // Si ya no quedan canales pendientes (según los que el jugador realmente tiene), resaltar la fila
+  const hasPhone = row.dataset.hasPhone === '1';
+  const hasEmail = row.dataset.hasEmail === '1';
+  const waDone    = !hasPhone || localStorage.getItem(recordatorioSentKey('wa', _currentSession, uid)) === '1';
+  const mailDone  = !hasEmail || localStorage.getItem(recordatorioSentKey('email', _currentSession, uid)) === '1';
+  if (waDone && mailDone) row.style.background = '#f0fdf4';
 }
 
 /* ══════════════════════════════════════════════════════

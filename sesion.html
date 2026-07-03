@@ -743,6 +743,7 @@ let _inscritos        = [];
 let _firebaseAuthReady = false;
 let _pendingDuprId    = '';
 let _pendingCategoria = '';
+let _pendingPhone     = '';
 
 // ── Helpers de capacidad ──
 const HOLD_HOURS = 3; // horas que tiene un invitado (slot_available) para pagar antes de que venza
@@ -1364,6 +1365,16 @@ function renderRegContainer(user, inscritos) {
         </div>
       </div>
 
+      <!-- TELÉFONO (obligatorio, compartido entre ambos métodos de pago) -->
+      <div class="field-group-reg" id="phone-field-wrap" style="display:none">
+        <div class="dupr-label" style="margin-bottom:6px">Tu número de teléfono <span style="color:var(--red)">*</span></div>
+        <input class="phone-input" id="phone-input" type="tel"
+          placeholder="Ej: +502 5555-0000" autocomplete="tel"/>
+        <p style="font-size:.72rem;color:var(--muted);margin-top:4px;line-height:1.4">
+          Medio de contacto principal — para avisos de tu sesión y confirmar tu inscripción.
+        </p>
+      </div>
+
       <!-- MÉTODO DE PAGO -->
       <div class="cat-select-label" id="pay-method-label" style="display:none">Método de pago</div>
       <div class="pay-method-toggle" id="pay-method-toggle" style="display:none">
@@ -1395,15 +1406,6 @@ function renderRegContainer(user, inscritos) {
             <div class="bank-row">🏦 <strong>${BANK_INFO.banco}</strong> · ${BANK_INFO.tipo}</div>
             <div class="bank-row">No. <strong>${BANK_INFO.numero}</strong></div>
             <div class="bank-row">A nombre de: <strong>${BANK_INFO.nombre}</strong></div>
-          </div>
-
-          <div class="field-group-reg">
-            <div class="dupr-label" style="margin-bottom:6px">Tu número de teléfono</div>
-            <input class="phone-input" id="phone-input" type="tel"
-              placeholder="Ej: +502 5555-0000" autocomplete="tel"/>
-            <p style="font-size:.72rem;color:var(--muted);margin-top:4px;line-height:1.4">
-              Para contactarte y confirmar tu inscripción.
-            </p>
           </div>
 
           <div>
@@ -1495,6 +1497,7 @@ function renderRegContainer(user, inscritos) {
 
     // Ocultar pago mientras se valida
     const hidePayment = () => {
+      document.getElementById('phone-field-wrap').style.display  = 'none';
       document.getElementById('pay-method-label').style.display  = 'none';
       document.getElementById('pay-method-toggle').style.display = 'none';
       document.getElementById('paypal-section').style.display    = 'none';
@@ -1545,6 +1548,7 @@ function renderRegContainer(user, inscritos) {
     const full = isFullForNew(_inscritos, _pendingCategoria);
     const notice = document.getElementById('cat-full-notice');
     notice.classList.toggle('visible', full);
+    document.getElementById('phone-field-wrap').style.display  = full ? 'none' : 'block';
     document.getElementById('pay-method-label').style.display  = full ? 'none' : 'block';
     document.getElementById('pay-method-toggle').style.display = full ? 'none' : 'grid';
     document.getElementById('paypal-section').style.display    = full ? 'none' : 'block';
@@ -1653,6 +1657,11 @@ function appendSegundaCategoria(container, user, myRegs, inscritos) {
             </label>`;
           }).join('')}
         </div>
+        <div class="field-group-reg" id="phone-field-wrap-2" style="display:none">
+          <div class="dupr-label" style="margin-bottom:6px">Tu número de teléfono <span style="color:var(--red)">*</span></div>
+          <input class="phone-input" id="phone-input-2" type="tel" placeholder="Ej: +502 5555-0000" autocomplete="tel" value="${myRegs[0]?.phone || ''}"/>
+          <p style="font-size:.72rem;color:var(--muted);margin-top:4px;line-height:1.4">Medio de contacto principal.</p>
+        </div>
         <div id="pay-method-label-2" class="cat-select-label" style="display:none">Método de pago</div>
         <div class="pay-method-toggle" id="pay-method-toggle-2" style="display:none">
           <button class="pay-method-btn active" id="btn-pm-paypal-2" type="button"><span class="pm-icon">💳</span>Tarjeta / PayPal</button>
@@ -1668,10 +1677,6 @@ function appendSegundaCategoria(container, user, myRegs, inscritos) {
               <div class="bank-row">🏦 <strong>${BANK_INFO.banco}</strong> · ${BANK_INFO.tipo}</div>
               <div class="bank-row">No. <strong>${BANK_INFO.numero}</strong></div>
               <div class="bank-row">A nombre de: <strong>${BANK_INFO.nombre}</strong></div>
-            </div>
-            <div class="field-group-reg">
-              <div class="dupr-label" style="margin-bottom:6px">Tu número de teléfono</div>
-              <input class="phone-input" id="phone-input-2" type="tel" placeholder="Ej: +502 5555-0000"/>
             </div>
             <div>
               <div class="dupr-label" style="margin-bottom:6px">Boleta de pago <span style="color:var(--red)">*</span></div>
@@ -1727,6 +1732,7 @@ function appendSegundaCategoria(container, user, myRegs, inscritos) {
       const file2   = document.getElementById('boleta-file-2')?.files[0];
       const errEl2  = document.getElementById('reg-form-error-2');
       if (!cat2)  { errEl2.textContent = '✕ Selecciona una categoría.'; errEl2.style.display = 'block'; return; }
+      if (!phone2 || phone2.length < 8) { errEl2.textContent = '✕ Ingresa tu número de teléfono.'; errEl2.style.display = 'block'; return; }
       if (!file2) { errEl2.textContent = '✕ Adjunta tu boleta de pago.'; errEl2.style.display = 'block'; return; }
       errEl2.style.display = 'none';
       let boletaDocId = null;
@@ -1748,6 +1754,7 @@ function appendSegundaCategoria(container, user, myRegs, inscritos) {
       const cat2 = e.target.value;
       const duprError2 = document.getElementById('dupr2-cat-error');
       const hideAll2 = () => {
+        document.getElementById('phone-field-wrap-2').style.display = 'none';
         document.getElementById('pay-method-label-2').style.display = 'none';
         document.getElementById('pay-method-toggle-2').style.display = 'none';
         document.getElementById('paypal-section-2').style.display = 'none';
@@ -1776,6 +1783,7 @@ function appendSegundaCategoria(container, user, myRegs, inscritos) {
       }
       duprError2.style.display = 'none';
       const full2 = isFullForNew(inscritos, cat2);
+      document.getElementById('phone-field-wrap-2').style.display  = full2 ? 'none' : 'block';
       document.getElementById('pay-method-label-2').style.display  = full2 ? 'none' : 'block';
       document.getElementById('pay-method-toggle-2').style.display = full2 ? 'none' : 'grid';
       document.getElementById('paypal-section-2').style.display    = full2 ? 'none' : 'block';
@@ -1793,12 +1801,24 @@ function mountPayPalButtons2(user, cat2, duprId, nombre) {
   container2.innerHTML = '';
   paypal.Buttons({
     style: { layout:'vertical', color:'black', shape:'rect', label:'pay', height:44 },
-    createOrder: (data, actions) => actions.order.create({ purchase_units:[{ amount:{ value: SESSION_PRICE, currency_code:'USD' }, description:`Ladder League S${NUM} · ${cat2}` }] }),
+    createOrder: (data, actions) => {
+      const phone2 = (document.getElementById('phone-input-2')?.value || '').trim();
+      const errEl2 = document.getElementById('reg-form-error-2');
+      if (!phone2 || phone2.length < 8) {
+        errEl2.textContent = '✕ Ingresa tu número de teléfono antes de pagar.';
+        errEl2.style.display = 'block';
+        return Promise.reject(new Error('Teléfono requerido'));
+      }
+      errEl2.style.display = 'none';
+      return actions.order.create({ purchase_units:[{ amount:{ value: SESSION_PRICE, currency_code:'USD' }, description:`Ladder League S${NUM} · ${cat2}` }] });
+    },
     onApprove: async (data, actions) => {
-      const order = await actions.order.capture();
-      await saveRegistration(user, duprId, cat2, order.id, 'confirmed', { nombre });
+      const phone2 = (document.getElementById('phone-input-2')?.value || '').trim();
+      const order  = await actions.order.capture();
+      await saveRegistration(user, duprId, cat2, order.id, 'confirmed', { nombre, phone: phone2 });
     },
     onError: err => {
+      if (err.message?.includes('requerido')) return;
       const errEl2 = document.getElementById('reg-form-error-2');
       if (errEl2) { errEl2.textContent = '✕ Error en el pago. Intenta de nuevo.'; errEl2.style.display = 'block'; }
     }
@@ -1870,6 +1890,11 @@ function renderYaInscrito(container, user, reg, inscritos) {
     accionHTML = `
       <div style="border-top:1px solid var(--border);padding-top:14px;margin-top:4px">
         ${slotHoraLimite ? `<div style="background:#fef3c7;border:1px solid #f59e0b;padding:9px 12px;font-size:.8rem;color:#92400e;font-weight:600;margin-bottom:12px">⏰ Tienes hasta las ${slotHoraLimite} para completar tu pago — el primero en pagar se queda con el cupo.</div>` : ''}
+        <div class="field-group-reg">
+          <div class="dupr-label" style="margin-bottom:6px">Tu número de teléfono <span style="color:var(--red)">*</span></div>
+          <input class="phone-input" id="slot-phone-input" type="tel"
+            placeholder="Ej: +502 5555-0000" autocomplete="tel" value="${reg.phone||''}"/>
+        </div>
         <div class="cat-select-label" id="slot-pay-method-label">Método de pago</div>
         <div class="pay-method-toggle" id="slot-pay-method-toggle">
           <button class="pay-method-btn active" id="btn-slot-pm-paypal" type="button">
@@ -1898,11 +1923,6 @@ function renderYaInscrito(container, user, reg, inscritos) {
               <div class="bank-row">🏦 <strong>${BANK_INFO.banco}</strong> · ${BANK_INFO.tipo}</div>
               <div class="bank-row">No. <strong>${BANK_INFO.numero}</strong></div>
               <div class="bank-row">A nombre de: <strong>${BANK_INFO.nombre}</strong></div>
-            </div>
-            <div class="field-group-reg">
-              <div class="dupr-label" style="margin-bottom:6px">Tu número de teléfono</div>
-              <input class="phone-input" id="slot-phone-input" type="tel"
-                placeholder="Ej: +502 5555-0000" autocomplete="tel" value="${reg.phone||''}"/>
             </div>
             <div>
               <div class="dupr-label" style="margin-bottom:6px">Boleta de pago <span style="color:var(--red)">*</span></div>
@@ -1941,6 +1961,11 @@ function renderYaInscrito(container, user, reg, inscritos) {
 
         <div id="move-pay-wrap" style="display:none;margin-top:10px">
           <div class="cat-select-label">🎉 ¡Hay cupo disponible! Método de pago para tomarlo</div>
+          <div class="field-group-reg">
+            <div class="dupr-label" style="margin-bottom:6px">Tu número de teléfono <span style="color:var(--red)">*</span></div>
+            <input class="phone-input" id="move-phone-input" type="tel"
+              placeholder="Ej: +502 5555-0000" autocomplete="tel" value="${reg.phone||''}"/>
+          </div>
           <div class="pay-method-toggle" id="move-pm-toggle">
             <button class="pay-method-btn active" id="btn-move-pm-paypal" type="button"><span class="pm-icon">💳</span>Tarjeta / PayPal</button>
             <button class="pay-method-btn" id="btn-move-pm-transfer" type="button"><span class="pm-icon">🏦</span>Transferencia</button>
@@ -1955,11 +1980,6 @@ function renderYaInscrito(container, user, reg, inscritos) {
                 <div class="bank-row">🏦 <strong>${BANK_INFO.banco}</strong> · ${BANK_INFO.tipo}</div>
                 <div class="bank-row">No. <strong>${BANK_INFO.numero}</strong></div>
                 <div class="bank-row">A nombre de: <strong>${BANK_INFO.nombre}</strong></div>
-              </div>
-              <div class="field-group-reg">
-                <div class="dupr-label" style="margin-bottom:6px">Tu número de teléfono</div>
-                <input class="phone-input" id="move-phone-input" type="tel"
-                  placeholder="Ej: +502 5555-0000" autocomplete="tel" value="${reg.phone||''}"/>
               </div>
               <div>
                 <div class="dupr-label" style="margin-bottom:6px">Boleta de pago <span style="color:var(--red)">*</span></div>
@@ -2174,9 +2194,16 @@ function mountPayPalButtons(user) {
         errEl.style.display = 'block';
         return Promise.reject(new Error('Categoría llena'));
       }
+      const phone = (document.getElementById('phone-input')?.value || '').trim();
+      if (!phone || phone.length < 8) {
+        errEl.textContent = '✕ Ingresa tu número de teléfono antes de pagar.';
+        errEl.style.display = 'block';
+        return Promise.reject(new Error('Teléfono requerido'));
+      }
 
       _pendingDuprId    = duprId;
       _pendingCategoria = cat;
+      _pendingPhone     = phone;
       errEl.style.display = 'none';
 
       const catLabel = CATEGORIAS.find(c=>c.id===cat)?.label || cat;
@@ -2210,7 +2237,7 @@ function mountPayPalButtons(user) {
       }
 
       try {
-        await saveRegistration(user, _pendingDuprId, _pendingCategoria, order.id, 'confirmed');
+        await saveRegistration(user, _pendingDuprId, _pendingCategoria, order.id, 'confirmed', { phone: _pendingPhone });
         const container = document.getElementById('reg-container');
         const catLabel  = CATEGORIAS.find(c=>c.id===_pendingCategoria)?.label || _pendingCategoria;
         if (container) container.innerHTML = `
@@ -2249,6 +2276,14 @@ function mountPayPalButtonsSlot(user, reg) {
     style: { layout:'vertical', color:'black', shape:'rect', label:'pay', height:44 },
 
     createOrder: (data, actions) => {
+      const phone = (document.getElementById('slot-phone-input')?.value || '').trim();
+      const errEl = document.getElementById('slot-form-error');
+      if (!phone || phone.length < 8) {
+        errEl.textContent = '✕ Ingresa tu número de teléfono antes de pagar.';
+        errEl.style.display = 'block';
+        return Promise.reject(new Error('Teléfono requerido'));
+      }
+      errEl.style.display = 'none';
       const catLabel = { principiante:'Principiante', intermedio:'Intermedio', open:'Open' }[reg.categoria] || reg.categoria;
       return actions.order.create({
         purchase_units: [{
@@ -2259,6 +2294,7 @@ function mountPayPalButtonsSlot(user, reg) {
     },
 
     onApprove: async (data, actions) => {
+      const phone = (document.getElementById('slot-phone-input')?.value || '').trim();
       let order;
       try {
         order = await actions.order.capture();
@@ -2289,7 +2325,9 @@ function mountPayPalButtonsSlot(user, reg) {
           paid:          true,
           paypalOrderId: order.id,
           paidUSD:       SESSION_PRICE,
+          ...(phone ? { phone } : {}),
         });
+        if (phone) db.collection('users').doc(user.uid).set({ phone }, { merge: true }).catch(() => {});
 
         db.collection('ladder_payments').add({
           uid: user.uid, nombre: reg.nombre, email: user.email||'',
@@ -2325,6 +2363,7 @@ function mountPayPalButtonsSlot(user, reg) {
     },
 
     onError: (err) => {
+      if (err.message?.includes('requerido')) return;
       const c = document.getElementById('paypal-button-container-slot');
       if (c) c.innerHTML = `<div class="reg-msg error">✕ Error con PayPal. Intenta de nuevo.</div>`;
     },
@@ -2590,6 +2629,14 @@ function mountPayPalButtonsMove(user, reg, targetNum) {
     style: { layout:'vertical', color:'black', shape:'rect', label:'pay', height:44 },
 
     createOrder: (data, actions) => {
+      const phone = (document.getElementById('move-phone-input')?.value || '').trim();
+      const errEl = document.getElementById('move-form-error');
+      if (!phone || phone.length < 8) {
+        errEl.textContent = '✕ Ingresa tu número de teléfono antes de pagar.';
+        errEl.style.display = 'block';
+        return Promise.reject(new Error('Teléfono requerido'));
+      }
+      errEl.style.display = 'none';
       const catLabel = { principiante:'Principiante', intermedio:'Intermedio', open:'Open' }[reg.categoria] || reg.categoria;
       return actions.order.create({
         purchase_units: [{
@@ -2600,6 +2647,7 @@ function mountPayPalButtonsMove(user, reg, targetNum) {
     },
 
     onApprove: async (data, actions) => {
+      const phone = (document.getElementById('move-phone-input')?.value || '').trim();
       let order;
       try {
         order = await actions.order.capture();
@@ -2635,11 +2683,13 @@ function mountPayPalButtonsMove(user, reg, targetNum) {
           paidUSD:       SESSION_PRICE,
           movedFrom:     NUM,
           movedAt:       firebase.firestore.Timestamp.now(),
+          ...(phone ? { phone } : {}),
         };
         await dstRef.set({
           sesionNum: targetNum,
           inscritos: firebase.firestore.FieldValue.arrayUnion(entry),
         }, { merge: true });
+        if (phone) db.collection('users').doc(user.uid).set({ phone }, { merge: true }).catch(() => {});
 
         db.collection('ladder_payments').add({
           uid: user.uid, nombre: reg.nombre, email: user.email||'',
@@ -2678,6 +2728,7 @@ function mountPayPalButtonsMove(user, reg, targetNum) {
     },
 
     onError: (err) => {
+      if (err.message?.includes('requerido')) return;
       const c = document.getElementById('paypal-button-container-move');
       if (c) c.innerHTML = `<div class="reg-msg error">✕ Error con PayPal. Intenta de nuevo.</div>`;
     },
@@ -2797,10 +2848,11 @@ async function saveRegistration(user, duprId, categoria, paypalOrderId, status, 
   const nombre = nombreInput || user.displayName || user.email.split('@')[0];
   const docRef = db.collection(COLLECTION).doc(DOC_ID);
 
-  // Guardar DUPR ID (y nombre si lo editó) en perfil
+  // Guardar DUPR ID (y nombre si lo editó, y teléfono si vino en este registro) en perfil
   db.collection('users').doc(user.uid).set({
     duprId,
     ...(nombreInput && nombreInput !== user.displayName ? { displayName: nombreInput } : {}),
+    ...(extra.phone ? { phone: extra.phone } : {}),
   }, { merge: true }).catch(() => {});
 
   // Guardia contra condición de carrera: re-verificar al momento de guardar
