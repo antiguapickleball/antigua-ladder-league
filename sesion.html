@@ -856,6 +856,20 @@ async function loadUserDuprId(uid) {
   return (p && p.duprId) || '';
 }
 
+// ── ¿El jugador ya jugó (con partidos reales) esta categoría en una sesión anterior? ──
+// Si sí, queda exento del límite de DUPR para esa categoría (su rating pudo subir después).
+async function yaJugoCategoria(duprId, categoria) {
+  if (!duprId) return false;
+  try {
+    const doc = await db.collection('ladder_scores').doc(duprId).get();
+    if (!doc.exists) return false;
+    const sessions = doc.data().sessions || {};
+    return Object.values(sessions).some(s => s.categoria === categoria && s.pj > 0);
+  } catch (_) {
+    return false; // si falla la consulta, no eximimos — se aplica el límite normal
+  }
+}
+
 // ══════════════════════════════════════════════════════
 //  LÓGICA DE TIEMPO PARA CANCELACIONES
 // ══════════════════════════════════════════════════════
@@ -1513,7 +1527,7 @@ function renderRegContainer(user, inscritos) {
         const res  = await fetch(`https://ap-dupr-api.netlify.app/.netlify/functions/dupr?id=${encodeURIComponent(duprId)}`);
         const data = await res.json();
         const rating = data.doubles ?? data.doublesVerified ?? null;
-        if (rating !== null && rating !== 'NR' && parseFloat(rating) > limite) {
+        if (rating !== null && rating !== 'NR' && parseFloat(rating) > limite && !(await yaJugoCategoria(duprId, _pendingCategoria))) {
           duprError.style.background = '#fef2f2';
           duprError.style.borderColor = '#fca5a5';
           duprError.style.color = '#991b1b';
@@ -1753,7 +1767,7 @@ function appendSegundaCategoria(container, user, myRegs, inscritos) {
           const res  = await fetch(`https://ap-dupr-api.netlify.app/.netlify/functions/dupr?id=${encodeURIComponent(duprId)}`);
           const data = await res.json();
           const rating = data.doubles ?? data.doublesVerified ?? null;
-          if (rating !== null && rating !== 'NR' && parseFloat(rating) > limite) {
+          if (rating !== null && rating !== 'NR' && parseFloat(rating) > limite && !(await yaJugoCategoria(duprId, cat2))) {
             duprError2.style.background = '#fef2f2'; duprError2.style.borderColor = '#fca5a5'; duprError2.style.color = '#991b1b';
             duprError2.textContent = `⛔ Tu rating DUPR de dobles (${rating}) supera el límite (máx ${limite}).`;
             return;
