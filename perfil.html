@@ -354,6 +354,34 @@
     .session-badge.cancelada { color: var(--muted); border-color: var(--border); background: #f5f5f3; text-decoration: line-through; }
     .session-badge.gran-final{ color: #7c3aed; border-color: #a78bfa; background: #f5f3ff; }
 
+    /* ── DETALLE DE PARTIDOS (dentro de Mis Sesiones) ── */
+    .match-detail-panel {
+      display: none;
+      padding: 14px 22px 18px;
+      background: var(--light);
+      border-bottom: 1px solid var(--border);
+    }
+    .match-detail-panel.open { display: block; }
+    .match-detail-meta {
+      display: flex; gap: 18px; flex-wrap: wrap;
+      font-size: .78rem; color: var(--muted); margin-bottom: 12px;
+    }
+    .match-detail-meta b { color: var(--dark); }
+    .match-row-detail {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 8px 0; border-bottom: 1px dashed var(--border);
+      font-size: .82rem; gap: 10px; flex-wrap: wrap;
+    }
+    .match-row-detail:last-child { border-bottom: none; }
+    .match-vs { color: var(--muted); font-size: .74rem; }
+    .match-result {
+      font-family: 'Space Mono', monospace; font-weight: 800; font-size: .74rem;
+      padding: 3px 9px; white-space: nowrap;
+    }
+    .match-result.win     { color: var(--court); background: var(--court-light); }
+    .match-result.loss    { color: var(--red); background: var(--red-light); }
+    .match-result.pending { color: var(--muted); background: #eee; }
+
     /* ── PROXIMAS SESIONES ── */
     .upcoming-label {
       font-family: 'Space Mono', monospace;
@@ -848,6 +876,9 @@ let _duprId = '';          // DUPR ID del jugador
 let _myRegs = [];          // [{ sesionNum, status, categoria, duprId }]
 let _scoresDocs = [];      // docs de ladder_scores
 let _scoresReady = false;
+let _fixtureData  = {};    // "{sesionNum}_{categoria}" -> doc de ladder_fixtures (undefined=cargando, null=no existe)
+let _fixtureUnsub = {};    // "{sesionNum}_{categoria}" -> función para cancelar el listener
+let _expandedKey  = null;  // jornada actualmente abierta en "Mis Sesiones"
 
 // Esperar a que la sesión anónima esté lista (para que las lecturas pasen las reglas)
 function whenAuthed() {
@@ -940,7 +971,10 @@ const STATUS_LABELS = { confirmed:'Inscrito', waitlist:'Lista de espera', pendin
 function renderUpcoming() {
   const grid = document.getElementById('upcoming-grid');
   const regMap = {}; _myRegs.forEach(r => regMap[r.sesionNum] = r);
-  const upcoming = SEMANAS.slice(0, 3);
+  // Solo jornadas que de verdad faltan por jugar — las jugadas/canceladas no
+  // deben aparecer aquí como "próximas" (antes se mostraba Semana 1 como
+  // "Inscrito" aunque ya se hubiera jugado).
+  const upcoming = SEMANAS.filter(s => s.estado !== 'jugada' && s.estado !== 'cancelada').slice(0, 3);
   grid.innerHTML = upcoming.map(s => {
     const r = regMap[s.num];
     const label = r ? (STATUS_LABELS[r.status] || r.status) : 'Sin inscribir';
@@ -970,16 +1004,139 @@ function renderSessionsTab(me) {
     const played = score !== undefined;
     const label = played ? 'Jugada' : (r ? (STATUS_LABELS[r.status] || r.status) : 'Sin inscribir');
     const cls   = played ? 'jugada' : (r && r.status === 'confirmed' ? 'proxima' : 'pendiente');
-    return `<div class="session-row" style="cursor:pointer">
-      <a href="sesion.html?n=${s.num}" style="text-decoration:none;color:inherit;display:contents">
+    const cat   = r ? r.categoria : null;
+
+    const rowInner = `
       <span class="session-num">Sem. ${s.num}</span>
       <span class="session-fecha">${s.fecha}</span>
       <span class="session-pts-gan ${played?'has-pts':''}">${played ? score.toFixed(2) : '—'}</span>
       <span class="session-pts-pos">${r ? (CAT_LABELS[r.categoria] || '—') : '—'}</span>
-      <span class="session-badge ${cls}">${label}</span>
-      </a>
+      <span class="session-badge ${cls}">${label}</span>`;
+
+    // Jugada + con categoría conocida → clic para ver el detalle partido a partido.
+    // Si no, el clic manda a sesion.html (inscribirse / ver la sesión próxima).
+    if (played && cat) {
+      return `<div class="session-row" style="cursor:pointer" onclick="toggleSessionDetail(${s.num}, '${cat}')">${rowInner}</div>
+        <div class="match-detail-panel" id="detail-${s.num}"></div>`;
+    }
+    return `<div class="session-row" style="cursor:pointer">
+      <a href="sesion.html?n=${s.num}" style="text-decoration:none;color:inherit;display:contents">${rowInner}</a>
     </div>`;
   }).join('');
+}
+
+// ── Detalle de partidos por jornada (clic en una sesión jugada = filtro) ──
+function toggleSessionDetail(sesionNum, categoria) {
+  const key   = `${sesionNum}_${categoria}`;
+  const panel = document.getElementById(`detail-${sesionNum}`);
+  if (!panel) return;
+
+  if (_expandedKey === key) {
+    _expandedKey = null;
+    panel.classList.remove('open');
+    return;
+  }
+  document.querySelectorAll('.match-detail-panel.open').forEach(p => p.classList.remove('open'));
+  _expandedKey = key;
+  panel.classList.add('open');
+  ensureFixtureListener(sesionNum, categoria);
+  renderMatchDetail(sesionNum, categoria);
+}
+
+// Escucha en tiempo real el fixture de esa jornada+categoría (se actualiza solo
+// mientras el admin va cargando resultados, y también después de publicar).
+function ensureFixtureListener(sesionNum, categoria) {
+  const key = `${sesionNum}_${categoria}`;
+  if (_fixtureUnsub[key]) return; // ya hay un listener activo
+  const docId = `t1_sesion_${sesionNum}_${categoria}`;
+  _fixtureUnsub[key] = db.collection('ladder_fixtures').doc(docId).onSnapshot(snap => {
+    _fixtureData[key] = snap.exists ? snap.data() : null;
+    if (_expandedKey === key) renderMatchDetail(sesionNum, categoria);
+  }, () => {
+    _fixtureData[key] = null;
+    if (_expandedKey === key) renderMatchDetail(sesionNum, categoria);
+  });
+}
+
+// Extrae solo los partidos donde jugó este jugador, de todas las rondas del fixture.
+function extractMyMatches(fx, uid) {
+  const pn = fx.playerNames || {};
+  const out = [];
+  (fx.rounds || []).forEach(round => {
+    const grupos = fx.format === '2courts'
+      ? [{ lista: round.matchesA || [], cancha: 'A' }, { lista: round.matchesB || [], cancha: 'B' }]
+      : [{ lista: round.matches || [], cancha: null }];
+    grupos.forEach(({ lista, cancha }) => {
+      lista.forEach(m => {
+        const soyPar1 = (m.pair1 || []).includes(uid);
+        const soyPar2 = (m.pair2 || []).includes(uid);
+        if (!soyPar1 && !soyPar2) return;
+        const parejaUid = soyPar1 ? (m.pair1 || []).find(u => u !== uid) : (m.pair2 || []).find(u => u !== uid);
+        const rivalesUids = soyPar1 ? (m.pair2 || []) : (m.pair1 || []);
+        const miScore = m.score ? (soyPar1 ? m.score.s1 : m.score.s2) : null;
+        const suScore = m.score ? (soyPar1 ? m.score.s2 : m.score.s1) : null;
+        out.push({
+          ronda: round.num,
+          cancha,
+          pareja: parejaUid ? (pn[parejaUid] || parejaUid) : null,
+          rivales: rivalesUids.map(u => pn[u] || u),
+          miScore, suScore,
+          jugado: m.score != null,
+          gano: m.score != null ? miScore > suScore : null,
+        });
+      });
+    });
+  });
+  return out.sort((a,b) => a.ronda - b.ronda);
+}
+
+function renderMatchDetail(sesionNum, categoria) {
+  const key   = `${sesionNum}_${categoria}`;
+  const panel = document.getElementById(`detail-${sesionNum}`);
+  if (!panel) return;
+
+  const fx = _fixtureData[key];
+  if (fx === undefined) {
+    panel.innerHTML = `<div style="padding:6px 0;color:var(--muted);font-size:.82rem">Cargando partidos…</div>`;
+    return;
+  }
+  if (fx === null) {
+    panel.innerHTML = `<div style="padding:6px 0;color:var(--muted);font-size:.82rem">Aún no hay partidos cargados para esta jornada.</div>`;
+    return;
+  }
+
+  const partidos = extractMyMatches(fx, _user.uid);
+  if (!partidos.length) {
+    panel.innerHTML = `<div style="padding:6px 0;color:var(--muted);font-size:.82rem">No se encontraron partidos tuyos en esta jornada.</div>`;
+    return;
+  }
+
+  const canchas   = [...new Set(partidos.map(p => p.cancha).filter(Boolean))];
+  const jugados   = partidos.filter(p => p.jugado);
+  const ganados   = jugados.filter(p => p.gano).length;
+
+  const meta = `<div class="match-detail-meta">
+    ${canchas.length ? `<span>Cancha: <b>${canchas.join(' → ')}</b></span>` : ''}
+    <span>Partidos jugados: <b>${jugados.length}</b></span>
+    <span>Ganados: <b>${ganados}</b></span>
+    <span>Perdidos: <b>${jugados.length - ganados}</b></span>
+  </div>`;
+
+  const filas = partidos.map(p => {
+    const parejaTxt  = p.pareja ? ` + ${p.pareja}` : '';
+    const rivalesTxt = p.rivales.join(' + ');
+    const resultado  = !p.jugado
+      ? `<span class="match-result pending">Pendiente</span>`
+      : p.gano
+        ? `<span class="match-result win">Ganó ${p.miScore}–${p.suScore}</span>`
+        : `<span class="match-result loss">Perdió ${p.miScore}–${p.suScore}</span>`;
+    return `<div class="match-row-detail">
+      <span>Ronda ${p.ronda}${p.cancha ? ' · Cancha ' + p.cancha : ''} — Tú${parejaTxt} <span class="match-vs">vs</span> ${rivalesTxt}</span>
+      ${resultado}
+    </div>`;
+  }).join('');
+
+  panel.innerHTML = meta + filas;
 }
 
 function renderRankingTab(rows, catLabel) {
