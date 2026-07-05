@@ -2908,7 +2908,10 @@ async function exportDuprCsv() {
     if (!proceed) return;
   }
 
-  const csv = [DUPR_CSV_HEADER.join(',')].concat(rows.map(r => r.map(duprCsvEscape).join(','))).join('\r\n');
+  // LF simple (no CRLF): el importador de DUPR no limpia el '\r' y termina
+  // leyendo la última columna del header como "scoreType\r", lo que dispara
+  // "Missing required columns: scoreType" aunque la columna sí exista.
+  const csv = [DUPR_CSV_HEADER.join(',')].concat(rows.map(r => r.map(duprCsvEscape).join(','))).join('\n');
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');

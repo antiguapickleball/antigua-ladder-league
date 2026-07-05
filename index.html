@@ -616,6 +616,15 @@
     .cal-h-cat.p { background:#d1fae5; color:#065f46; }
     .cal-h-cat.i { background:#dbeafe; color:#1e40af; }
     .cal-h-cat.o { background:#ede9fe; color:#5b21b6; }
+    .cal-divider {
+      grid-column: 1 / -1;
+      display: flex; align-items: center; gap: 12px;
+      margin: 8px 0 -2px;
+      font-family: 'Space Mono', monospace;
+      font-size: .68rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase;
+      color: var(--muted);
+    }
+    .cal-divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
 
     /* ════════════════════════════════════════════
        REGLAMENTO
@@ -1128,8 +1137,8 @@
         </div>
         <div class="feature-card-body">
           <div class="feature-card-tag">Próxima sesión</div>
-          <h3>18 de Julio</h3>
-          <p>Jornada 1 ya se jugó — la Sesión 2 es la próxima. Club Quattro, sábados desde las 8:00am.</p>
+          <h3 id="next-session-fecha">—</h3>
+          <p id="next-session-desc">Club Quattro, sábados desde las 8:00am.</p>
           <span class="feature-card-cta">Ver calendario</span>
         </div>
       </a>
@@ -1756,7 +1765,7 @@ function renderStaticStandings(cat) {
 
 function renderCalendar() {
   const labels = { jugada:'Jugada', proxima:'Próxima', cancelada:'Cancelada', pendiente:'Pendiente' };
-  document.getElementById('calendar-grid').innerHTML = SEMANAS.map(s => {
+  const renderCard = (s) => {
     const clickable = s.estado !== 'cancelada';
     const horarios = clickable ? `
       <div class="cal-horarios">
@@ -1778,7 +1787,39 @@ function renderCalendar() {
     return clickable
       ? `<a href="sesion.html?n=${s.num}" class="cal-card ${s.estado}" style="text-decoration:none;color:inherit">${inner}</a>`
       : `<div class="cal-card ${s.estado}">${inner}</div>`;
-  }).join('');
+  };
+
+  // Próximas/pendientes primero; las ya jugadas bajan al final bajo su propio rótulo.
+  const proximas = SEMANAS.filter(s => s.estado !== 'jugada');
+  const jugadas  = SEMANAS.filter(s => s.estado === 'jugada');
+  let html = proximas.map(renderCard).join('');
+  if (jugadas.length) {
+    html += `<div class="cal-divider">Ya jugadas</div>` + jugadas.map(renderCard).join('');
+  }
+  document.getElementById('calendar-grid').innerHTML = html;
+}
+
+// Próxima jornada por jugarse (primera que no esté jugada ni cancelada, en orden de número).
+function getProximaSesion() {
+  return SEMANAS
+    .filter(s => s.estado !== 'jugada' && s.estado !== 'cancelada')
+    .sort((a, b) => a.num - b.num)[0] || null;
+}
+
+// Tarjeta "Próxima sesión" del main — se recalcula sola cada vez que una
+// jornada se marca como jugada, sin tocar el HTML.
+function renderNextSessionCard() {
+  const fechaEl = document.getElementById('next-session-fecha');
+  const descEl  = document.getElementById('next-session-desc');
+  if (!fechaEl || !descEl) return;
+  const s = getProximaSesion();
+  if (!s) {
+    fechaEl.textContent = 'Por definir';
+    descEl.textContent  = 'Temporada 1 en curso — pronto anunciamos la próxima fecha.';
+    return;
+  }
+  fechaEl.textContent = s.fecha;
+  descEl.textContent  = `Sesión ${s.num} de la Temporada 1. Club Quattro, sábados desde las 8:00am.`;
 }
 
 async function loadCalendarCupos() {
@@ -1816,6 +1857,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
   renderCalendar();
+  renderNextSessionCard();
 
   document.querySelectorAll('.s-tab').forEach(btn => {
     btn.addEventListener('click', () => {
