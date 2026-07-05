@@ -877,8 +877,10 @@ function catRows(scoreDocs, cat) {
       return { duprId:(p.duprId||'').trim(), nombre:p.nombre, catSessions:cs, avg, n, compitiendo:n>=3 };
     })
     .sort((a,b) => b.avg - a.avg);
-  let pos = 0;
-  rows.forEach(r => { if (r.compitiendo) { pos++; r.pos = pos; } });
+  // Posición actual en la tabla para TODOS (no solo los ya "rankeados" con 3+
+  // sesiones) — así el jugador ve dónde está parado desde su primera sesión,
+  // aunque su posición todavía sea provisional hasta llegar a 3 jugadas.
+  rows.forEach((r, i) => { r.pos = i + 1; });
   return rows;
 }
 
@@ -970,17 +972,18 @@ function renderAll() {
 
   const sesionesJugadas = me ? me.catSessions.length : 0;
   const avg = me ? me.avg : null;
-  const pos = me && me.pos ? me.pos : '—';
-  const totalCompit = rows.filter(r => r.compitiendo).length;
+  // Posición actual en la tabla (provisional si aún no llega a 3 sesiones) —
+  // ya no se oculta con "—" solo por no estar oficialmente rankeado todavía.
+  const pos = me ? me.pos : '—';
 
-  document.getElementById('stat-pos').textContent      = pos;
-  // Si aún no compite (menos de 3 sesiones jugadas), explicar por qué no hay
-  // posición en vez de solo mostrar "de N en Categoría" sin contexto.
+  document.getElementById('stat-pos').textContent = pos;
   document.getElementById('stat-pos-sub').textContent = !cat
     ? 'aún sin categoría'
-    : (me && !me.compitiendo)
-      ? `faltan ${3 - me.n} sesión${(3-me.n)>1?'es':''} para rankear`
-      : `de ${totalCompit || rows.length || 0} en ${catLabel}`;
+    : !me
+      ? 'aún sin partidos'
+      : me.compitiendo
+        ? `Rankeado · de ${rows.length} en ${catLabel}`
+        : `Faltan ${3 - me.n} sesión${(3-me.n)>1?'es':''} para rankear`;
   document.getElementById('stat-sesiones').textContent = sesionesJugadas;
   document.getElementById('stat-sesiones-sub').textContent = 'de 8 sesiones';
   document.getElementById('stat-ptos').textContent     = (me && avg !== null) ? avg.toFixed(2) : '—';
