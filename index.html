@@ -364,9 +364,12 @@
     }
     .feature-card-img img {
       width: 100%; height: 100%; object-fit: cover;
+      object-position: center center;
       transition: transform .4s;
     }
     .feature-card:hover .feature-card-img img { transform: scale(1.04); }
+    /* card-ranking.jpg: foto vertical de cuerpo completo — mostrar la cara, no el torso */
+    .fc-img-1 img { object-position: center 10%; }
 
     /* Fallback sport-color backgrounds when no image */
     .fc-img-1 { background: linear-gradient(135deg, #1a3a20 0%, #2d6a3f 100%); }
@@ -1125,8 +1128,8 @@
         </div>
         <div class="feature-card-body">
           <div class="feature-card-tag">Próxima sesión</div>
-          <h3>4 de Julio</h3>
-          <p>Primera sesión de la Temporada 1. Club Quattro, sábados desde las 8:00am.</p>
+          <h3>18 de Julio</h3>
+          <p>Jornada 1 ya se jugó — la Sesión 2 es la próxima. Club Quattro, sábados desde las 8:00am.</p>
           <span class="feature-card-cta">Ver calendario</span>
         </div>
       </a>
