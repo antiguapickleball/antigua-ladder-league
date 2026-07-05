@@ -439,8 +439,10 @@
           <button onclick="confirmPublishSession()" style="font-family:'Barlow Condensed',sans-serif;font-size:.78rem;font-weight:900;text-transform:uppercase;letter-spacing:.06em;padding:7px 14px;background:#065f46;color:#fff;border:none;cursor:pointer">📤 Publicar</button>
           <button onclick="openDeletePublishedSession()" style="font-family:'Barlow Condensed',sans-serif;font-size:.78rem;font-weight:900;text-transform:uppercase;letter-spacing:.06em;padding:7px 14px;background:#fef2f2;color:#991b1b;border:1.5px solid #fca5a5;cursor:pointer">🗑 Borrar del ranking</button>
           <button onclick="markSessionJugada()" style="font-family:'Barlow Condensed',sans-serif;font-size:.78rem;font-weight:900;text-transform:uppercase;letter-spacing:.06em;padding:7px 14px;background:#1d4ed8;color:#fff;border:none;cursor:pointer">✅ Marcar como Jugada</button>
+          <button onclick="exportDuprCsv()" style="font-family:'Barlow Condensed',sans-serif;font-size:.78rem;font-weight:900;text-transform:uppercase;letter-spacing:.06em;padding:7px 14px;background:#fff;color:#7c3aed;border:1.5px solid #c4b5fd;cursor:pointer">⬇ Exportar CSV DUPR</button>
         </div>
         <div id="publish-status" style="margin-top:8px;font-size:.78rem;color:var(--muted)"></div>
+        <div style="margin-top:2px;font-size:.72rem;color:var(--muted)">El CSV usa la jornada elegida arriba (— jornada —) · exporta las 3 categorías que tengan partidos con resultado, listo para subir a DUPR.</div>
       </div>
     </div>
 
@@ -944,7 +946,7 @@
 ══════════════════════════════════════════════════════ */
 // Sesiones — se carga desde Firestore (ladder_config/t1_semanas), fallback hardcodeado
 let SEMANAS = [
-  { num: 1, fecha: '4 Jul',  dia: 'Sábado', estado: 'proxima'   },
+  { num: 1, fecha: '4 Jul',  dia: 'Sábado', estado: 'jugada'    },
   { num: 2, fecha: '18 Jul', dia: 'Sábado', estado: 'pendiente' },
   { num: 3, fecha: '25 Jul', dia: 'Sábado', estado: 'pendiente' },
   { num: 4, fecha: '1 Ago',  dia: 'Sábado', estado: 'pendiente' },
@@ -2823,6 +2825,100 @@ async function checkAndSuggestJugada(sesionNum, statusEl) {
         <button onclick="markSessionJugada(${sesionNum})" style="margin-left:8px;font-size:.72rem;padding:3px 10px;background:#1d4ed8;color:#fff;border:none;cursor:pointer;font-family:'Barlow Condensed',sans-serif;font-weight:800;text-transform:uppercase">✅ Marcar S${sesionNum} como Jugada</button>`;
     }
   } catch(e) { /* silently ignore */ }
+}
+
+/* ══════════════════════════════════════════════════════
+   EXPORTAR CSV DUPR — un evento por categoría, un archivo por jornada
+══════════════════════════════════════════════════════ */
+const DUPR_CSV_HEADER = ['matchType','event','date','playerA1','playerA1DuprId','playerA1ExternalId','playerA2','playerA2DuprId','playerA2ExternalId','playerB1','playerB1DuprId','playerB1ExternalId','playerB2','playerB2DuprId','playerB2ExternalId','teamAGame1','teamBGame1','teamAGame2','teamBGame2','teamAGame3','teamBGame3','teamAGame4','teamBGame4','teamAGame5','teamBGame5','location','scoreType'];
+const DUPR_LOCATION = 'Club Quattro, La Antigua Guatemala';
+const DUPR_MESES = { Ene:'01',Feb:'02',Mar:'03',Abr:'04',May:'05',Jun:'06',Jul:'07',Ago:'08',Sep:'09',Oct:'10',Nov:'11',Dic:'12' };
+const DUPR_TEMPORADA_YEAR = 2026; // Temporada 1: Jul–Ago 2026
+
+function duprCsvEscape(val) {
+  const s = (val === null || val === undefined) ? '' : String(val);
+  return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+}
+
+function duprFechaISO(fecha) {
+  const m = (fecha || '').trim().match(/^(\d{1,2})\s+([A-Za-zÁ-ú]{3})/);
+  if (!m) return '';
+  const dia = m[1].padStart(2, '0');
+  const mes = DUPR_MESES[m[2]] || '01';
+  return `${DUPR_TEMPORADA_YEAR}-${mes}-${dia}`;
+}
+
+async function exportDuprCsv() {
+  const sn = parseInt(document.getElementById('publish-session-select')?.value);
+  if (!sn) { toast('Selecciona una jornada primero', true); return; }
+  const sesion = SEMANAS.find(s => s.num === sn);
+  const fechaISO = duprFechaISO(sesion?.fecha);
+  const catLabels = { principiante:'Principiante', intermedio:'Intermedio', open:'Open' };
+
+  const rows = [];
+  const missingDupr = [];
+  let totalMatches = 0;
+
+  for (const cat of ['principiante','intermedio','open']) {
+    const docId = `t1_sesion_${sn}_${cat}`;
+    const snap = await db.collection('ladder_fixtures').doc(docId).get();
+    if (!snap.exists) continue;
+    const fx = snap.data();
+    const pn = fx.playerNames || {};
+    const pd = fx.playerDupr || {};
+    const event = `Antigua Ladder League - Sesión ${sn} - ${catLabels[cat]}`;
+
+    const allMatches = [];
+    (fx.rounds || []).forEach(r => {
+      if (fx.format === '2courts') {
+        (r.matchesA||[]).forEach(m => allMatches.push(m));
+        (r.matchesB||[]).forEach(m => allMatches.push(m));
+      } else {
+        (r.matches||[]).forEach(m => allMatches.push(m));
+      }
+    });
+
+    allMatches.forEach(m => {
+      if (!m.score) return; // partido sin jugar/registrar todavía
+      const [a1, a2] = m.pair1 || [];
+      const [b1, b2] = m.pair2 || [];
+      [a1, a2, b1, b2].forEach(uid => {
+        const nombre = pn[uid] || uid;
+        if (uid && !pd[uid] && !missingDupr.includes(nombre)) missingDupr.push(nombre);
+      });
+      const winScore = Math.max(m.score.s1, m.score.s2);
+      const scoreType = winScore <= 11 ? 'SIDEOUT' : 'RALLY';
+      rows.push([
+        'D', event, fechaISO,
+        pn[a1]||'', pd[a1]||'', '',
+        pn[a2]||'', pd[a2]||'', '',
+        pn[b1]||'', pd[b1]||'', '',
+        pn[b2]||'', pd[b2]||'', '',
+        m.score.s1, m.score.s2, '', '', '', '', '', '',
+        DUPR_LOCATION, scoreType
+      ]);
+      totalMatches++;
+    });
+  }
+
+  if (!rows.length) { toast('No hay partidos con resultado en esta jornada todavía', true); return; }
+
+  if (missingDupr.length) {
+    const proceed = confirm(`⚠️ ${missingDupr.length} jugador(es) sin DUPR ID asignado — quedarán con ese campo vacío y DUPR podría rechazar esas filas:\n\n${missingDupr.join(', ')}\n\n¿Exportar de todas formas?`);
+    if (!proceed) return;
+  }
+
+  const csv = [DUPR_CSV_HEADER.join(',')].concat(rows.map(r => r.map(duprCsvEscape).join(','))).join('\r\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `dupr_ladder_sesion${sn}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+  toast(`✓ CSV exportado · ${totalMatches} partidos`);
 }
 
 async function publishSession(sesionNum, categoria) {

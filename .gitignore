@@ -6,3 +6,8 @@
 ~$*
 .firebase/
 .claude/settings.local.json
+
+# Fotos originales sin comprimir (solo se suben las versiones optimizadas en thumbs/ y web/)
+fotos/*/*.JPG
+fotos/*/*.jpeg
+fotos/*/*.PNG

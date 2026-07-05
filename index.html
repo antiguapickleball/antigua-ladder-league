@@ -669,12 +669,12 @@
       object-position: center center;
       transition: transform .5s;
     }
-    /* Strip-1: jugador alzando el brazo — mostrar parte superior */
-    .photo-strip-item:nth-child(1) img { object-position: center 20%; }
-    /* Strip-2: backhand — mostrar el centro de la acción */
-    .photo-strip-item:nth-child(2) img { object-position: center 35%; }
-    /* Strip-3: jugador en la red — centrado */
-    .photo-strip-item:nth-child(3) img { object-position: center 30%; }
+    /* Strip-1: cancha con jugadores — mostrar parte superior/media */
+    .photo-strip-item:nth-child(1) img { object-position: center 25%; }
+    /* Strip-2: remate en el aire (foto vertical) — enfocar la acción arriba */
+    .photo-strip-item:nth-child(2) img { object-position: center 15%; }
+    /* Strip-3: papá e hijo con jersey Antigua Pickleball — centrado en rostros */
+    .photo-strip-item:nth-child(3) img { object-position: center 22%; }
     .photo-strip-item:hover img { transform: scale(1.04); }
     .photo-strip-item-overlay {
       position: absolute; inset: 0;
@@ -920,6 +920,7 @@
       <li><a href="#standings">Ranking</a></li>
       <li><a href="#calendario">Calendario</a></li>
       <li><a href="#reglamento">Reglamento</a></li>
+      <li><a href="galeria.html">Galería</a></li>
       <li><a href="https://antigua-pickleball.com">← Antigua PB</a></li>
     </ul>
     <div class="nav-actions">
@@ -936,6 +937,7 @@
     <a href="#standings">Ranking</a>
     <a href="#calendario">Calendario</a>
     <a href="#reglamento">Reglamento</a>
+    <a href="galeria.html">Galería</a>
     <a href="https://antigua-pickleball.com">← Antigua Pickleball</a>
   </div>
 </header>
@@ -1537,7 +1539,7 @@ const JUGADORES = {
 };
 
 const SEMANAS = [
-  { num: 1, fecha: '4 Jul',  estado: 'proxima'                        },
+  { num: 1, fecha: '4 Jul',  estado: 'jugada'                         },
   { num: 2, fecha: '18 Jul', estado: 'pendiente'                      },
   { num: 3, fecha: '25 Jul', estado: 'pendiente'                      },
   { num: 4, fecha: '1 Ago',  estado: 'pendiente'                      },

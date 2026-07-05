@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Galería · Antigua Ladder League</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,400;0,600;0,700;0,800;0,900;1,700;1,900&family=Barlow:wght@300;400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"/>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'Barlow', sans-serif;
+    background: #fff;
+    color: #111113;
+    -webkit-font-smoothing: antialiased;
+  }
+  :root {
+    --red:        #e4252e;
+    --red-dark:   #b81d24;
+    --red-light:  #fdecea;
+    --dark:       #111113;
+    --dark2:      #1c1c1e;
+    --text:       #1c1c1e;
+    --muted:      #6b6b74;
+    --light:      #f7f7f5;
+    --light2:     #eeeeeb;
+    --border:     #e2e2de;
+  }
+  .container { max-width: 1160px; margin: 0 auto; padding: 0 24px; }
+  .label {
+    font-family: 'Space Mono', monospace;
+    font-size: .65rem; font-weight: 700;
+    letter-spacing: .18em; text-transform: uppercase;
+    color: var(--red);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .label::before { content: ''; display: block; width: 24px; height: 3px; background: var(--red); flex-shrink: 0; }
+  .section-title {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: clamp(2rem, 4.5vw, 3.2rem);
+    font-weight: 900; letter-spacing: .01em; text-transform: uppercase;
+    color: var(--dark); line-height: 1; margin-top: 8px;
+  }
+
+  /* ════════════════════════════════════════════
+     NAV — copiado de index.html para consistencia
+  ════════════════════════════════════════════ */
+  #nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    background: rgba(255,255,255,.96);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    box-shadow: 0 1px 12px rgba(0,0,0,.07);
+  }
+  .nav-inner {
+    display: flex; align-items: center; justify-content: space-between;
+    max-width: 1160px; margin: 0 auto;
+    padding: 0 24px; height: 60px;
+  }
+  .nav-brand {
+    display: flex; align-items: center; gap: 12px;
+    text-decoration: none; flex-shrink: 0;
+  }
+  .nav-brand img { height: 28px; width: auto; }
+  .nav-brand-divider { width: 1px; height: 18px; background: var(--border); }
+  .nav-brand-name {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 1.05rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase;
+    color: var(--red);
+  }
+  .nav-links { display: none; align-items: center; gap: 0; list-style: none; }
+  @media (min-width: 860px) { .nav-links { display: flex; } }
+  .nav-links a {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: .9rem; font-weight: 600; letter-spacing: .05em; text-transform: uppercase;
+    color: var(--muted); text-decoration: none;
+    padding: 6px 14px; transition: color .2s;
+  }
+  .nav-links a:hover, .nav-links a.active { color: var(--red); }
+  .nav-actions { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+  .nav-btn {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: .88rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+    background: var(--red); color: #fff;
+    padding: 9px 22px; text-decoration: none;
+    transition: background .2s; white-space: nowrap;
+  }
+  .nav-btn:hover { background: var(--red-dark); }
+  .hamburger {
+    display: flex; flex-direction: column; gap: 5px;
+    background: none; border: 1px solid var(--border);
+    padding: 9px 11px; cursor: pointer;
+  }
+  .hamburger span { display: block; width: 18px; height: 1.5px; background: var(--dark); }
+  @media (min-width: 860px) { .hamburger { display: none; } }
+  .mobile-menu {
+    display: none; flex-direction: column;
+    background: #fff; border-top: 1px solid var(--border);
+    padding: 8px 24px 16px;
+  }
+  .mobile-menu.open { display: flex; }
+  .mobile-menu a {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 1.05rem; font-weight: 600; letter-spacing: .05em; text-transform: uppercase;
+    color: var(--muted); text-decoration: none;
+    padding: 11px 0; border-bottom: 1px solid var(--border);
+    transition: color .2s;
+  }
+
+  /* ════════════════════════════════════════════
+     HEADER DE GALERÍA
+  ════════════════════════════════════════════ */
+  .gal-header {
+    padding: 140px 0 40px;
+    background: var(--light);
+    border-bottom: 1px solid var(--border);
+  }
+  .gal-header p { color: var(--muted); margin-top: 14px; max-width: 560px; font-size: .98rem; }
+
+  /* ════════════════════════════════════════════
+     TABS DE JORNADAS
+  ════════════════════════════════════════════ */
+  .gal-tabs {
+    position: sticky; top: 60px; z-index: 50;
+    background: #fff; border-bottom: 1px solid var(--border);
+  }
+  .gal-tabs-inner {
+    max-width: 1160px; margin: 0 auto; padding: 0 24px;
+    display: flex; gap: 4px; overflow-x: auto;
+  }
+  .gal-tab {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: .95rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
+    color: var(--muted); background: none; border: none;
+    padding: 16px 18px 13px; cursor: pointer; white-space: nowrap;
+    border-bottom: 3px solid transparent;
+    transition: color .2s, border-color .2s;
+  }
+  .gal-tab.active { color: var(--red); border-bottom-color: var(--red); }
+  .gal-tab:disabled { color: #c8c8c4; cursor: default; }
+  .gal-tab .count { font-family: 'Space Mono', monospace; font-size: .68rem; color: var(--muted); margin-left: 6px; }
+
+  /* ════════════════════════════════════════════
+     GRID DE FOTOS
+  ════════════════════════════════════════════ */
+  .gal-grid-wrap { padding: 28px 0 80px; }
+  .gal-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 6px;
+  }
+  .gal-thumb {
+    position: relative; aspect-ratio: 1 / 1;
+    overflow: hidden; cursor: zoom-in;
+    background: var(--light2);
+    border: none; padding: 0;
+  }
+  .gal-thumb img {
+    width: 100%; height: 100%; object-fit: cover; display: block;
+    transition: transform .35s;
+  }
+  .gal-thumb:hover img { transform: scale(1.06); }
+  .gal-empty { color: var(--muted); padding: 40px 0; text-align: center; font-size: .95rem; }
+
+  /* ════════════════════════════════════════════
+     LIGHTBOX
+  ════════════════════════════════════════════ */
+  #lightbox {
+    display: none; position: fixed; inset: 0; z-index: 200;
+    background: rgba(10,10,10,.96);
+    align-items: center; justify-content: center;
+  }
+  #lightbox.open { display: flex; }
+  #lightbox img {
+    max-width: min(92vw, 1200px); max-height: 86vh;
+    object-fit: contain; user-select: none;
+  }
+  .lb-btn {
+    position: absolute; background: rgba(255,255,255,.08);
+    border: 1px solid rgba(255,255,255,.2); color: #fff;
+    width: 46px; height: 46px; border-radius: 50%;
+    font-size: 1.3rem; line-height: 1; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: background .2s;
+  }
+  .lb-btn:hover { background: rgba(255,255,255,.2); }
+  .lb-close { top: 18px; right: 18px; }
+  .lb-prev { left: 14px; top: 50%; transform: translateY(-50%); }
+  .lb-next { right: 14px; top: 50%; transform: translateY(-50%); }
+  .lb-counter {
+    position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%);
+    font-family: 'Space Mono', monospace; font-size: .78rem; letter-spacing: .08em;
+    color: rgba(255,255,255,.7); background: rgba(255,255,255,.08);
+    padding: 6px 14px; border-radius: 99px;
+  }
+  @media (max-width: 600px) {
+    .lb-prev { left: 6px; } .lb-next { right: 6px; }
+    .lb-btn { width: 38px; height: 38px; font-size: 1.1rem; }
+    .gal-grid { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 4px; }
+  }
+
+  /* ════════════════════════════════════════════
+     FOOTER — copiado de index.html
+  ════════════════════════════════════════════ */
+  footer {
+    background: var(--dark2);
+    border-top: 4px solid var(--red);
+    padding: 60px 24px 36px;
+    color: rgba(255,255,255,.5);
+  }
+  .footer-inner {
+    max-width: 1160px; margin: 0 auto;
+    display: grid; gap: 48px;
+    grid-template-columns: 2fr 1fr 1fr 1fr;
+  }
+  .footer-brand h3 {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 1.3rem; font-weight: 900; letter-spacing: .05em; text-transform: uppercase;
+    color: #fff; margin-bottom: 12px;
+  }
+  .footer-brand p { font-size: .86rem; line-height: 1.65; font-weight: 300; }
+  .footer-col h4 {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: .9rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase;
+    color: #fff; margin-bottom: 16px;
+  }
+  .footer-col ul { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+  .footer-col ul li a { font-size: .86rem; color: rgba(255,255,255,.4); text-decoration: none; font-weight: 300; transition: color .2s; }
+  .footer-col ul li a:hover { color: #fff; }
+  .social-row { display: flex; gap: 8px; margin-top: 20px; }
+  .social-icon { width: 36px; height: 36px; border: 1px solid rgba(255,255,255,.15); display: flex; align-items: center; justify-content: center; text-decoration: none; font-size: .9rem; transition: background .2s, border-color .2s; }
+  .social-icon:hover { background: var(--red); border-color: var(--red); }
+  .footer-bottom {
+    max-width: 1160px; margin: 36px auto 0;
+    padding-top: 20px; border-top: 1px solid rgba(255,255,255,.08);
+    display: flex; align-items: center; justify-content: space-between;
+    flex-wrap: wrap; gap: 10px;
+    font-family: 'Space Mono', monospace;
+    font-size: .62rem; letter-spacing: .08em; text-transform: uppercase;
+  }
+  @media (max-width: 860px) { .footer-inner { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 560px) { .footer-inner { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════
+     NAV
+══════════════════════════════════════ -->
+<header id="nav">
+  <div class="nav-inner">
+    <div class="nav-brand" style="cursor:default">
+      <a href="https://antigua-pickleball.com" title="Ir a Antigua Pickleball"><img src="logo.png" alt="Antigua Pickleball" height="28" style="display:block"/></a>
+      <div class="nav-brand-divider"></div>
+      <a href="index.html" class="nav-brand-name" style="text-decoration:none">Ladder League</a>
+      <div class="nav-brand-divider"></div>
+      <img src="img/quattro.png" alt="Quattro Club" style="height:28px;width:auto;background:#111113;padding:4px 9px;border-radius:4px;box-sizing:content-box" onerror="this.style.display='none'"/>
+    </div>
+    <ul class="nav-links">
+      <li><a href="index.html#formato">Formato</a></li>
+      <li><a href="index.html#horarios">Horarios</a></li>
+      <li><a href="index.html#standings">Ranking</a></li>
+      <li><a href="index.html#calendario">Calendario</a></li>
+      <li><a href="galeria.html" class="active">Galería</a></li>
+      <li><a href="https://antigua-pickleball.com">← Antigua PB</a></li>
+    </ul>
+    <div class="nav-actions">
+      <a class="nav-btn" href="inscribirse.html">Inscríbete</a>
+      <button class="hamburger" id="hamburger" aria-label="Menú">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </div>
+  <div class="mobile-menu" id="mobile-menu">
+    <a href="index.html#formato">Formato</a>
+    <a href="index.html#horarios">Horarios</a>
+    <a href="index.html#standings">Ranking</a>
+    <a href="index.html#calendario">Calendario</a>
+    <a href="galeria.html">Galería</a>
+    <a href="https://antigua-pickleball.com">← Antigua Pickleball</a>
+  </div>
+</header>
+
+<!-- ══════════════════════════════════════
+     HEADER
+══════════════════════════════════════ -->
+<section class="gal-header">
+  <div class="container">
+    <div class="label">Temporada 1</div>
+    <h1 class="section-title">Galería de Jornadas</h1>
+    <p>Las mejores fotos de cada sesión del Antigua Ladder League, tomadas en Club Quattro. Haz clic en cualquier foto para verla en grande.</p>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════
+     TABS
+══════════════════════════════════════ -->
+<div class="gal-tabs">
+  <div class="gal-tabs-inner" id="gal-tabs-inner"></div>
+</div>
+
+<!-- ══════════════════════════════════════
+     GRID
+══════════════════════════════════════ -->
+<div class="gal-grid-wrap">
+  <div class="container">
+    <div class="gal-grid" id="gal-grid"></div>
+    <div class="gal-empty" id="gal-empty" style="display:none">Aún no hay fotos para esta jornada.</div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     LIGHTBOX
+══════════════════════════════════════ -->
+<div id="lightbox">
+  <button class="lb-btn lb-close" id="lb-close" aria-label="Cerrar">✕</button>
+  <button class="lb-btn lb-prev" id="lb-prev" aria-label="Anterior">‹</button>
+  <img id="lb-img" src="" alt="Foto de la jornada"/>
+  <button class="lb-btn lb-next" id="lb-next" aria-label="Siguiente">›</button>
+  <div class="lb-counter" id="lb-counter"></div>
+</div>
+
+<!-- ══════════════════════════════════════
+     FOOTER
+══════════════════════════════════════ -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-brand">
+      <h3>Antigua Ladder League</h3>
+      <p>Competencia semanal de pickleball en La Antigua Guatemala. Temporada 1 · Julio – Agosto 2026.</p>
+      <div class="social-row">
+        <a class="social-icon" href="https://www.instagram.com/antiguapickleball" target="_blank" title="Instagram">📷</a>
+        <a class="social-icon" href="https://www.facebook.com/p/Antigua-Pickleball-61567310379538/" target="_blank" title="Facebook">👥</a>
+        <a class="social-icon" href="https://wa.me/50230912707" title="WhatsApp">💬</a>
+      </div>
+    </div>
+    <div class="footer-col">
+      <h4>Ladder</h4>
+      <ul>
+        <li><a href="index.html#formato">Formato</a></li>
+        <li><a href="index.html#horarios">Horarios</a></li>
+        <li><a href="index.html#standings">Ranking</a></li>
+        <li><a href="index.html#calendario">Calendario</a></li>
+        <li><a href="galeria.html">Galería</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h4>Antigua PB</h4>
+      <ul>
+        <li><a href="https://antigua-pickleball.com">Inicio</a></li>
+        <li><a href="https://antigua-pickleball.com/eventos.html">Eventos</a></li>
+        <li><a href="https://antigua-pickleball.com/canchas.html">Canchas</a></li>
+        <li><a href="https://antigua-pickleball.com/clinicas.html">Clínicas</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h4>Contacto</h4>
+      <ul>
+        <li><a href="https://wa.me/50230912707">+502 3091-2707</a></li>
+        <li><a href="mailto:info@antiguapickleball.gt">Email</a></li>
+        <li><a href="inscribirse.html">Inscripción</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span>© 2026 Antigua Pickleball</span>
+    <span style="color:rgba(255,255,255,.18)">Ladder League · Temporada 1 🏓</span>
+  </div>
+</footer>
+
+<script>
+/* ════════════════════════════════════════════════════════════
+   JORNADAS — agregar una entrada nueva cada vez que haya fotos
+   de una jornada distinta. "files" son los nombres (sin extensión)
+   dentro de fotos/<carpeta>/thumbs/ y fotos/<carpeta>/web/
+════════════════════════════════════════════════════════════ */
+const JORNADAS = [
+  {
+    num: 1,
+    label: 'Jornada 1',
+    fecha: '4 Jul 2026',
+    carpeta: 'jornada1',
+    files: ["018c387a-57d3-4829-9ad0-6510fa21cbeb","02ce8256-f1a5-4dde-a7a5-cce78edb82f1","039b687f-cb67-4671-a3d6-43c4e6b8e0e9","049a410a-5ffa-4308-a6e9-73eb61e88f1c","04cd1f13-99cf-4b66-a2ce-959b42a2940e","04e1371f-dc9a-4239-9a26-5965dee61168","04f77f4c-d5f6-4429-aea9-5854acc7f558","06311a72-1fae-4410-9f8d-2e976b2a251f","0783a411-cac9-4ebb-8c8f-dc88f4819fcc","08955fec-9021-4111-a9e5-62170fd15908","0b436003-fc70-4759-8e28-ad7353b3602e","0ceefb58-2670-4512-99d1-6907d1fac933","0f4d9f10-184a-439d-91cb-4c90f3339c92","0f952520-4a69-41bc-be58-bf5f1c235425","0fc1f3c9-8f36-4aa0-94f6-4a35d299090b","11f4b14a-b57d-4ecf-8fbc-3d0ac9899b64","1214601a-6d7f-45cb-a665-68eba6515f0d","1348c801-f375-45b8-a9c0-4fb3ba44fcf1","161d7857-cfdd-4389-8424-d808b3a7eaf7","1683be16-ef22-41a2-8980-c1522f09c251","1687e941-9202-4c91-9af8-86bda9d9209d","177a6317-cece-454c-aa5e-ad31425ee59d","1825b787-cacd-4d3b-948d-ce97ffe70066","19f54717-0fc4-4f16-9e1e-3ff4bf57f2b9","1a8e4dcc-27a2-4029-8933-53a83a188b84","1b0feeb3-6f26-4cf1-a576-880f9469c74e","1c049c20-ec29-41eb-8c73-3f3db749868d","1d559ddb-3440-4bec-b60f-90d8cbbbb477","1f027f45-71fa-47b0-84ce-5f82666fe419","1f53d22e-1c39-40d2-998e-24accede4541","20b184b7-23c8-4047-9a85-9de6ae6d2d3f","226d0db3-9848-44aa-9777-3e1f81f69930","22bf0503-9c58-4fa9-8be3-c5f5f519c048","22de4334-ea1b-4b08-8168-63101bdc27c6","2368a2a4-4e46-436b-aa9e-acb334319095","23a92656-8ae6-4ff4-8adb-772e7b0d5358","26a2fb5e-897a-4a9c-8509-c9ecbf2eb5e7","27fb2d82-db4e-4493-98c8-b4d3c4ad01dd","280109a3-d823-4a7f-987d-3c1261041c91","2951048c-7dfe-49fd-b1ba-f00c56a20f06","29f038cb-0a44-41b5-b630-b5e4bffcfb72","2d624123-713b-48a1-8140-81c2d5a0106a","2d9fc11a-658d-4e83-8d35-bef7b6e1eb05","3141414b-e614-4b8f-8780-e2fabfe771be","31707d0f-9c73-4bb1-9ed9-32804ba05a58","31d801cd-840e-406e-bedf-51108cd8130f","33305ba0-df57-458f-84f6-af01c64f4095","3342212c-b39e-4ced-b7bc-2281326748cd","35f72c72-1a76-45a6-ae23-6622c4866d4e","36feafbf-9acd-40ec-92fb-35c59309a628","37071a7c-ecf2-4ea7-a790-4e8f54098706","373102ed-f418-4944-a958-137ba678760a","373feaf6-4bcb-49c8-9209-47dbad553bb7","37d3d750-4bc4-4718-beec-3a6109958adc","384bb961-3b33-4a75-8641-0f14c5ed1597","3b9ac1d5-5970-4b36-8c10-ca2bb6584b58","3d0b3003-3886-4456-9a70-9fba7a9f724a","3dccc8c5-d70a-4c6b-8697-c8d06edcd0a2","407e84c4-7d92-4ea2-ae93-4e646234f001","409b12b4-910e-4e46-b85a-8b230a0aca9c","40a8e3ab-3d3a-47b5-909f-97c664505abe","41486512-dae2-4fe0-8622-80f88bce9b38","41ea3ad5-57c7-48bd-b490-3b1cb47e0964","43bfb744-0a54-4871-a58e-011d942b350b","475ec479-4f05-4403-9b1e-e89a1645f63b","4b2b5ad0-bc7e-4723-9dc2-d7c6a91beff6","4ce3aeff-0f77-4391-b78d-4ede4b714997","4f1e0033-b88f-4148-a328-cbc916890124","5020667d-324f-48ea-b693-2fb4013abf39","506f3dc1-22cf-4030-8692-80fb39dab4a6","510d4ee7-bdff-48ef-bef5-93888629af9f","5169949e-9312-4ab7-add6-d292bfa4fc2e","53ec3459-13fc-4022-a3da-b764c1fe62ac","551f08e7-4b18-4d18-9064-2e0fe2f847fb","561c139e-f016-4558-8d90-d98622a87c5a","592475f5-ec2d-4579-8ca0-58460ddb0ac8","5a049e5d-4e48-402e-b2e2-28dee30443c0","5a39ad46-2691-4c0e-b741-86e929d06dcd","5b7ddfab-d47f-4219-bc49-31b9fd5c1b71","5bb0bdd8-b70e-49ff-8a45-9053acfa278f","5d1ca1a7-cab8-4f39-ac55-96b7a3ef01e7","60741cbb-f506-4163-9766-1044c6401a3f","60d25c71-45b9-4786-96a7-b1c76b51043d","6133a41a-7c26-42fd-a3c4-b1083527d722","6164fc15-5d72-4150-9dc6-984d6d00ef86","619c0d80-95b1-4fb3-8bbc-b5383b540138","63ef395f-0186-4ac2-9e5d-49e16b503cb8","6523b98c-1599-4515-b45c-607f0a964369","663c154f-1fe2-4207-a9a1-39bfbb086088","6647b3b9-03a5-4977-af04-0c3d396f05ca","6af23eb3-97d4-4ab3-b84b-99dd84b5f699","6bfc104d-4c62-4eac-aed5-f1f62f1090cb","6d34273c-9c9d-4f31-af8c-50a976c14646","6d43d5c5-aaca-4e01-9c17-fe0904504b75","701e2b23-8f30-4933-97ff-02e11a4029d7","72421899-9214-4357-af68-6e6a2533e182","7370329a-9ccf-4cd2-ac91-9b297a1c068f","78bd960e-769c-4f20-8ff8-8646651ae986","7a41c89d-413c-473a-897f-79fd75b7ff15","7a908d51-0d7e-437b-85ef-b82098c76afd","7ad14dc3-31ad-45de-9946-41ac4f4d3c83","7b1abe0b-c8a2-4e66-ad78-fe8a6d35a9c2","80b1f4d5-8ae6-4796-93de-adb2f4841be6","8273a9d6-5c97-4115-9aa3-f1acd8be8bde","82c6a227-04a9-4d4e-8464-7a3bf26613e9","82c8c556-3e33-4fdf-900b-a3be9ca9d0f6","8404fa22-d7fd-4c6f-9297-29a0c18cb52a","85ebb862-68b7-42b4-90ef-067221b55954","8728a2e3-758c-472f-a179-5f5cfe0fa661","8aea9841-e3d1-4eaa-b20f-0abbdd80dbf3","8b369f05-6e3a-431e-8cab-b00e4b808a79","8ef31416-4d5b-4b62-bbbe-55ab43938fdf","8f2f33b5-7f2c-4e1f-b2a1-b53ec8b2d9f9","90910bef-bb4b-4fb0-81f1-44e348a55bf2","933e6a87-8436-4d2a-a001-b6e1ab7aa3e7","93c4dbfb-462e-475b-aed0-90db618d3765","94238384-736f-4945-8dc0-61c96b344c42","94485a31-616e-4c3d-955f-91a723f6625e","944d8034-056b-4f9c-ac21-6231bcbc64ff","94806e74-e6a2-4885-8886-217ce2548967","98730ca9-5176-44c9-a41d-ce36409b2b9a","987978c3-dcab-4d9f-9ded-3bcec1474906","9988bdd4-f01c-4d8e-a28e-f9095abc863f","9a24c97d-082d-4d8e-8a81-e0e79c0a2aa0","9bcc6cfd-7b07-4334-8478-b57cf59d6199","9c60d927-d0f8-4592-b151-e1d57f0843b3","9d497573-681a-43a4-b588-0e5a3f5fd5c5","9f18c482-8816-42a8-9135-2728ed04b3f3","a1b46c0c-7e13-4e1a-a954-eecf897945d7","a3b74f35-9894-4633-870b-d7d5255270ab","a5f832d6-a627-4521-8af8-9a6e21b97ae9","a687b531-47e6-4014-8ec3-6ec2473415e4","a68c8b2c-9494-44a5-9fa6-7ad8454bb075","a9614bdb-6679-42ed-a42c-98f6ed67d6df","aad3b9ff-c33d-4c70-b0a3-3cc7f5053cf2","ab3ae939-0dda-472c-a293-ef71aa5cdd22","abbf255a-68c1-4b0c-b41d-5ce529310840","b21be219-2267-4466-ad6a-c2d5c2a530e2","b369706c-f93f-41d0-b036-19d54d8fcedc","b3925285-c645-4151-9ba9-23c556b9ce25","b4faea45-3e12-45dc-962e-a3ac76bd9624","b5718df1-22ff-4c67-8bd6-dc184b2c50a1","b5b98d01-eaa8-467e-9944-e8f1d0ed21dd","b5bfd5ad-3a19-44e7-9cb0-3013b610f9ff","b67907df-8915-4f52-a903-b36705088dc0","b6d965fb-89a7-4ced-8c7f-ef924b47c6c6","b7265f35-29d0-4aa7-9362-239c6f9490c5","bb272054-df58-4604-bb14-37f63314edbf","bc34ccf4-f111-4651-9dbc-5d9e25d55b50","bc59036c-0b38-4093-8fae-9f3f284a6ba7","bc5d90f6-945c-4441-8996-110c21ae7f24","bc781b01-5676-4a74-86ce-ec9949757221","beab2b30-fd1c-4ae3-9be8-ba54ecd87d4a","bf4bd2f2-b9f1-404b-bc62-233782923ba9","c0a7a23f-c765-41cd-9b7c-705874d3a859","c1c2b99f-8192-4570-8eb6-27ba593a6172","c217b7c4-f93f-4194-a8e9-fdc590d6ab93","c21b90ae-62ee-4931-838b-9ba30a9d8a4a","c2a1fd40-c383-4f89-adb4-4805b7076c71","c561dc03-ad67-422b-885d-c42937caa5e2","c5629304-69d3-4876-beeb-2d38d2d08327","c646a93a-dad4-44f7-b2dc-2835f1ea2c06","c788cf2c-e534-4fe9-928e-870478f28d21","c9d3b7af-e8a3-476a-bb01-aafd903cf49e","c9ff953f-6f28-43e1-a1d0-a06cb24a2bed","cae13ec4-0ba9-40c2-8e28-d8de98f3156d","caeeb712-792d-4a71-9ef6-b96f24c651f2","cbae0be5-e0fe-441b-9783-aaa81dc0fcfc","cc543aaa-0aeb-4e29-927e-3affe11464b7","cc79c15d-63e5-4a25-87e3-2897287f51e8","ce3383fc-c6c1-46ad-acba-2273b301bbd4","d0331498-b3e1-4069-ad3a-016aa7a1745d","d18cd5b7-6d62-435b-aca7-2ec5b5b5fb6f","d2794188-94f1-4ab8-9df2-c049aa377e0d","d2982caa-d3e6-4e97-99dd-1f0c0296a2d0","d3541040-4b2c-4a9e-9045-a8ece892c63d","d3f30d82-ade8-4f71-a728-cb7c8ba8101f","d4705d68-e5e7-493f-aace-6667a64b86a8","d5b68ac2-87a0-4b83-b0db-12d42c695e95","d761e8f4-84ee-4639-b36b-ee4269986224","d7a5a181-2d7d-4b8b-83e3-53a78fa10ae3","d92631c8-d2b8-4778-92f5-b6dd4c5adc64","d9be4952-4d80-4437-a6a9-a153f7ab48b7","da09c443-308b-4284-9049-3d55edf1d6ed","da19340c-6b67-4e54-ae9a-ee1bde8361bf","dfa23f19-9b48-4840-858a-bcf8f55d7896","e061102d-8842-4b45-928e-0869ed623de9","e09d9e38-458a-4ab4-b7bb-ecd8bdaedb33","e1a20ad7-2574-4ddb-99a1-ae45d467703b","e1fc2993-7e54-49e7-b762-6deb61d74cb2","e4f0a5d5-837f-4ea5-8eb9-e3109814229d","e5cc1774-e88f-4ab7-a371-42fb8e4e0b43","e6b6ed3a-0ad9-4825-ad41-91855b14e7e6","e92da705-f693-4bd6-b929-2ff123a6a02d","e9bc6011-55c2-44ed-9362-4a73490c96bc","ea404258-4d3e-42d5-83c2-d3467e8fb935","ea526969-263c-4086-99f3-f30e223db2d4","ebced658-78b8-4fa8-b075-ac6ad1e782a9","ed63fc6c-f23e-48a3-9ca8-e3b0cd64440b","f411061c-9bd6-4f7b-9edf-8a652924f93c","f51ae9ec-8e9a-4774-b14b-83a8679c4e45","f55653e8-0360-4a05-b22e-ba20dc3011cd","fa517d61-b021-4918-925b-9c52cad3eeb3","fb07f641-992a-47e2-a7bc-7f146c5b3fd8","fe533817-2e94-4b08-ae7a-bc67f9f80420","ff7dfb0c-8c68-4e59-874e-b3e8e60b3c19"]
+  },
+  // Cuando haya fotos de la Jornada 2, agrega aquí:
+  // { num:2, label:'Jornada 2', fecha:'18 Jul 2026', carpeta:'jornada2', files:[...] },
+];
+
+let currentJornada = JORNADAS[0];
+let currentFiles = [];
+let lbIndex = 0;
+
+function thumbSrc(j, f)  { return `fotos/${j.carpeta}/thumbs/${f}.jpg`; }
+function webSrc(j, f)    { return `fotos/${j.carpeta}/web/${f}.jpg`; }
+
+function renderTabs() {
+  const wrap = document.getElementById('gal-tabs-inner');
+  wrap.innerHTML = JORNADAS.map(j => `
+    <button class="gal-tab${j.num === currentJornada.num ? ' active' : ''}" data-num="${j.num}">
+      ${j.label} <span class="count">${j.files.length ? j.files.length : '—'}</span>
+    </button>
+  `).join('');
+  wrap.querySelectorAll('.gal-tab').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const j = JORNADAS.find(x => x.num === parseInt(btn.dataset.num));
+      if (!j) return;
+      currentJornada = j;
+      renderTabs();
+      renderGrid();
+    });
+  });
+}
+
+function renderGrid() {
+  currentFiles = currentJornada.files || [];
+  const grid  = document.getElementById('gal-grid');
+  const empty = document.getElementById('gal-empty');
+  if (!currentFiles.length) {
+    grid.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+  grid.innerHTML = currentFiles.map((f, i) => `
+    <button class="gal-thumb" data-i="${i}" aria-label="Ver foto ${i+1}">
+      <img src="${thumbSrc(currentJornada, f)}" loading="lazy" decoding="async" alt="Foto ${i+1} · ${currentJornada.label}"/>
+    </button>
+  `).join('');
+  grid.querySelectorAll('.gal-thumb').forEach(btn => {
+    btn.addEventListener('click', () => openLightbox(parseInt(btn.dataset.i)));
+  });
+}
+
+function openLightbox(i) {
+  lbIndex = i;
+  updateLightbox();
+  document.getElementById('lightbox').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeLightbox() {
+  document.getElementById('lightbox').classList.remove('open');
+  document.body.style.overflow = '';
+}
+function updateLightbox() {
+  const f = currentFiles[lbIndex];
+  document.getElementById('lb-img').src = webSrc(currentJornada, f);
+  document.getElementById('lb-counter').textContent = `${lbIndex+1} / ${currentFiles.length}`;
+}
+function lbPrev() { lbIndex = (lbIndex - 1 + currentFiles.length) % currentFiles.length; updateLightbox(); }
+function lbNext() { lbIndex = (lbIndex + 1) % currentFiles.length; updateLightbox(); }
+
+document.getElementById('lb-close').addEventListener('click', closeLightbox);
+document.getElementById('lb-prev').addEventListener('click', lbPrev);
+document.getElementById('lb-next').addEventListener('click', lbNext);
+document.getElementById('lightbox').addEventListener('click', e => { if (e.target.id === 'lightbox') closeLightbox(); });
+document.addEventListener('keydown', e => {
+  if (!document.getElementById('lightbox').classList.contains('open')) return;
+  if (e.key === 'Escape') closeLightbox();
+  if (e.key === 'ArrowLeft') lbPrev();
+  if (e.key === 'ArrowRight') lbNext();
+});
+
+// Menú móvil
+document.getElementById('hamburger').addEventListener('click', () => {
+  document.getElementById('mobile-menu').classList.toggle('open');
+});
+
+renderTabs();
+renderGrid();
+</script>
+</body>
+</html>
