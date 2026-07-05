@@ -382,6 +382,25 @@
     .match-result.loss    { color: var(--red); background: var(--red-light); }
     .match-result.pending { color: var(--muted); background: #eee; }
 
+    /* ── TABLA DE PUNTAJES (de dónde sale el número final) ── */
+    .standings-block { margin-top: 16px; }
+    .standings-title {
+      font-family: 'Space Mono', monospace;
+      font-size: .64rem; letter-spacing: .1em; text-transform: uppercase;
+      color: var(--muted); margin-bottom: 6px;
+    }
+    .standings-table { width: 100%; border-collapse: collapse; font-size: .76rem; margin-bottom: 14px; }
+    .standings-table th {
+      font-family: 'Space Mono', monospace; font-size: .6rem; letter-spacing: .06em; text-transform: uppercase;
+      color: var(--muted); text-align: center; padding: 5px 6px; border-bottom: 1.5px solid var(--border);
+    }
+    .standings-table th:first-child { text-align: left; }
+    .standings-table td { text-align: center; padding: 5px 6px; border-bottom: 1px solid var(--border); }
+    .standings-table td:first-child { text-align: left; }
+    .standings-table tr.me { background: var(--red-light); font-weight: 700; }
+    .standings-table .score-col { color: var(--court); font-weight: 800; font-family: 'Space Mono', monospace; }
+    .standings-formula { font-size: .7rem; color: var(--muted); margin-top: -6px; margin-bottom: 12px; }
+
     /* ── PROXIMAS SESIONES ── */
     .upcoming-label {
       font-family: 'Space Mono', monospace;
@@ -811,6 +830,10 @@
    + ladder_scores (ranking). Ya no hay datos de relleno. */
 const CAT_LABELS = { principiante:'Principiante', intermedio:'Intermedio', open:'Open' };
 
+// Debe coincidir con COURT_A_FACTOR en admin.html — solo para mostrarle al
+// jugador de dónde sale su puntaje, no se usa para publicar nada.
+const COURT_A_FACTOR = 1.20;
+
 // Perfil del usuario (para DUPR ID) — lectura por documentId (la sesión anónima no puede leer el doc directo)
 let _profileCache;
 async function loadProfileDoc(uid) {
@@ -951,7 +974,13 @@ function renderAll() {
   const totalCompit = rows.filter(r => r.compitiendo).length;
 
   document.getElementById('stat-pos').textContent      = pos;
-  document.getElementById('stat-pos-sub').textContent  = cat ? `de ${totalCompit || rows.length || 0} en ${catLabel}` : 'aún sin categoría';
+  // Si aún no compite (menos de 3 sesiones jugadas), explicar por qué no hay
+  // posición en vez de solo mostrar "de N en Categoría" sin contexto.
+  document.getElementById('stat-pos-sub').textContent = !cat
+    ? 'aún sin categoría'
+    : (me && !me.compitiendo)
+      ? `faltan ${3 - me.n} sesión${(3-me.n)>1?'es':''} para rankear`
+      : `de ${totalCompit || rows.length || 0} en ${catLabel}`;
   document.getElementById('stat-sesiones').textContent = sesionesJugadas;
   document.getElementById('stat-sesiones-sub').textContent = 'de 8 sesiones';
   document.getElementById('stat-ptos').textContent     = (me && avg !== null) ? avg.toFixed(2) : '—';
@@ -1090,6 +1119,70 @@ function extractMyMatches(fx, uid) {
   return out.sort((a,b) => a.ronda - b.ronda);
 }
 
+// Calcula la tabla de un grupo (misma lógica que computeStandings en admin.html,
+// agregando el puntaje ponderado por cancha) — para que el jugador vea de dónde
+// sale exactamente el número final de su sesión, no solo su propio resultado.
+function computeCourtStandings(matches, uids, court, isS1) {
+  const s = {};
+  (uids || []).forEach(u => s[u] = { pj:0, pg:0, pp:0, pf:0, pc:0 });
+  (matches || []).forEach(m => {
+    if (!m.score) return;
+    const { s1, s2 } = m.score;
+    const win = s1 > s2 ? m.pair1 : m.pair2;
+    const los = s1 > s2 ? m.pair2 : m.pair1;
+    const wp = Math.max(s1, s2), lp = Math.min(s1, s2);
+    [...(m.pair1||[]), ...(m.pair2||[])].forEach(u => { if (s[u]) s[u].pj++; });
+    (win||[]).forEach(u => { if (s[u]) { s[u].pg++; s[u].pf += wp; s[u].pc += lp; } });
+    (los||[]).forEach(u => { if (s[u]) { s[u].pp++; s[u].pf += lp; s[u].pc += wp; } });
+  });
+  const factor = (!isS1 && court === 'A') ? COURT_A_FACTOR : 1.0;
+  Object.values(s).forEach(r => {
+    r.pctPG = r.pj > 0 ? r.pg / r.pj : 0;
+    r.score = r.pj > 0 ? r.pctPG * factor : 0;
+  });
+  return s;
+}
+
+// Arma una tabla por cada ronda que tuvo el fixture, usando el grupo real de
+// esa ronda (courtA_r2/courtB_r2 si el jugador subió o bajó de cancha).
+function buildStandingsHTML(fx, uid, pn) {
+  const isS1 = !!fx.isSession1;
+  const bloques = [];
+  (fx.rounds || []).forEach(round => {
+    if (fx.format === '2courts') {
+      const uidsA = round.num === 2 ? (fx.courtA_r2 || fx.courtA) : fx.courtA;
+      const uidsB = round.num === 2 ? (fx.courtB_r2 || fx.courtB) : fx.courtB;
+      if (uidsA && uidsA.includes(uid)) bloques.push({ ronda: round.num, cancha:'A', uids:uidsA, matches: round.matchesA||[] });
+      if (uidsB && uidsB.includes(uid)) bloques.push({ ronda: round.num, cancha:'B', uids:uidsB, matches: round.matchesB||[] });
+    } else {
+      bloques.push({ ronda: round.num, cancha:null, uids: fx.courtA||[], matches: round.matches||[] });
+    }
+  });
+
+  return bloques.map(b => {
+    const stats = computeCourtStandings(b.matches, b.uids, b.cancha, isS1);
+    const filas = Object.entries(stats)
+      .sort(([,a],[,b2]) => b2.score - a.score)
+      .map(([u, r]) => `<tr class="${u===uid?'me':''}">
+        <td>${u===uid ? '▶ Tú' : (pn[u]||u)}</td>
+        <td>${r.pj}</td>
+        <td>${r.pg}</td>
+        <td>${r.pp}</td>
+        <td>${(r.pctPG*100).toFixed(0)}%</td>
+        <td class="score-col">${r.score.toFixed(2)}</td>
+      </tr>`).join('');
+    const factor = (!isS1 && b.cancha === 'A') ? COURT_A_FACTOR : 1.0;
+    return `<div class="standings-block">
+      <div class="standings-title">Ronda ${b.ronda}${b.cancha ? ' · Cancha ' + b.cancha : ''} — así se calculó tu puntaje</div>
+      <table class="standings-table">
+        <thead><tr><th>Jugador</th><th>PJ</th><th>PG</th><th>PP</th><th>%PG</th><th>Puntos</th></tr></thead>
+        <tbody>${filas}</tbody>
+      </table>
+      <div class="standings-formula">Puntos = (partidos ganados ÷ partidos jugados)${factor !== 1 ? ` × ${factor.toFixed(2)} (bono Cancha A)` : ''}</div>
+    </div>`;
+  }).join('');
+}
+
 function renderMatchDetail(sesionNum, categoria) {
   const key   = `${sesionNum}_${categoria}`;
   const panel = document.getElementById(`detail-${sesionNum}`);
@@ -1136,7 +1229,9 @@ function renderMatchDetail(sesionNum, categoria) {
     </div>`;
   }).join('');
 
-  panel.innerHTML = meta + filas;
+  const tablas = buildStandingsHTML(fx, _user.uid, fx.playerNames || {});
+
+  panel.innerHTML = meta + filas + tablas;
 }
 
 function renderRankingTab(rows, catLabel) {
