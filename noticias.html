@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Noticias · Antigua Ladder League</title>
+<meta name="description" content="Noticias, resúmenes de jornada y actualizaciones de la Antigua Ladder League."/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,400;0,600;0,700;0,800;0,900;1,700;1,900&family=Barlow:wght@300;400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"/>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'Barlow', sans-serif;
+    background: #fff;
+    color: #111113;
+    -webkit-font-smoothing: antialiased;
+  }
+  :root {
+    --red:        #e4252e;
+    --red-dark:   #b81d24;
+    --red-light:  #fdecea;
+    --dark:       #111113;
+    --dark2:      #1c1c1e;
+    --text:       #1c1c1e;
+    --muted:      #6b6b74;
+    --light:      #f7f7f5;
+    --light2:     #eeeeeb;
+    --border:     #e2e2de;
+  }
+  .container { max-width: 1160px; margin: 0 auto; padding: 0 24px; }
+  .label {
+    font-family: 'Space Mono', monospace;
+    font-size: .65rem; font-weight: 700;
+    letter-spacing: .18em; text-transform: uppercase;
+    color: var(--red);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .label::before { content: ''; display: block; width: 24px; height: 3px; background: var(--red); flex-shrink: 0; }
+  .section-title {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: clamp(2rem, 4.5vw, 3.2rem);
+    font-weight: 900; letter-spacing: .01em; text-transform: uppercase;
+    color: var(--dark); line-height: 1; margin-top: 8px;
+  }
+
+  /* ════════════════════════════════════════════
+     NAV — copiado de index.html para consistencia
+  ════════════════════════════════════════════ */
+  #nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    background: rgba(255,255,255,.96);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    box-shadow: 0 1px 12px rgba(0,0,0,.07);
+  }
+  .nav-inner {
+    display: flex; align-items: center; justify-content: space-between;
+    max-width: 1160px; margin: 0 auto;
+    padding: 0 24px; height: 60px;
+  }
+  .nav-brand {
+    display: flex; align-items: center; gap: 12px;
+    text-decoration: none; flex-shrink: 0;
+  }
+  .nav-brand img { height: 28px; width: auto; }
+  .nav-brand-divider { width: 1px; height: 18px; background: var(--border); }
+  .nav-brand-name {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 1.05rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase;
+    color: var(--red);
+  }
+  .nav-links { display: none; align-items: center; gap: 0; list-style: none; }
+  @media (min-width: 860px) { .nav-links { display: flex; } }
+  .nav-links a {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: .9rem; font-weight: 600; letter-spacing: .05em; text-transform: uppercase;
+    color: var(--muted); text-decoration: none;
+    padding: 6px 14px; transition: color .2s;
+  }
+  .nav-links a:hover, .nav-links a.active { color: var(--red); }
+  .nav-actions { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+  .nav-btn {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: .88rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+    background: var(--red); color: #fff;
+    padding: 9px 22px; text-decoration: none;
+    transition: background .2s; white-space: nowrap;
+  }
+  .nav-btn:hover { background: var(--red-dark); }
+  .hamburger {
+    display: flex; flex-direction: column; gap: 5px;
+    background: none; border: 1px solid var(--border);
+    padding: 9px 11px; cursor: pointer;
+  }
+  .hamburger span { display: block; width: 18px; height: 1.5px; background: var(--dark); }
+  @media (min-width: 860px) { .hamburger { display: none; } }
+  .mobile-menu {
+    display: none; flex-direction: column;
+    background: #fff; border-top: 1px solid var(--border);
+    padding: 8px 24px 16px;
+  }
+  .mobile-menu.open { display: flex; }
+  .mobile-menu a {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 1.05rem; font-weight: 600; letter-spacing: .05em; text-transform: uppercase;
+    color: var(--muted); text-decoration: none;
+    padding: 11px 0; border-bottom: 1px solid var(--border);
+    transition: color .2s;
+  }
+
+  /* ════════════════════════════════════════════
+     HEADER
+  ════════════════════════════════════════════ */
+  .news-header {
+    padding: 140px 0 40px;
+    background: var(--light);
+    border-bottom: 1px solid var(--border);
+  }
+  .news-header p { color: var(--muted); margin-top: 14px; max-width: 560px; font-size: .98rem; }
+
+  /* ════════════════════════════════════════════
+     GRID DE NOTICIAS
+  ════════════════════════════════════════════ */
+  .news-grid-wrap { padding: 40px 0 80px; }
+  .news-grid {
+    display: grid; gap: 24px;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  }
+  .news-card {
+    background: #fff;
+    border: 1px solid var(--border);
+    overflow: hidden;
+    text-decoration: none; color: inherit;
+    transition: transform .22s, box-shadow .22s;
+    display: flex; flex-direction: column;
+  }
+  .news-card:hover { transform: translateY(-4px); box-shadow: 0 12px 40px rgba(0,0,0,.1); }
+  .news-card-img { height: 220px; overflow: hidden; background: var(--light2); position: relative; }
+  .news-card-img img { width: 100%; height: 100%; object-fit: cover; transition: transform .4s; }
+  .news-card:hover .news-card-img img { transform: scale(1.04); }
+  .news-card-body { padding: 24px 26px 26px; flex: 1; display: flex; flex-direction: column; gap: 10px; }
+  .news-card-tag {
+    font-family: 'Space Mono', monospace;
+    font-size: .6rem; letter-spacing: .16em; text-transform: uppercase;
+    color: var(--red); font-weight: 700;
+  }
+  .news-card h3 {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 1.55rem; font-weight: 800; letter-spacing: .02em; text-transform: uppercase;
+    color: var(--dark); line-height: 1.05;
+  }
+  .news-card p { font-size: .9rem; font-weight: 300; color: var(--muted); line-height: 1.6; flex: 1; }
+  .news-card-cta {
+    margin-top: 4px;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: .85rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase;
+    color: var(--red);
+  }
+  .news-empty { color: var(--muted); padding: 40px 0; text-align: center; font-size: .95rem; }
+
+  /* ════════════════════════════════════════════
+     FOOTER — copiado de index.html
+  ════════════════════════════════════════════ */
+  footer {
+    background: var(--dark2);
+    border-top: 4px solid var(--red);
+    padding: 60px 24px 36px;
+    color: rgba(255,255,255,.5);
+  }
+  .footer-inner {
+    max-width: 1160px; margin: 0 auto;
+    display: grid; gap: 48px;
+    grid-template-columns: 2fr 1fr 1fr 1fr;
+  }
+  .footer-brand h3 {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 1.3rem; font-weight: 900; letter-spacing: .05em; text-transform: uppercase;
+    color: #fff; margin-bottom: 12px;
+  }
+  .footer-brand p { font-size: .86rem; line-height: 1.65; font-weight: 300; }
+  .footer-col h4 {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: .9rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase;
+    color: #fff; margin-bottom: 16px;
+  }
+  .footer-col ul { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+  .footer-col ul li a { font-size: .86rem; color: rgba(255,255,255,.4); text-decoration: none; font-weight: 300; transition: color .2s; }
+  .footer-col ul li a:hover { color: #fff; }
+  .social-row { display: flex; gap: 8px; margin-top: 20px; }
+  .social-icon { width: 36px; height: 36px; border: 1px solid rgba(255,255,255,.15); display: flex; align-items: center; justify-content: center; text-decoration: none; font-size: .9rem; transition: background .2s, border-color .2s; }
+  .social-icon:hover { background: var(--red); border-color: var(--red); }
+  .footer-bottom {
+    max-width: 1160px; margin: 36px auto 0;
+    padding-top: 20px; border-top: 1px solid rgba(255,255,255,.08);
+    display: flex; align-items: center; justify-content: space-between;
+    flex-wrap: wrap; gap: 10px;
+    font-family: 'Space Mono', monospace;
+    font-size: .62rem; letter-spacing: .08em; text-transform: uppercase;
+  }
+  @media (max-width: 860px) { .footer-inner { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 560px) { .footer-inner { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════
+     NAV
+══════════════════════════════════════ -->
+<header id="nav">
+  <div class="nav-inner">
+    <div class="nav-brand" style="cursor:default">
+      <a href="https://antigua-pickleball.com" title="Ir a Antigua Pickleball"><img src="logo.png" alt="Antigua Pickleball" height="28" style="display:block"/></a>
+      <div class="nav-brand-divider"></div>
+      <a href="index.html" class="nav-brand-name" style="text-decoration:none">Ladder League</a>
+      <div class="nav-brand-divider"></div>
+      <img src="img/quattro.png" alt="Quattro Club" style="height:28px;width:auto;background:#111113;padding:4px 9px;border-radius:4px;box-sizing:content-box" onerror="this.style.display='none'"/>
+    </div>
+    <ul class="nav-links">
+      <li><a href="index.html#formato">Formato</a></li>
+      <li><a href="index.html#horarios">Horarios</a></li>
+      <li><a href="index.html#standings">Ranking</a></li>
+      <li><a href="index.html#calendario">Calendario</a></li>
+      <li><a href="noticias.html" class="active">Noticias</a></li>
+      <li><a href="galeria.html">Galería</a></li>
+      <li><a href="https://antigua-pickleball.com">← Antigua PB</a></li>
+    </ul>
+    <div class="nav-actions">
+      <a class="nav-btn" href="inscribirse.html">Inscríbete</a>
+      <button class="hamburger" id="hamburger" aria-label="Menú">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </div>
+  <div class="mobile-menu" id="mobile-menu">
+    <a href="index.html#formato">Formato</a>
+    <a href="index.html#horarios">Horarios</a>
+    <a href="index.html#standings">Ranking</a>
+    <a href="index.html#calendario">Calendario</a>
+    <a href="noticias.html">Noticias</a>
+    <a href="galeria.html">Galería</a>
+    <a href="https://antigua-pickleball.com">← Antigua Pickleball</a>
+  </div>
+</header>
+
+<!-- ══════════════════════════════════════
+     HEADER
+══════════════════════════════════════ -->
+<section class="news-header">
+  <div class="container">
+    <div class="label">Temporada 1</div>
+    <h1 class="section-title">Noticias</h1>
+    <p>Resúmenes de cada jornada, tablas de posiciones y todo lo que se vive en las canchas de Club Quattro — para jugadores y para quien quiera seguirle la pista a la Antigua Ladder League.</p>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════
+     GRID
+══════════════════════════════════════ -->
+<div class="news-grid-wrap">
+  <div class="container">
+    <div class="news-grid" id="news-grid"></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     FOOTER
+══════════════════════════════════════ -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-brand">
+      <h3>Antigua Ladder League</h3>
+      <p>Competencia semanal de pickleball en La Antigua Guatemala. Temporada 1 · Julio – Agosto 2026.</p>
+      <div class="social-row">
+        <a class="social-icon" href="https://www.instagram.com/antiguapickleball" target="_blank" title="Instagram">📷</a>
+        <a class="social-icon" href="https://www.facebook.com/p/Antigua-Pickleball-61567310379538/" target="_blank" title="Facebook">👥</a>
+        <a class="social-icon" href="https://wa.me/50230912707" title="WhatsApp">💬</a>
+      </div>
+    </div>
+    <div class="footer-col">
+      <h4>Ladder</h4>
+      <ul>
+        <li><a href="index.html#formato">Formato</a></li>
+        <li><a href="index.html#standings">Ranking</a></li>
+        <li><a href="index.html#calendario">Calendario</a></li>
+        <li><a href="noticias.html">Noticias</a></li>
+        <li><a href="galeria.html">Galería</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h4>Antigua PB</h4>
+      <ul>
+        <li><a href="https://antigua-pickleball.com">Inicio</a></li>
+        <li><a href="https://antigua-pickleball.com/eventos.html">Eventos</a></li>
+        <li><a href="https://antigua-pickleball.com/canchas.html">Canchas</a></li>
+        <li><a href="https://antigua-pickleball.com/clinicas.html">Clínicas</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h4>Contacto</h4>
+      <ul>
+        <li><a href="https://wa.me/50230912707">+502 3091-2707</a></li>
+        <li><a href="mailto:info@antiguapickleball.gt">Email</a></li>
+        <li><a href="inscribirse.html">Inscripción</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span>© 2026 Antigua Pickleball</span>
+    <span style="color:rgba(255,255,255,.18)">Ladder League · Temporada 1 🏓</span>
+  </div>
+</footer>
+
+<script>
+/* ════════════════════════════════════════════════════════════
+   NOTICIAS — agregar una entrada nueva arriba cada vez que se
+   publique una noticia nueva (más reciente primero).
+════════════════════════════════════════════════════════════ */
+const NOTICIAS = [
+  {
+    href: 'noticia-jornada1-arranque.html',
+    tag: 'Jornada 1 · 4 Jul 2026',
+    title: '¡Arrancó la Antigua Ladder League!',
+    excerpt: 'Partidos apretados, buena porra y tres nuevos campeones: así se vivió el debut de la Temporada 1 en Club Quattro.',
+    img: 'fotos/jornada1/web/ebced658-78b8-4fa8-b075-ac6ad1e782a9.jpg',
+  },
+  // Agrega la próxima noticia aquí arriba de esta línea:
+  // { href:'noticia-....html', tag:'Jornada 2 · 18 Jul 2026', title:'...', excerpt:'...', img:'fotos/jornada2/web/....jpg' },
+];
+
+function renderNews() {
+  const grid = document.getElementById('news-grid');
+  if (!NOTICIAS.length) {
+    grid.innerHTML = `<div class="news-empty">Todavía no hay noticias publicadas.</div>`;
+    return;
+  }
+  grid.innerHTML = NOTICIAS.map(n => `
+    <a class="news-card" href="${n.href}">
+      <div class="news-card-img"><img src="${n.img}" loading="lazy" decoding="async" alt="${n.title}"/></div>
+      <div class="news-card-body">
+        <div class="news-card-tag">${n.tag}</div>
+        <h3>${n.title}</h3>
+        <p>${n.excerpt}</p>
+        <div class="news-card-cta">Leer noticia →</div>
+      </div>
+    </a>
+  `).join('');
+}
+renderNews();
+
+// Menú móvil
+document.getElementById('hamburger').addEventListener('click', () => {
+  document.getElementById('mobile-menu').classList.toggle('open');
+});
+</script>
+</body>
+</html>

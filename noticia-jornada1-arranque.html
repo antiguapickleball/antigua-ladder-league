@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>¡Arrancó la Antigua Ladder League! · Jornada 1 · Antigua Ladder League</title>
+<meta name="description" content="Resumen de la Jornada 1 de la Antigua Ladder League: campeones de Principiante, Intermedio y Open, marcadores de infarto y tablas de posiciones."/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,400;0,600;0,700;0,800;0,900;1,700;1,900&family=Barlow:wght@300;400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"/>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'Barlow', sans-serif;
+    background: #fff;
+    color: #111113;
+    -webkit-font-smoothing: antialiased;
+  }
+  :root {
+    --red:        #e4252e;
+    --red-dark:   #b81d24;
+    --red-light:  #fdecea;
+    --dark:       #111113;
+    --dark2:      #1c1c1e;
+    --text:       #1c1c1e;
+    --muted:      #6b6b74;
+    --light:      #f7f7f5;
+    --light2:     #eeeeeb;
+    --border:     #e2e2de;
+  }
+  .container { max-width: 1160px; margin: 0 auto; padding: 0 24px; }
+  .narrow { max-width: 780px; margin: 0 auto; padding: 0 24px; }
+  .label {
+    font-family: 'Space Mono', monospace;
+    font-size: .65rem; font-weight: 700;
+    letter-spacing: .18em; text-transform: uppercase;
+    color: var(--red);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .label::before { content: ''; display: block; width: 24px; height: 3px; background: var(--red); flex-shrink: 0; }
+
+  /* ════════════════════════════════════════════
+     NAV — copiado de galeria.html para consistencia
+  ════════════════════════════════════════════ */
+  #nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    background: rgba(255,255,255,.96);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    box-shadow: 0 1px 12px rgba(0,0,0,.07);
+  }
+  .nav-inner {
+    display: flex; align-items: center; justify-content: space-between;
+    max-width: 1160px; margin: 0 auto;
+    padding: 0 24px; height: 60px;
+  }
+  .nav-brand {
+    display: flex; align-items: center; gap: 12px;
+    text-decoration: none; flex-shrink: 0;
+  }
+  .nav-brand img { height: 28px; width: auto; }
+  .nav-brand-divider { width: 1px; height: 18px; background: var(--border); }
+  .nav-brand-name {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 1.05rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase;
+    color: var(--red);
+  }
+  .nav-links { display: none; align-items: center; gap: 0; list-style: none; }
+  @media (min-width: 860px) { .nav-links { display: flex; } }
+  .nav-links a {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: .9rem; font-weight: 600; letter-spacing: .05em; text-transform: uppercase;
+    color: var(--muted); text-decoration: none;
+    padding: 6px 14px; transition: color .2s;
+  }
+  .nav-links a:hover, .nav-links a.active { color: var(--red); }
+  .nav-actions { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+  .nav-btn {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: .88rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+    background: var(--red); color: #fff;
+    padding: 9px 22px; text-decoration: none;
+    transition: background .2s; white-space: nowrap;
+  }
+  .nav-btn:hover { background: var(--red-dark); }
+  .hamburger {
+    display: flex; flex-direction: column; gap: 5px;
+    background: none; border: 1px solid var(--border);
+    padding: 9px 11px; cursor: pointer;
+  }
+  .hamburger span { display: block; width: 18px; height: 1.5px; background: var(--dark); }
+  @media (min-width: 860px) { .hamburger { display: none; } }
+  .mobile-menu {
+    display: none; flex-direction: column;
+    background: #fff; border-top: 1px solid var(--border);
+    padding: 8px 24px 16px;
+  }
+  .mobile-menu.open { display: flex; }
+  .mobile-menu a {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 1.05rem; font-weight: 600; letter-spacing: .05em; text-transform: uppercase;
+    color: var(--muted); text-decoration: none;
+    padding: 11px 0; border-bottom: 1px solid var(--border);
+    transition: color .2s;
+  }
+
+  /* ════════════════════════════════════════════
+     ARTICLE HEADER
+  ════════════════════════════════════════════ */
+  .art-header { padding: 130px 0 0; background: var(--light); }
+  .art-meta {
+    font-family: 'Space Mono', monospace;
+    font-size: .72rem; letter-spacing: .08em; text-transform: uppercase;
+    color: var(--muted); margin-top: 16px;
+  }
+  .art-title {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: clamp(2.4rem, 6vw, 4.4rem);
+    font-weight: 900; letter-spacing: .005em; text-transform: uppercase;
+    color: var(--dark); line-height: .98; margin-top: 10px;
+  }
+  .art-title .accent { color: var(--red); }
+  .art-sub {
+    font-size: 1.1rem; font-weight: 300; color: var(--muted);
+    max-width: 640px; line-height: 1.6; margin-top: 18px;
+  }
+
+  /* Trío de fotos de campeones */
+  .winners-strip { padding: 36px 0 0; }
+  .winners-grid {
+    display: grid; gap: 4px;
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .winner-card { position: relative; aspect-ratio: 4/5; overflow: hidden; background: var(--light2); }
+  .winner-card img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .winner-card::after {
+    content: ''; position: absolute; inset: 0;
+    background: linear-gradient(to top, rgba(0,0,0,.72) 0%, rgba(0,0,0,0) 42%);
+  }
+  .winner-caption {
+    position: absolute; left: 0; right: 0; bottom: 0; z-index: 2;
+    padding: 16px 16px 14px; color: #fff;
+  }
+  .winner-cat {
+    font-family: 'Space Mono', monospace;
+    font-size: .6rem; letter-spacing: .14em; text-transform: uppercase;
+    color: var(--yellow, #f5c800); font-weight: 700;
+  }
+  .winner-name {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 1.25rem; font-weight: 800; letter-spacing: .01em; text-transform: uppercase;
+    line-height: 1.05; margin-top: 2px;
+  }
+  @media (max-width: 700px) {
+    .winners-grid { grid-template-columns: 1fr; }
+    .winner-card { aspect-ratio: 16/10; }
+  }
+
+  /* ════════════════════════════════════════════
+     ARTICLE BODY
+  ════════════════════════════════════════════ */
+  .art-body { padding: 56px 0 20px; }
+  .art-body p {
+    font-size: 1.05rem; line-height: 1.75; color: var(--text); font-weight: 300;
+    margin-bottom: 20px;
+  }
+  .art-body p.lead {
+    font-size: 1.2rem; font-weight: 400; color: var(--dark);
+  }
+  .cat-block { padding: 46px 0 8px; border-top: 1px solid var(--border); }
+  .cat-block:first-of-type { border-top: none; }
+  .cat-tag {
+    font-family: 'Space Mono', monospace;
+    font-size: .65rem; letter-spacing: .16em; text-transform: uppercase;
+    color: var(--red); font-weight: 700; margin-bottom: 6px;
+  }
+  .cat-block h2 {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: clamp(1.7rem, 3.5vw, 2.4rem);
+    font-weight: 900; letter-spacing: .01em; text-transform: uppercase;
+    color: var(--dark); line-height: 1.05; margin-bottom: 18px;
+  }
+  .cat-block h2 .accent { color: var(--red); }
+
+  /* Tabla de posiciones — mismo estilo que index.html */
+  .standings-table-wrap { overflow-x: auto; border: 1px solid var(--border); margin: 22px 0 8px; }
+  .standings-table { width: 100%; border-collapse: collapse; }
+  .standings-table thead tr { background: var(--light); border-bottom: 1px solid var(--border); }
+  .standings-table th {
+    font-family: 'Space Mono', monospace;
+    font-size: .6rem; letter-spacing: .16em; text-transform: uppercase;
+    color: var(--muted); padding: 12px 18px;
+    text-align: left; font-weight: 400; white-space: nowrap;
+  }
+  .standings-table th:not(:nth-child(2)) { text-align: center; }
+  .standings-table td {
+    padding: 13px 18px; font-size: .9rem; color: var(--text);
+    border-bottom: 1px solid var(--border);
+  }
+  .standings-table td:not(:nth-child(2)) { text-align: center; }
+  .standings-table tr:last-child td { border-bottom: none; }
+  .standings-table tr:hover td { background: var(--light); }
+  .td-rank { font-family: 'Barlow Condensed', sans-serif; font-size: 1.05rem; font-weight: 800; color: var(--muted); width: 40px; }
+  .td-name { font-family: 'Barlow Condensed', sans-serif; font-size: 1.05rem; font-weight: 700; letter-spacing: .01em; text-transform: uppercase; }
+  .td-pct { font-family: 'Barlow Condensed', sans-serif; font-size: 1rem; font-weight: 800; color: var(--red); }
+  .td-mono { font-family: 'Space Mono', monospace; font-size: .74rem; color: var(--muted); }
+  .row-top1 td { background: var(--red-light); }
+  .standings-note { font-size: .74rem; color: var(--muted); margin-top: 8px; }
+
+  /* ════════════════════════════════════════════
+     CTA DE CIERRE
+  ════════════════════════════════════════════ */
+  .art-cta {
+    margin: 56px 0 0; padding: 44px 0 72px;
+    background: var(--dark2); color: #fff;
+  }
+  .art-cta .label::before { background: var(--red); }
+  .art-cta h2 {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: clamp(1.8rem, 4vw, 2.6rem);
+    font-weight: 900; letter-spacing: .01em; text-transform: uppercase;
+    color: #fff; margin-top: 8px; line-height: 1.05;
+  }
+  .art-cta p { color: rgba(255,255,255,.65); font-size: 1rem; font-weight: 300; line-height: 1.65; max-width: 600px; margin-top: 14px; }
+  .btn-primary {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: .95rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+    background: var(--red); color: #fff;
+    padding: 15px 38px; text-decoration: none;
+    transition: background .2s, transform .15s;
+    display: inline-block; margin-top: 24px;
+  }
+  .btn-primary:hover { background: var(--red-dark); transform: translateY(-1px); }
+
+  /* ════════════════════════════════════════════
+     FOOTER — copiado de galeria.html
+  ════════════════════════════════════════════ */
+  footer {
+    background: var(--dark2);
+    border-top: 4px solid var(--red);
+    padding: 60px 24px 36px;
+    color: rgba(255,255,255,.5);
+  }
+  .footer-inner {
+    max-width: 1160px; margin: 0 auto;
+    display: grid; gap: 48px;
+    grid-template-columns: 2fr 1fr 1fr 1fr;
+  }
+  .footer-brand h3 {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 1.3rem; font-weight: 900; letter-spacing: .05em; text-transform: uppercase;
+    color: #fff; margin-bottom: 12px;
+  }
+  .footer-brand p { font-size: .86rem; line-height: 1.65; font-weight: 300; }
+  .footer-col h4 {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: .9rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase;
+    color: #fff; margin-bottom: 16px;
+  }
+  .footer-col ul { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+  .footer-col ul li a { font-size: .86rem; color: rgba(255,255,255,.4); text-decoration: none; font-weight: 300; transition: color .2s; }
+  .footer-col ul li a:hover { color: #fff; }
+  .social-row { display: flex; gap: 8px; margin-top: 20px; }
+  .social-icon { width: 36px; height: 36px; border: 1px solid rgba(255,255,255,.15); display: flex; align-items: center; justify-content: center; text-decoration: none; font-size: .9rem; transition: background .2s, border-color .2s; }
+  .social-icon:hover { background: var(--red); border-color: var(--red); }
+  .footer-bottom {
+    max-width: 1160px; margin: 36px auto 0;
+    padding-top: 20px; border-top: 1px solid rgba(255,255,255,.08);
+    display: flex; align-items: center; justify-content: space-between;
+    flex-wrap: wrap; gap: 10px;
+    font-family: 'Space Mono', monospace;
+    font-size: .62rem; letter-spacing: .08em; text-transform: uppercase;
+  }
+  @media (max-width: 860px) { .footer-inner { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 560px) { .footer-inner { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════
+     NAV
+══════════════════════════════════════ -->
+<header id="nav">
+  <div class="nav-inner">
+    <div class="nav-brand" style="cursor:default">
+      <a href="https://antigua-pickleball.com" title="Ir a Antigua Pickleball"><img src="logo.png" alt="Antigua Pickleball" height="28" style="display:block"/></a>
+      <div class="nav-brand-divider"></div>
+      <a href="index.html" class="nav-brand-name" style="text-decoration:none">Ladder League</a>
+      <div class="nav-brand-divider"></div>
+      <img src="img/quattro.png" alt="Quattro Club" style="height:28px;width:auto;background:#111113;padding:4px 9px;border-radius:4px;box-sizing:content-box" onerror="this.style.display='none'"/>
+    </div>
+    <ul class="nav-links">
+      <li><a href="index.html#formato">Formato</a></li>
+      <li><a href="index.html#horarios">Horarios</a></li>
+      <li><a href="index.html#standings">Ranking</a></li>
+      <li><a href="index.html#calendario">Calendario</a></li>
+      <li><a href="noticias.html" class="active">Noticias</a></li>
+      <li><a href="galeria.html">Galería</a></li>
+      <li><a href="https://antigua-pickleball.com">← Antigua PB</a></li>
+    </ul>
+    <div class="nav-actions">
+      <a class="nav-btn" href="inscribirse.html">Inscríbete</a>
+      <button class="hamburger" id="hamburger" aria-label="Menú">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </div>
+  <div class="mobile-menu" id="mobile-menu">
+    <a href="index.html#formato">Formato</a>
+    <a href="index.html#horarios">Horarios</a>
+    <a href="index.html#standings">Ranking</a>
+    <a href="index.html#calendario">Calendario</a>
+    <a href="noticias.html">Noticias</a>
+    <a href="galeria.html">Galería</a>
+    <a href="https://antigua-pickleball.com">← Antigua Pickleball</a>
+  </div>
+</header>
+
+<!-- ══════════════════════════════════════
+     HEADER DEL ARTÍCULO
+══════════════════════════════════════ -->
+<section class="art-header">
+  <div class="container">
+    <div class="label">Noticias · Jornada 1</div>
+    <div class="art-meta">Sábado 4 de julio, 2026 · Club Quattro, La Antigua Guatemala</div>
+    <h1 class="art-title">¡Arrancó la <span class="accent">Antigua Ladder League</span>!</h1>
+    <p class="art-sub">25 jugadores, 3 categorías y 44 partidos que no dieron tregua. Así se vivió la fiesta de pickleball que abrió la Temporada 1 en Club Quattro.</p>
+  </div>
+  <div class="winners-strip">
+    <div class="container" style="padding:0">
+      <div class="winners-grid">
+        <div class="winner-card">
+          <img src="fotos/jornada1/web/9988bdd4-f01c-4d8e-a28e-f9095abc863f.jpg" alt="Angela Carey, campeona de Principiante"/>
+          <div class="winner-caption">
+            <div class="winner-cat">Campeona · Principiante</div>
+            <div class="winner-name">Angela Carey</div>
+          </div>
+        </div>
+        <div class="winner-card">
+          <img src="fotos/jornada1/web/0fc1f3c9-8f36-4aa0-94f6-4a35d299090b.jpg" alt="Angel Ramírez, campeón de Intermedio"/>
+          <div class="winner-caption">
+            <div class="winner-cat">Campeón · Intermedio</div>
+            <div class="winner-name">Angel Ramírez</div>
+          </div>
+        </div>
+        <div class="winner-card">
+          <img src="fotos/jornada1/web/ebced658-78b8-4fa8-b075-ac6ad1e782a9.jpg" alt="Christian Chang, campeón de Open"/>
+          <div class="winner-caption">
+            <div class="winner-cat">Campeón · Open</div>
+            <div class="winner-name">Christian Chang</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════
+     CUERPO DEL ARTÍCULO
+══════════════════════════════════════ -->
+<article class="art-body">
+  <div class="narrow">
+    <p class="lead">El sábado 4 de julio, Club Quattro fue una fiesta de pickleball. Veinticinco jugadores repartidos en tres categorías — Principiante, Intermedio y Open — se estrenaron en la Temporada 1 del Antigua Ladder League con 44 partidos que no dieron tregua: marcadores que se cerraron 11-10, otros que se fueron hasta 15-14, y finales de infarto en las tres categorías. Entre porra, remontadas y algún que otro nervio de campeonato, quedaron tres nombres nuevos en lo más alto de la tabla.</p>
+
+    <div class="cat-block">
+      <div class="cat-tag">Principiante</div>
+      <h2>Angela Carey se queda con todo</h2>
+      <p>Con 6 victorias en 8 partidos (75%) jugando desde Cancha A, <strong>Angela Carey</strong> terminó como campeona indiscutible de la primera jornada en Principiante. Detrás de ella, la pelea por el segundo lugar no pudo estar más pareja: <strong>Gustavo Adolfo Sierra</strong> y <strong>Brayan Estuardo Galindo Carrillo</strong> empataron con 5 triunfos en 7 partidos (71.4%) cada uno, uno jugando desde Cancha A y el otro desde Cancha B. El partido más cerrado de la categoría se definió 11-10 en la Ronda 1.</p>
+      <div class="standings-table-wrap">
+        <table class="standings-table">
+          <thead><tr><th>#</th><th>Jugador</th><th>PJ</th><th>PG</th><th>% PG</th></tr></thead>
+          <tbody>
+            <tr class="row-top1"><td class="td-rank">1</td><td class="td-name">Angela Carey</td><td class="td-mono">8</td><td class="td-mono">6</td><td class="td-pct">75.0%</td></tr>
+            <tr><td class="td-rank">2</td><td class="td-name">Gustavo Adolfo Sierra</td><td class="td-mono">7</td><td class="td-mono">5</td><td class="td-pct">71.4%</td></tr>
+            <tr><td class="td-rank">2</td><td class="td-name">Brayan Estuardo Galindo Carrillo</td><td class="td-mono">7</td><td class="td-mono">5</td><td class="td-pct">71.4%</td></tr>
+            <tr><td class="td-rank">4</td><td class="td-name">José David Pérez Cajti</td><td class="td-mono">8</td><td class="td-mono">5</td><td class="td-pct">62.5%</td></tr>
+            <tr><td class="td-rank">5</td><td class="td-name">Mafer Castro</td><td class="td-mono">8</td><td class="td-mono">4</td><td class="td-pct">50.0%</td></tr>
+            <tr><td class="td-rank">5</td><td class="td-name">Alejandra Chaves</td><td class="td-mono">6</td><td class="td-mono">3</td><td class="td-pct">50.0%</td></tr>
+            <tr><td class="td-rank">7</td><td class="td-name">Karen López</td><td class="td-mono">7</td><td class="td-mono">2</td><td class="td-pct">28.6%</td></tr>
+            <tr><td class="td-rank">8</td><td class="td-name">Mario Lorenzi Ramírez</td><td class="td-mono">6</td><td class="td-mono">1</td><td class="td-pct">16.7%</td></tr>
+            <tr><td class="td-rank">9</td><td class="td-name">Lili Rosales</td><td class="td-mono">7</td><td class="td-mono">1</td><td class="td-pct">14.3%</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="standings-note">PJ = partidos jugados · PG = partidos ganados · Posición provisional tras la Jornada 1 (se necesitan 3 sesiones para entrar al ranking oficial).</div>
+    </div>
+
+    <div class="cat-block">
+      <div class="cat-tag">Intermedio</div>
+      <h2>Angel Ramírez, el más regular del día</h2>
+      <p><strong>Angel Ramírez</strong> cerró la Jornada 1 con 6 victorias en 8 partidos (75%) desde Cancha B, llevándose el primer lugar en Intermedio. Pero lo que dejó a todos hablando fue el empate a cuatro bandas por el segundo puesto: <strong>Pablo Velasquez</strong>, <strong>Roberto Carlos Arango</strong>, <strong>Marcelo Lorenzi Ramírez</strong> y <strong>Richard Rivera</strong> terminaron parejos con 5 triunfos en 8 partidos (62.5%) cada uno. La categoría también dejó los marcadores más ajustados del día: dos partidos se cerraron 15-14 en la misma ronda.</p>
+      <div class="standings-table-wrap">
+        <table class="standings-table">
+          <thead><tr><th>#</th><th>Jugador</th><th>PJ</th><th>PG</th><th>% PG</th></tr></thead>
+          <tbody>
+            <tr class="row-top1"><td class="td-rank">1</td><td class="td-name">Angel Ramírez</td><td class="td-mono">8</td><td class="td-mono">6</td><td class="td-pct">75.0%</td></tr>
+            <tr><td class="td-rank">2</td><td class="td-name">Pablo Velasquez</td><td class="td-mono">8</td><td class="td-mono">5</td><td class="td-pct">62.5%</td></tr>
+            <tr><td class="td-rank">2</td><td class="td-name">Roberto Carlos Arango</td><td class="td-mono">8</td><td class="td-mono">5</td><td class="td-pct">62.5%</td></tr>
+            <tr><td class="td-rank">2</td><td class="td-name">Marcelo Lorenzi Ramírez</td><td class="td-mono">8</td><td class="td-mono">5</td><td class="td-pct">62.5%</td></tr>
+            <tr><td class="td-rank">2</td><td class="td-name">Richard Rivera</td><td class="td-mono">8</td><td class="td-mono">5</td><td class="td-pct">62.5%</td></tr>
+            <tr><td class="td-rank">6</td><td class="td-name">Travis Ning</td><td class="td-mono">8</td><td class="td-mono">4</td><td class="td-pct">50.0%</td></tr>
+            <tr><td class="td-rank">6</td><td class="td-name">Christian Cullo</td><td class="td-mono">8</td><td class="td-mono">4</td><td class="td-pct">50.0%</td></tr>
+            <tr><td class="td-rank">8</td><td class="td-name">Valeria Viglianesi</td><td class="td-mono">8</td><td class="td-mono">3</td><td class="td-pct">37.5%</td></tr>
+            <tr><td class="td-rank">9</td><td class="td-name">Paul Vernon Gonzalez</td><td class="td-mono">8</td><td class="td-mono">2</td><td class="td-pct">25.0%</td></tr>
+            <tr><td class="td-rank">10</td><td class="td-name">Rafael Rodríguez</td><td class="td-mono">8</td><td class="td-mono">1</td><td class="td-pct">12.5%</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="standings-note">PJ = partidos jugados · PG = partidos ganados · Posición provisional tras la Jornada 1 (se necesitan 3 sesiones para entrar al ranking oficial).</div>
+    </div>
+
+    <div class="cat-block">
+      <div class="cat-tag">Open</div>
+      <h2>Christian Chang, el único invicto del día</h2>
+      <p>En Open, <strong>Christian Chang</strong> firmó la única marca perfecta de la Jornada 1: 5 victorias en 5 partidos (100%). Detrás suyo, <strong>Renato Westby</strong> y el propio organizador del torneo, <strong>Luis Buenahora</strong>, empataron en el segundo lugar con 3 triunfos en 5 partidos (60%) cada uno. Tener menos jugadores no significó menos emoción: dos partidos se definieron por un solo punto, 11-10 y 10-11.</p>
+      <div class="standings-table-wrap">
+        <table class="standings-table">
+          <thead><tr><th>#</th><th>Jugador</th><th>PJ</th><th>PG</th><th>% PG</th></tr></thead>
+          <tbody>
+            <tr class="row-top1"><td class="td-rank">1</td><td class="td-name">Christian Chang</td><td class="td-mono">5</td><td class="td-mono">5</td><td class="td-pct">100%</td></tr>
+            <tr><td class="td-rank">2</td><td class="td-name">Renato Westby</td><td class="td-mono">5</td><td class="td-mono">3</td><td class="td-pct">60.0%</td></tr>
+            <tr><td class="td-rank">2</td><td class="td-name">Luis Buenahora</td><td class="td-mono">5</td><td class="td-mono">3</td><td class="td-pct">60.0%</td></tr>
+            <tr><td class="td-rank">4</td><td class="td-name">Miguel Leiva Solares</td><td class="td-mono">6</td><td class="td-mono">3</td><td class="td-pct">50.0%</td></tr>
+            <tr><td class="td-rank">5</td><td class="td-name">Stephanie Chang</td><td class="td-mono">5</td><td class="td-mono">1</td><td class="td-pct">20.0%</td></tr>
+            <tr><td class="td-rank">6</td><td class="td-name">Kevin Chang</td><td class="td-mono">6</td><td class="td-mono">1</td><td class="td-pct">16.7%</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="standings-note">PJ = partidos jugados · PG = partidos ganados · Posición provisional tras la Jornada 1 (se necesitan 3 sesiones para entrar al ranking oficial).</div>
+    </div>
+  </div>
+</article>
+
+<!-- ══════════════════════════════════════
+     CTA DE CIERRE
+══════════════════════════════════════ -->
+<section class="art-cta">
+  <div class="narrow">
+    <div class="label">Quedan 7 jornadas</div>
+    <h2>Esto apenas empieza</h2>
+    <p>Todavía faltan siete jornadas para definir a los campeones de la Antigua Ladder League — Temporada 1. Las inscripciones para todas las sesiones restantes ya están abiertas.</p>
+    <a class="btn-primary" href="sesion.html?n=2">Inscribirme a la próxima jornada</a>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════
+     FOOTER
+══════════════════════════════════════ -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-brand">
+      <h3>Antigua Ladder League</h3>
+      <p>Competencia semanal de pickleball en La Antigua Guatemala. Temporada 1 · Julio – Agosto 2026.</p>
+      <div class="social-row">
+        <a class="social-icon" href="https://www.instagram.com/antiguapickleball" target="_blank" title="Instagram">📷</a>
+        <a class="social-icon" href="https://www.facebook.com/p/Antigua-Pickleball-61567310379538/" target="_blank" title="Facebook">👥</a>
+        <a class="social-icon" href="https://wa.me/50230912707" title="WhatsApp">💬</a>
+      </div>
+    </div>
+    <div class="footer-col">
+      <h4>Ladder</h4>
+      <ul>
+        <li><a href="index.html#formato">Formato</a></li>
+        <li><a href="index.html#standings">Ranking</a></li>
+        <li><a href="index.html#calendario">Calendario</a></li>
+        <li><a href="noticias.html">Noticias</a></li>
+        <li><a href="galeria.html">Galería</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h4>Antigua PB</h4>
+      <ul>
+        <li><a href="https://antigua-pickleball.com">Inicio</a></li>
+        <li><a href="https://antigua-pickleball.com/eventos.html">Eventos</a></li>
+        <li><a href="https://antigua-pickleball.com/canchas.html">Canchas</a></li>
+        <li><a href="https://antigua-pickleball.com/clinicas.html">Clínicas</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h4>Contacto</h4>
+      <ul>
+        <li><a href="https://wa.me/50230912707">+502 3091-2707</a></li>
+        <li><a href="mailto:info@antiguapickleball.gt">Email</a></li>
+        <li><a href="inscribirse.html">Inscripción</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span>© 2026 Antigua Pickleball</span>
+    <span style="color:rgba(255,255,255,.18)">Ladder League · Temporada 1 🏓</span>
+  </div>
+</footer>
+
+<script>
+document.getElementById('hamburger').addEventListener('click', () => {
+  document.getElementById('mobile-menu').classList.toggle('open');
+});
+</script>
+</body>
+</html>
