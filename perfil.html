@@ -882,7 +882,13 @@ function catRows(scoreDocs, cat) {
   // Posición actual en la tabla para TODOS (no solo los ya "rankeados" con 3+
   // sesiones) — así el jugador ve dónde está parado desde su primera sesión,
   // aunque su posición todavía sea provisional hasta llegar a 3 jugadas.
-  rows.forEach((r, i) => { r.pos = i + 1; });
+  // Empate (mismo promedio mostrado) → comparte el mismo puesto que el anterior.
+  let lastPos = 0, lastAvg = null;
+  rows.forEach((r, i) => {
+    if (lastAvg === null || r.avg.toFixed(2) !== lastAvg) lastPos = i + 1;
+    r.pos = lastPos;
+    lastAvg = r.avg.toFixed(2);
+  });
   return rows;
 }
 

@@ -3224,16 +3224,27 @@ function renderLadderHTML(rows) {
           const anyComp = rows.some(r => r.status === 'compitiendo');
           let rankedPos = 0; // contador solo de rankeados
           let lastRankedPos = 0; // último puesto rankeado asignado
-          return rows.map((r) => {
+          let lastRankedAvg = null;
+          let lastAllPos = 0;
+          let lastAllAvg = null;
+          return rows.map((r, i) => {
             const isComp = r.status === 'compitiendo';
-            if (isComp) { rankedPos++; lastRankedPos = rankedPos; }
-            // Si nadie compite aún, numeramos a todos igual pero en gris
-            const displayPos = anyComp ? lastRankedPos : (rows.indexOf(r) + 1);
+            if (isComp) {
+              rankedPos++;
+              // Empate (mismo promedio mostrado) → comparte el mismo puesto que el anterior
+              if (lastRankedAvg === null || r.avg.toFixed(2) !== lastRankedAvg) lastRankedPos = rankedPos;
+              lastRankedAvg = r.avg.toFixed(2);
+            }
+            // Igual, pero contando a todos — para cuando todavía nadie llega a 3 sesiones
+            if (lastAllAvg === null || r.avg.toFixed(2) !== lastAllAvg) lastAllPos = i + 1;
+            lastAllAvg = r.avg.toFixed(2);
+            // Si nadie compite aún, numeramos con el mismo criterio de empate, en gris
+            const displayPos = anyComp ? lastRankedPos : lastAllPos;
             const scoresBySn = {};
             r.sessions.forEach(s => { scoresBySn[s.sesionNum] = s; });
             const minScore  = r.allScores.length > 0 ? Math.min(...r.allScores) : null;
             const minScore2 = r.allScores.length >= 7 ? [...r.allScores].sort((a,b)=>a-b)[1] : null;
-            const rowBg = !isComp ? 'background:#f9fafb;' : (rankedPos===1 ? 'background:#f0fdf4;' : '');
+            const rowBg = !isComp ? 'background:#f9fafb;' : (displayPos===1 ? 'background:#f0fdf4;' : '');
             const textColor = !isComp ? 'color:#9ca3af;' : '';
             return `<tr style="border-bottom:1px solid var(--border);${rowBg}${textColor}">
               <td style="padding:8px 12px;font-family:'Space Mono',monospace;font-size:.7rem;${isComp?'color:#065f46;font-weight:700':'color:#9ca3af'}">${displayPos}</td>

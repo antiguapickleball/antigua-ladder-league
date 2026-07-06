@@ -1694,11 +1694,22 @@ async function loadPublicRanking(cat) {
     const anyComp = rows.some(r => r.status === 'compitiendo');
     let rankedPos = 0;
     let lastRankedPos = 0;
+    let lastRankedAvg = null;
+    let lastAllPos = 0;
+    let lastAllAvg = null;
     rows.forEach((r, i) => {
       const isComp = r.status === 'compitiendo';
-      if (isComp) { rankedPos++; lastRankedPos = rankedPos; }
-      const displayPos = anyComp ? lastRankedPos : (i + 1);
-      const rowBg = !isComp ? 'background:#f9fafb;' : (rankedPos === 1 ? 'background:#fef2f2;' : '');
+      if (isComp) {
+        rankedPos++;
+        // Empate (mismo promedio mostrado) → comparte el mismo puesto que el anterior
+        if (lastRankedAvg === null || r.avg.toFixed(2) !== lastRankedAvg) lastRankedPos = rankedPos;
+        lastRankedAvg = r.avg.toFixed(2);
+      }
+      // Igual, pero contando a todos — para cuando todavía nadie llega a 3 sesiones
+      if (lastAllAvg === null || r.avg.toFixed(2) !== lastAllAvg) lastAllPos = i + 1;
+      lastAllAvg = r.avg.toFixed(2);
+      const displayPos = anyComp ? lastRankedPos : lastAllPos;
+      const rowBg = !isComp ? 'background:#f9fafb;' : (displayPos === 1 ? 'background:#fef2f2;' : '');
       html += `<tr style="${rowBg}">
         <td class="td-rank" style="${isComp ? 'color:var(--red);font-weight:700' : 'color:#9ca3af'}">${displayPos}</td>
         <td class="td-name" style="font-weight:${isComp ? '700' : '400'};${!isComp ? 'color:#9ca3af' : ''}">${r.nombre || r.docId}</td>
