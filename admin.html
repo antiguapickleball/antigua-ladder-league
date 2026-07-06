@@ -2719,14 +2719,18 @@ async function loadPublishedLadder() {
         <th style="padding:8px 12px;text-align:center">⭐ Promedio</th>
       </tr></thead><tbody>`;
 
+    let lastPos = 0, lastAvg = null;
     rows.forEach((r, i) => {
       const scoresByKey = {};
       r.sessions.forEach(s => { scoresByKey[s.key] = s; });
       const minScore = r.allScores.length > 0 ? Math.min(...r.allScores) : null;
       const minScore2 = r.allScores.length >= 7 ? [...r.allScores].sort((a,b)=>a-b)[1] : null;
+      // Empate (mismo promedio mostrado) → comparte el mismo puesto que el anterior
+      if (lastAvg === null || r.avg.toFixed(2) !== lastAvg) lastPos = i + 1;
+      lastAvg = r.avg.toFixed(2);
 
       html += `<tr style="border-bottom:1px solid var(--border)">
-        <td style="padding:8px 12px;font-family:'Space Mono',monospace;font-size:.7rem;color:var(--muted)">${i+1}</td>
+        <td style="padding:8px 12px;font-family:'Space Mono',monospace;font-size:.7rem;color:var(--muted)">${lastPos}</td>
         <td style="padding:8px 12px;font-weight:700">${r.nombre||r.uid||r.docId}</td>
         <td style="padding:8px 10px;text-align:center;font-family:'Space Mono',monospace;font-size:.72rem;color:var(--muted)">${r.duprId||'—'}</td>
         ${sortedKeys.map(k => {
