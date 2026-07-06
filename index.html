@@ -166,7 +166,7 @@
     .hero-photo {
       position: absolute; inset: 0;
       background:
-        url('img/hero.jpg')
+        url('img/hero-v2.jpg')
         center/cover no-repeat;
       /* fallback: court-inspired gradient */
       background-color: #1a3a20;
@@ -1109,7 +1109,7 @@
 
       <a class="feature-card" href="#standings">
         <div class="feature-card-img fc-img-1">
-          <img src="img/card-ranking.jpg" alt="Ranking" loading="lazy"/>
+          <img src="img/card-ranking-v2.jpg" alt="Ranking" loading="lazy"/>
         </div>
         <div class="feature-card-body">
           <div class="feature-card-tag">En vivo</div>
@@ -1121,7 +1121,7 @@
 
       <a class="feature-card" href="inscribirse.html">
         <div class="feature-card-img fc-img-2">
-          <img src="img/card-inscripcion.jpg" alt="Inscripción" loading="lazy"/>
+          <img src="img/card-inscripcion-v2.jpg" alt="Inscripción" loading="lazy"/>
         </div>
         <div class="feature-card-body">
           <div class="feature-card-tag">Inscripción abierta</div>
@@ -1133,7 +1133,7 @@
 
       <a class="feature-card" href="#calendario">
         <div class="feature-card-img fc-img-3">
-          <img src="img/card-calendario.jpg" alt="Calendario" loading="lazy"/>
+          <img src="img/card-calendario-v2.jpg" alt="Calendario" loading="lazy"/>
         </div>
         <div class="feature-card-body">
           <div class="feature-card-tag">Próxima sesión</div>
@@ -1189,19 +1189,19 @@
 <!-- Photo strip -->
 <div class="photo-strip">
   <div class="photo-strip-item ps-1">
-    <img src="img/strip-1.jpg" alt="Pickleball" loading="lazy" onerror="this.style.display='none'"/>
+    <img src="img/strip-1-v2.jpg" alt="Pickleball" loading="lazy" onerror="this.style.display='none'"/>
     <div class="photo-strip-item-overlay">
       <span class="photo-strip-item-label">Pickleball en Antigua</span>
     </div>
   </div>
   <div class="photo-strip-item ps-2">
-    <img src="img/strip-2.jpg" alt="Competencia" loading="lazy" onerror="this.style.display='none'"/>
+    <img src="img/strip-2-v2.jpg" alt="Competencia" loading="lazy" onerror="this.style.display='none'"/>
     <div class="photo-strip-item-overlay">
       <span class="photo-strip-item-label">Compite cada sábado</span>
     </div>
   </div>
   <div class="photo-strip-item ps-3">
-    <img src="img/strip-3.jpg" alt="Comunidad" loading="lazy" onerror="this.style.display='none'"/>
+    <img src="img/strip-3-v2.jpg" alt="Comunidad" loading="lazy" onerror="this.style.display='none'"/>
     <div class="photo-strip-item-overlay">
       <span class="photo-strip-item-label">Comunidad y deporte</span>
     </div>
@@ -1962,7 +1962,7 @@ document.addEventListener('DOMContentLoaded', () => {
 (function(){
   const belt = document.getElementById('sessionBelt');
   if (!belt) return;
-  const photos = ['img/strip-1.jpg','img/strip-2.jpg','img/strip-3.jpg','img/hero.jpg','img/card-ranking.jpg','img/card-calendario.jpg','img/card-inscripcion.jpg'];
+  const photos = ['img/strip-1-v2.jpg','img/strip-2-v2.jpg','img/strip-3-v2.jpg','img/hero-v2.jpg','img/card-ranking-v2.jpg','img/card-calendario-v2.jpg','img/card-inscripcion-v2.jpg'];
   const cards = photos.map(u => `<a class="sb-card" href="#calendario"><img src="${u}" loading="lazy" alt="Ladder League en acción" onerror="this.parentElement.remove()"></a>`).join('');
   belt.innerHTML = cards + cards;
 })();
