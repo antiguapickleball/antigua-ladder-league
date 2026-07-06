@@ -41,13 +41,37 @@
       color: var(--red);
     }
     .nav-actions { display: flex; align-items: center; gap: 10px; }
-    .nav-back {
+    .nav-links { display: none; align-items: center; gap: 0; list-style: none; }
+    @media (min-width: 860px) { .nav-links { display: flex; } }
+    .nav-links a {
       font-family: 'Barlow Condensed', sans-serif;
-      font-size: .85rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
-      color: var(--muted); text-decoration: none; padding: 7px 14px;
-      border: 1px solid var(--border); transition: color .2s;
+      font-size: .9rem; font-weight: 600; letter-spacing: .05em; text-transform: uppercase;
+      color: var(--muted); text-decoration: none;
+      padding: 6px 14px; transition: color .2s;
     }
-    .nav-back:hover { color: var(--dark); }
+    .nav-links a:hover, .nav-links a.active { color: var(--red); }
+    .hamburger {
+      display: flex; flex-direction: column; gap: 5px;
+      background: none; border: 1px solid var(--border);
+      padding: 9px 11px; cursor: pointer;
+    }
+    .hamburger span { display: block; width: 18px; height: 1.5px; background: var(--dark); }
+    @media (min-width: 860px) { .hamburger { display: none; } }
+    .mobile-menu {
+      display: none; flex-direction: column;
+      background: #fff; border-top: 1px solid var(--border);
+      padding: 8px 24px 16px;
+    }
+    .mobile-menu.open { display: flex; }
+    .mobile-menu a {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 1.05rem; font-weight: 600; letter-spacing: .05em; text-transform: uppercase;
+      color: var(--muted); text-decoration: none;
+      padding: 11px 0; border-bottom: 1px solid var(--border);
+      transition: color .2s;
+    }
+    .mobile-menu a:last-child { border: none; }
+    .mobile-menu a:hover { color: var(--red); }
     .nav-user {
       display: flex; align-items: center; gap: 8px;
       background: #fff4f4; color: var(--red); border: 1.5px solid #fac5c7;
@@ -67,13 +91,6 @@
       background: #ff6f00; color: #fff; padding: 4px 10px;
       text-decoration: none; letter-spacing: .04em;
     }
-    .nav-login-btn {
-      font-family: 'Barlow Condensed', sans-serif;
-      font-size: .88rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
-      color: var(--red); border: 1.5px solid var(--red); padding: 6px 16px;
-      text-decoration: none; transition: background .2s;
-    }
-    .nav-login-btn:hover { background: var(--red-light); }
 
     /* ── PAGE ── */
     .page-wrap { padding-top: 80px; padding-bottom: 80px; }
@@ -230,26 +247,43 @@
 <body>
 
 <!-- NAV -->
-<div id="nav">
+<header id="nav">
   <div class="nav-inner">
-    <a class="nav-brand" href="index.html">
-      <img src="img/logo.png" alt="ALL" onerror="this.style.display='none'"/>
+    <div class="nav-brand" style="cursor:default">
+      <a href="https://antigua-pickleball.com" title="Ir a Antigua Pickleball"><img src="logo.png" alt="Antigua Pickleball" height="28" style="display:block"/></a>
       <div class="nav-brand-divider"></div>
-      <span class="nav-brand-name">Ladder League</span>
+      <a href="index.html" class="nav-brand-name" style="text-decoration:none">Ladder League</a>
       <div class="nav-brand-divider"></div>
       <img src="img/quattro.png" alt="Quattro Club" style="height:28px;width:auto;background:#111113;padding:4px 9px;border-radius:4px;box-sizing:content-box" onerror="this.style.display='none'"/>
-    </a>
+    </div>
+    <ul class="nav-links">
+      <li><a href="index.html#formato">Formato</a></li>
+      <li><a href="index.html#horarios">Horarios</a></li>
+      <li><a href="index.html#standings">Ranking</a></li>
+      <li><a href="index.html#calendario">Calendario</a></li>
+      <li><a href="index.html#reglamento">Reglamento</a></li>
+      <li><a href="noticias.html">Noticias</a></li>
+      <li><a href="galeria.html">Galería</a></li>
+      <li><a href="https://antigua-pickleball.com">← Antigua PB</a></li>
+    </ul>
     <div class="nav-actions">
-      <a class="nav-back" href="index.html">← Inicio</a>
-      <div id="nav-user-slot">
-        <a class="nav-login-btn" id="nav-login-btn"
-          href="https://antigua-pickleball.com/login?redirect=https://ladder.antigua-pickleball.com/inscribirse.html">
-          Iniciar sesión
-        </a>
-      </div>
+      <div id="nav-auth-slot"></div>
+      <button class="hamburger" id="hamburger" aria-label="Menú">
+        <span></span><span></span><span></span>
+      </button>
     </div>
   </div>
-</div>
+  <div class="mobile-menu" id="mobile-menu">
+    <a href="index.html#formato">Formato</a>
+    <a href="index.html#horarios">Horarios</a>
+    <a href="index.html#standings">Ranking</a>
+    <a href="index.html#calendario">Calendario</a>
+    <a href="index.html#reglamento">Reglamento</a>
+    <a href="noticias.html">Noticias</a>
+    <a href="galeria.html">Galería</a>
+    <a href="https://antigua-pickleball.com">← Antigua Pickleball</a>
+  </div>
+</header>
 
 <!-- PAGE WRAP -->
 <div class="page-wrap">
@@ -275,7 +309,6 @@
   import { getAuth, signInAnonymously } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
   import { getFirestore, doc, getDoc }
     from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
-  import '/js/auth-bridge-client.js';
 
   const FB_CONFIG = {
     apiKey:            "AIzaSyBBmUQR8AGdosXSGNK3galyBmFjkn6jOuM",
@@ -309,23 +342,6 @@
     { key:'intermedio',   label:'I', hora:'9:40 – 11:20 am'   },
     { key:'open',         label:'O', hora:'11:20 am – 1:00 pm'},
   ];
-
-  // ── Nav user ──────────────────────────────────────────────────────────────
-  const user = window.APAuth?.getUser?.() || null;
-  function updateNav() {
-    if (!user) return;
-    const slot  = document.getElementById('nav-user-slot');
-    const first = user.displayName?.split(' ')[0] || 'Jugador';
-    const initials = (user.displayName||'J').split(' ').map(n=>n[0]).join('').toUpperCase().slice(0,2);
-    const isAdmin = user.role === 'admin';
-    slot.innerHTML = `
-      ${isAdmin ? `<a class="nav-chip-admin" href="admin.html">⚙ Admin</a>` : ''}
-      <a class="nav-user" href="https://antigua-pickleball.com/perfil" target="_blank" rel="noopener">
-        <div class="nav-user-avatar">${initials}</div>
-        ${first}
-      </a><button onclick="APAuth.signOut();location.href='https://antigua-pickleball.com/login.html?redirect='+encodeURIComponent(location.href)" title="Salir / cambiar de cuenta" style="font-family:'Barlow Condensed',sans-serif;font-size:.78rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#6b6b74;background:none;border:1px solid #e2e2de;padding:6px 11px;cursor:pointer;margin-left:6px">Salir</button>`;
-  }
-  updateNav();
 
   await signInAnonymously(auth).catch(()=>{});
 
@@ -435,6 +451,57 @@
   renderCards(null, true);
   const counts = await loadCounts();
   renderCards(counts, false);
+</script>
+
+<!-- ══ AUTH BRIDGE — sesión compartida con antigua-pickleball.com ══ -->
+<script src="js/auth-bridge-client.js"></script>
+<script>
+  APAuth.onReady(function(user) {
+    const slot    = document.getElementById('nav-auth-slot');
+    const mobMenu = document.getElementById('mobile-menu');
+    if (!slot) return;
+
+    if (user) {
+      const name     = user.displayName || user.email.split('@')[0];
+      const first    = name.split(' ')[0];
+      const initials = name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+      const profileURL = 'perfil.html';
+
+      const isAdmin = user.role === 'admin';
+      slot.innerHTML = `
+        ${isAdmin ? `<a href="admin.html" style="font-family:'Barlow Condensed',sans-serif;font-size:.75rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);text-decoration:none;padding:5px 10px;border:1px solid var(--border);margin-right:4px" title="Panel Admin">⚙ Admin</a>` : ''}
+        <a class="nav-user" href="${profileURL}" title="${name}">
+          <span class="nav-user-avatar">${initials}</span>${first}
+        </a><button onclick="APAuth.signOut();location.href='https://antigua-pickleball.com/login.html?redirect='+encodeURIComponent(location.href)" title="Salir / cambiar de cuenta" style="font-family:'Barlow Condensed',sans-serif;font-size:.78rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#6b6b74;background:none;border:1px solid #e2e2de;padding:6px 11px;cursor:pointer;margin-left:6px">Salir</button>`;
+
+      if (mobMenu) {
+        const a = document.createElement('a');
+        a.href = profileURL;
+        a.style.cssText = 'color:var(--red);font-weight:800;border-bottom:2px solid #fac5c7';
+        a.textContent = '👤 ' + first;
+        mobMenu.insertBefore(a, mobMenu.firstChild);
+      }
+    } else {
+      const loginURL = 'https://antigua-pickleball.com/login.html?redirect=' + encodeURIComponent(window.location.href);
+      slot.innerHTML = `
+        <a href="${loginURL}" style="font-family:'Barlow Condensed',sans-serif;font-size:.85rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);text-decoration:none;padding:7px 14px;border:1px solid var(--border);white-space:nowrap;transition:color .2s">
+          Ingresar
+        </a>`;
+
+      if (mobMenu) {
+        const a = document.createElement('a');
+        a.href = loginURL;
+        a.style.cssText = 'color:var(--red);font-weight:700;border-bottom:2px solid #fac5c7';
+        a.textContent = '👤 Ingresar / Mi Perfil';
+        mobMenu.insertBefore(a, mobMenu.firstChild);
+      }
+    }
+  });
+
+  // Menú móvil
+  document.getElementById('hamburger').addEventListener('click', () => {
+    document.getElementById('mobile-menu').classList.toggle('open');
+  });
 </script>
 </body>
 </html>
