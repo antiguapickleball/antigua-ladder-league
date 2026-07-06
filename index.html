@@ -1329,7 +1329,7 @@
           <li>La jornada se divide en <strong>Cancha A</strong> (nivel élite) y <strong>Cancha B</strong> (nivel entrada).</li>
           <li>Al inicio de la jornada se asigna a cada jugador su cancha según su posición en el ranking.</li>
           <li>Al final de cada ronda, los mejores de Cancha B <strong>suben a Cancha A</strong> y los de menor desempeño en Cancha A <strong>bajan a Cancha B</strong>.</li>
-          <li>Cancha A es más exigente: ganar ahí vale más puntos (factor ×1.25).</li>
+          <li>Cancha A es más exigente: ganar ahí vale más puntos (factor ×1.20).</li>
         </ul>
       </div>
 
@@ -1338,8 +1338,8 @@
         <ul>
           <li><strong>Victoria = 1 punto · Derrota = 0 puntos</strong>. Simple y directo.</li>
           <li>Tu <strong>score de jornada</strong> = (victorias ÷ partidos jugados) × factor de cancha.</li>
-          <li><strong>Cancha A:</strong> factor ×1.25 · <strong>Cancha B:</strong> factor ×1.00</li>
-          <li>Ejemplo: 6 victorias de 8 partidos en Cancha A → (6/8) × 1.25 = <strong>0.9375</strong></li>
+          <li><strong>Cancha A:</strong> factor ×1.20 · <strong>Cancha B:</strong> factor ×1.00</li>
+          <li>Ejemplo: 6 victorias de 8 partidos en Cancha A → (6/8) × 1.20 = <strong>0.90</strong></li>
           <li>Si jugaste en ambas canchas en la misma jornada, se calcula el promedio ponderado.</li>
         </ul>
       </div>
@@ -1714,7 +1714,7 @@ async function loadPublicRanking(cat) {
 
     html += `</tbody></table>
       <div style="margin-top:10px;font-size:.72rem;color:#9ca3af;padding:0 4px">
-        ⭐ Promedio = score normalizado · Cancha B / S1: máx 1.00 · Cancha A (S2+): máx 1.25 · Tachado = sesión descartada (4–6 jornadas: se descarta 1; 7–8: se descartan 2)
+        ⭐ Promedio = score normalizado · Cancha B / S1: máx 1.00 · Cancha A (S2+): máx 1.20 (por ronda) · Tachado = sesión descartada (4–6 jornadas: se descarta 1; 7–8: se descartan 2)
       </div>
     </div>`;
 
