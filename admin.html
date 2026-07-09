@@ -1056,6 +1056,38 @@ function reenviarInvitacion(sesionNum, uid) {
   else toast('Este jugador no tiene teléfono registrado', true);
 }
 
+// ── Sesiones (excluyendo la actual) con cupo real disponible en una categoría ──
+function sesionesConCupo(categoria, excludeNum) {
+  return SEMANAS
+    .filter(s => s.num !== excludeNum && s.estado !== 'cancelada' && s.estado !== 'jugada')
+    .filter(s => {
+      const confirmed = (_allData[s.num] || []).filter(p => p.status === 'confirmed' && p.categoria === categoria).length;
+      return confirmed < 10;
+    });
+}
+
+// ── Avisar a alguien de lista de espera que NO hay cupo, recomendando cambiar de sesión ──
+function waSugerirCambioLink(nombre, sesionNum, categoria, phone) {
+  if (!phone) return '';
+  const catLabels = { principiante:'Principiante', intermedio:'Intermedio', open:'Open' };
+  const s = SEMANAS.find(x => x.num === sesionNum);
+  const fecha = s ? s.fecha : `Semana ${sesionNum}`;
+  const disponibles = sesionesConCupo(categoria, sesionNum);
+  const listaTexto = disponibles.length
+    ? disponibles.map(x => `Sesión ${x.num} (${x.fecha})`).join(', ')
+    : 'ninguna por ahora, pero seguimos abriendo sesiones';
+  const link = `https://ladder.antigua-pickleball.com/sesion.html?n=${sesionNum}`;
+  const msg = `¡Hola ${nombre}! Te saluda *Antigua Pickleball* 🎾 Por ahora no hay cupo disponible en *Sesión ${sesionNum}* (${fecha}), categoría *${catLabels[categoria]||categoria}* — sigues en lista de espera y te avisamos si se libera un lugar. Si prefieres no esperar, te recomendamos cambiarte a otra sesión con cupo disponible: *${listaTexto}*. Puedes hacer el cambio tú mismo aquí: ${link}`;
+  return `https://wa.me/${phone.replace(/\D/g,'')}?text=${encodeURIComponent(msg)}`;
+}
+function sugerirCambio(sesionNum, uid) {
+  const player = (_allData[sesionNum]||[]).find(p=>p.uid===uid);
+  if (!player) return;
+  const waLink = waSugerirCambioLink(player.nombre, sesionNum, player.categoria, player.phone);
+  if (waLink) window.open(waLink, '_blank');
+  else toast('Este jugador no tiene teléfono registrado', true);
+}
+
 // ── Cancelar la invitación: regresa al jugador a lista de espera normal ──
 async function cancelarInvitacion(sesionNum, uid) {
   const player = (_allData[sesionNum]||[]).find(p=>p.uid===uid);
@@ -1422,7 +1454,8 @@ function renderWaitlist() {
          <button class="btn-action btn-deny" onclick="cancelarInvitacion(${p.sesionNum},'${p.uid}')">↩ Cancelar</button>`
       : esPagado(p)
         ? `<button class="btn-action btn-accept" onclick="manualPromote(${p.sesionNum},'${p.uid}')">↑ Promover</button>`
-        : `<button class="btn-action btn-accept" onclick="invitarAPagar(${p.sesionNum},'${p.uid}')">📲 Avisar cupo</button>`;
+        : `<button class="btn-action btn-accept" onclick="invitarAPagar(${p.sesionNum},'${p.uid}')">📲 Avisar cupo</button>
+           <button class="btn-action btn-move" onclick="sugerirCambio(${p.sesionNum},'${p.uid}')">🔄 Sin cupo — sugerir cambio</button>`;
     return `<tr class="waitlist-row">
       <td class="num" style="font-weight:700;color:#92400e">${pos}°</td>
       <td class="nombre">${p.nombre}<br><span style="font-size:.72rem;color:var(--muted)">${p.email||''}</span></td>
@@ -1748,7 +1781,8 @@ function renderTable(sesionNum) {
                        <button class="btn-action btn-deny"   onclick="denyPending(${sesionNum},'${p.uid}')">✕</button>` : ''}
         ${isWait ? (esPagado(p)
             ? `<button class="btn-action btn-accept" onclick="manualPromote(${sesionNum},'${p.uid}')">↑ Promover</button>`
-            : `<button class="btn-action btn-accept" onclick="invitarAPagar(${sesionNum},'${p.uid}')">📲 Avisar cupo</button>`) : ''}
+            : `<button class="btn-action btn-accept" onclick="invitarAPagar(${sesionNum},'${p.uid}')">📲 Avisar cupo</button>
+               <button class="btn-action btn-move" onclick="sugerirCambio(${sesionNum},'${p.uid}')">🔄 Sugerir cambio</button>`) : ''}
         ${isInvited ? `<button class="btn-action btn-move" onclick="reenviarInvitacion(${sesionNum},'${p.uid}')">🔁 Reenviar</button>
                        <button class="btn-action btn-deny" onclick="cancelarInvitacion(${sesionNum},'${p.uid}')">↩ Cancelar</button>` : ''}
         <button class="btn-action btn-edit"   onclick="openEdit(${sesionNum}, '${p.uid}')">Editar</button>
