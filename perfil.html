@@ -826,6 +826,18 @@
     appId: "1:270487643715:web:701b74a71253ac599056f6"
   });
   const db = firebase.firestore();
+  // Ambiente de pruebas (nueva.*): usa las colecciones *_test aisladas de firestore.rules
+  const IS_TEST_ENV = /^nueva/.test(location.hostname);
+  const COL = (name) => IS_TEST_ENV ? `${name}_test` : name;
+  if (IS_TEST_ENV) {
+    const _testBanner = () => {
+      const b = document.createElement('div');
+      b.textContent = '🧪 AMBIENTE DE PRUEBAS — datos de prueba, no afectan producción';
+      b.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:999999;background:#f59e0b;color:#111;text-align:center;font:700 12px/1.6 sans-serif;padding:4px 8px;letter-spacing:.03em;';
+      document.body.prepend(b);
+    };
+    document.body ? _testBanner() : document.addEventListener('DOMContentLoaded', _testBanner);
+  }
   // Sesión anónima para que las reglas permitan las lecturas
   firebase.auth().signInAnonymously().catch(e => console.warn('anon auth:', e));
 </script>
@@ -932,7 +944,7 @@ async function loadMyRegistrations(uid) {
   const regs = [];
   await Promise.all(SEMANAS.map(async s => {
     try {
-      const snap = await db.collection('ladder_registrations').doc(`t1_sesion_${s.num}`).get();
+      const snap = await db.collection(COL('ladder_registrations')).doc(`t1_sesion_${s.num}`).get();
       if (!snap.exists) return;
       const me = (snap.data().inscritos || []).find(p => p.uid === uid);
       if (me) regs.push({ sesionNum: s.num, status: me.status, categoria: me.categoria, duprId: me.duprId });
@@ -970,7 +982,7 @@ async function loadProfile(user) {
   renderAll();  // pinta inscripciones de inmediato (ranking se llena al llegar scores)
 
   // Ranking en tiempo real
-  db.collection('ladder_scores').onSnapshot(snap => {
+  db.collection(COL('ladder_scores')).onSnapshot(snap => {
     _scoresDocs = snap.docs.map(d => ({ docId: d.id, ...d.data() }));
     _scoresReady = true;
     renderAll();
@@ -1095,7 +1107,7 @@ function ensureFixtureListener(sesionNum, categoria) {
   const key = `${sesionNum}_${categoria}`;
   if (_fixtureUnsub[key]) return; // ya hay un listener activo
   const docId = `t1_sesion_${sesionNum}_${categoria}`;
-  _fixtureUnsub[key] = db.collection('ladder_fixtures').doc(docId).onSnapshot(snap => {
+  _fixtureUnsub[key] = db.collection(COL('ladder_fixtures')).doc(docId).onSnapshot(snap => {
     _fixtureData[key] = snap.exists ? snap.data() : null;
     if (_expandedKey === key) renderMatchDetail(sesionNum, categoria);
   }, () => {

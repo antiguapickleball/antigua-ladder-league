@@ -941,6 +941,22 @@
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
 <script src="js/auth-bridge-client.js"></script>
 <script>
+// Ambiente de pruebas (nueva.antigua-pickleball.com / nueva--*.netlify.app): usa las
+// colecciones *_test (aisladas en firestore.rules) en vez de las reales de producción.
+// Declarado primero en el script — varias constantes de más abajo (COLLECTION, CONFIG_DOC)
+// lo usan antes de que se llegue al bloque de init de Firebase.
+const IS_TEST_ENV = /^nueva/.test(location.hostname);
+const COL = (name) => IS_TEST_ENV ? `${name}_test` : name;
+if (IS_TEST_ENV) {
+  const _testBanner = () => {
+    const b = document.createElement('div');
+    b.textContent = '🧪 AMBIENTE DE PRUEBAS — datos de prueba, no afectan producción';
+    b.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:999999;background:#f59e0b;color:#111;text-align:center;font:700 12px/1.6 sans-serif;padding:4px 8px;letter-spacing:.03em;';
+    document.body.prepend(b);
+  };
+  document.body ? _testBanner() : document.addEventListener('DOMContentLoaded', _testBanner);
+}
+
 /* ══════════════════════════════════════════════════════
    SESIONES
 ══════════════════════════════════════════════════════ */
@@ -956,7 +972,7 @@ let SEMANAS = [
   { num: 8, fecha: '5 Sep', dia: 'Sábado', estado: 'pendiente' },
 ];
 
-const COLLECTION = 'ladder_registrations';
+const COLLECTION = COL('ladder_registrations');
 const HOLD_HOURS = 3; // horas que tiene un invitado (slot_available) para pagar antes de que venza
 
 // ¿Invitación a pagar un cupo liberado (slot_available) vigente? Sin invitedAt = congelado,
@@ -1167,7 +1183,7 @@ let _unsubscribers  = [];          // listeners de Firestore
 /* ══════════════════════════════════════════════════════
    CONFIG DE SESIONES (Firestore ↔ SEMANAS)
 ══════════════════════════════════════════════════════ */
-const CONFIG_DOC = 'ladder_config';
+const CONFIG_DOC = COL('ladder_config');
 const CONFIG_SEMANAS_ID = 't1_semanas';
 
 // Bono de dificultad de Cancha A (formato '2courts', 8+ jugadores; con 7 o menos
@@ -1616,7 +1632,7 @@ async function manualPromote(sesionNum, uid) {
 // ── Ver boleta desde Firestore (base64) ──
 async function viewBoleta(docId) {
   try {
-    const snap = await db.collection('ladder_boletas').doc(docId).get();
+    const snap = await db.collection(COL('ladder_boletas')).doc(docId).get();
     if (!snap.exists) { toast('Boleta no encontrada', true); return; }
     const data = snap.data().data; // data:image/jpeg;base64,... o data:application/pdf;base64,...
 
@@ -2120,7 +2136,7 @@ async function promoteWaitlist(sesionNum, categoria) {
       );
       await docRef.update({ inscritos: updated });
 
-      db.collection('ladder_notifications').add({
+      db.collection(COL('ladder_notifications')).add({
         type:        'promoted_from_waitlist',
         sesionNum, uid: pagado.uid, nombre: pagado.nombre, email: pagado.email || '',
         categoria,
@@ -2329,14 +2345,14 @@ function toast(msg, isErr = false) {
 let _notifUnsub = null;
 function subscribeNotifications() {
   if (_notifUnsub) _notifUnsub();
-  _notifUnsub = db.collection('ladder_notifications')
+  _notifUnsub = db.collection(COL('ladder_notifications'))
     .where('resolved', '==', false)
     .onSnapshot(snap => {
       // Firestore puede no tener índice para 'resolved' aún — fallback
       renderNotifications(snap.docs.map(d => ({ id: d.id, ...d.data() })));
     }, () => {
       // Sin índice — leer todo y filtrar en cliente
-      db.collection('ladder_notifications').get().then(snap => {
+      db.collection(COL('ladder_notifications')).get().then(snap => {
         renderNotifications(snap.docs
           .map(d => ({ id: d.id, ...d.data() }))
           .filter(n => !n.resolved));
@@ -2389,13 +2405,13 @@ function renderNotifications(notifs) {
 }
 
 async function resolveNotif(id) {
-  await db.collection('ladder_notifications').doc(id).update({ resolved: true }).catch(console.error);
+  await db.collection(COL('ladder_notifications')).doc(id).update({ resolved: true }).catch(console.error);
 }
 
 async function applyPenalty(uid, nombre, sesionNum, delta, notifId) {
   if (!confirm(`Aplicar ${delta} posición a ${nombre}. ¿Confirmar?`)) return;
   try {
-    await db.collection('ladder_penalties').add({
+    await db.collection(COL('ladder_penalties')).add({
       uid, nombre, sesionNum, delta,
       reason: delta === -1 ? 'late_cancel' : 'no_show',
       appliedAt: firebase.firestore.Timestamp.now(),
@@ -2424,7 +2440,7 @@ async function buscarJugadorCopiar() {
 
   // Buscar en todas las sesiones cargadas en _allSessions (cache del panel)
   const encontrados = [];
-  const sesSnap = await db.collection('ladder_registrations').get();
+  const sesSnap = await db.collection(COL('ladder_registrations')).get();
   sesSnap.forEach(doc => {
     const data = doc.data();
     (data.inscritos || []).forEach(p => {
@@ -2499,7 +2515,7 @@ async function ejecutarCopiarRegistro() {
   for (const chk of checks) {
     const sesNum = parseInt(chk.value);
     const docId  = `t1_sesion_${sesNum}`;
-    const ref    = db.collection('ladder_registrations').doc(docId);
+    const ref    = db.collection(COL('ladder_registrations')).doc(docId);
     const snap   = await ref.get();
     const inscritos = snap.exists ? (snap.data().inscritos || []) : [];
 
@@ -2719,7 +2735,7 @@ async function loadPublishedLadder() {
   const inner = document.getElementById('ladder-inner');
   inner.innerHTML = '<div style="color:var(--muted);font-size:.82rem;font-family:\'Space Mono\',monospace;padding:8px 0">Cargando publicado…</div>';
   try {
-    const snap = await db.collection('ladder_scores').get();
+    const snap = await db.collection(COL('ladder_scores')).get();
     if (snap.empty) {
       inner.innerHTML = '<div style="color:var(--muted);font-size:.85rem">No hay ranking publicado todavía.</div>';
       return;
@@ -2806,7 +2822,7 @@ async function loadPublishedLadder() {
 
 async function populatePublishSessionSelect() {
   const sel = document.getElementById('publish-session-select');
-  const snap = await db.collection('ladder_fixtures').get();
+  const snap = await db.collection(COL('ladder_fixtures')).get();
   const sessionNums = new Set();
   snap.docs.forEach(d => { const n = d.data().sesionNum; if (n) sessionNums.add(n); });
   const sorted = [...sessionNums].sort((a,b)=>a-b);
@@ -2821,7 +2837,7 @@ async function markSessionJugada(sesionNumOverride) {
   if (sesion.estado === 'jugada') { toast(`S${sn} ya está marcada como Jugada`); return; }
 
   // Verify all 3 categories are published before allowing
-  const snap = await db.collection('ladder_scores').get();
+  const snap = await db.collection(COL('ladder_scores')).get();
   const publishedCats = new Set();
   snap.docs.forEach(d => {
     Object.values(d.data().sessions || {}).forEach(s => {
@@ -2870,7 +2886,7 @@ async function confirmPublishSession() {
 
 async function checkAndSuggestJugada(sesionNum, statusEl) {
   try {
-    const snap = await db.collection('ladder_scores').get();
+    const snap = await db.collection(COL('ladder_scores')).get();
     const publishedCats = new Set();
     snap.docs.forEach(d => {
       Object.values(d.data().sessions || {}).forEach(s => {
@@ -2921,7 +2937,7 @@ async function exportDuprCsv() {
 
   for (const cat of ['principiante','intermedio','open']) {
     const docId = `t1_sesion_${sn}_${cat}`;
-    const snap = await db.collection('ladder_fixtures').doc(docId).get();
+    const snap = await db.collection(COL('ladder_fixtures')).doc(docId).get();
     if (!snap.exists) continue;
     const fx = snap.data();
     const pn = fx.playerNames || {};
@@ -2993,7 +3009,7 @@ async function publishSession(sesionNum, categoria) {
 
   for (const cat of cats) {
     const docId = `t1_sesion_${sesionNum}_${cat}`;
-    const doc = await db.collection('ladder_fixtures').doc(docId).get();
+    const doc = await db.collection(COL('ladder_fixtures')).doc(docId).get();
     if (!doc.exists) continue;
 
     const fx = doc.data();
@@ -3006,7 +3022,7 @@ async function publishSession(sesionNum, categoria) {
     if (!inscritos.length) {
       // Called from republishAllSessions — _allData may not be loaded, read directly
       try {
-        const regDoc = await db.collection('ladder_registrations').doc(`t1_sesion_${sesionNum}`).get();
+        const regDoc = await db.collection(COL('ladder_registrations')).doc(`t1_sesion_${sesionNum}`).get();
         (regDoc.exists ? regDoc.data().inscritos || [] : []).forEach(p => {
           if (p.uid && p.duprId) duprMap[p.uid] = p.duprId.trim();
         });
@@ -3062,7 +3078,7 @@ async function publishSession(sesionNum, categoria) {
   for (const [uid, data] of entries) {
     const docKey = data.duprId || uid;
     if (!docKey) { console.warn('[publish] Skipping player with no duprId or uid', data); continue; }
-    const ref = db.collection('ladder_scores').doc(docKey);
+    const ref = db.collection(COL('ladder_scores')).doc(docKey);
 
     // Build session entries
     const sessionsData = {};
@@ -3089,7 +3105,7 @@ async function publishSession(sesionNum, categoria) {
 }
 
 async function openDeletePublishedSession() {
-  const snap = await db.collection('ladder_scores').get();
+  const snap = await db.collection(COL('ladder_scores')).get();
   if (snap.empty) { toast('No hay ranking publicado', true); return; }
 
   // Collect all session keys
@@ -3136,7 +3152,7 @@ async function openDeletePublishedSession() {
 }
 
 async function computeGlobalLadder() {
-  const snap = await db.collection('ladder_fixtures').get();
+  const snap = await db.collection(COL('ladder_fixtures')).get();
   const allPlayers = {}; // canonicalKey -> { nombre, duprId, bySession: { 'sn_cat': ... } }
   // duprId → canonicalKey map so players with same DUPR ID merge
   const duprToKey = {};
@@ -3144,7 +3160,7 @@ async function computeGlobalLadder() {
   const uidToKey  = {};
 
   // Also load duprId from registrations to resolve uid→duprId
-  const regSnap = await db.collection('ladder_registrations').get();
+  const regSnap = await db.collection(COL('ladder_registrations')).get();
   const uidToDupr = {}; // uid -> duprId
   const uidToName = {}; // uid -> nombre (first seen)
   regSnap.docs.forEach(d => {
@@ -3343,7 +3359,7 @@ function deleteCurrentFixture() {
   if (!_fixtureCat) { toast('Abre primero el panel de fixture', true); return; }
   if (!confirm(`¿Borrar el fixture de ${_fixtureCat} · Sesión ${_currentSession}? Se perderán todos los resultados.`)) return;
   const docId = `t1_sesion_${_currentSession}_${_fixtureCat}`;
-  db.collection('ladder_fixtures').doc(docId).delete()
+  db.collection(COL('ladder_fixtures')).doc(docId).delete()
     .then(() => {
       toast(`✓ Fixture de ${_fixtureCat} · Sesión ${_currentSession} eliminado`);
       document.getElementById('fixture-panel').style.display = 'none';
@@ -3361,7 +3377,7 @@ async function deleteSessionFixtures(sesionNum) {
   const cats = ['principiante','intermedio','open'];
   try {
     await Promise.all(cats.map(c =>
-      db.collection('ladder_fixtures').doc(`t1_sesion_${sesionNum}_${c}`).delete().catch(()=>{})
+      db.collection(COL('ladder_fixtures')).doc(`t1_sesion_${sesionNum}_${c}`).delete().catch(()=>{})
     ));
     toast(`✓ Fixtures de Sesión ${sesionNum} eliminados`);
     document.getElementById('fixture-panel').style.display = 'none';
@@ -3391,13 +3407,13 @@ async function promptSetDuprId(currentKey, currentDuprId, nombre) {
   toast('Actualizando…');
   try {
     // 1. Read current doc
-    const oldRef = db.collection('ladder_scores').doc(currentKey);
+    const oldRef = db.collection(COL('ladder_scores')).doc(currentKey);
     const oldSnap = await oldRef.get();
     if (!oldSnap.exists) { toast('Doc no encontrado', true); return; }
     const oldData = oldSnap.data();
 
     // 2. Check if target doc already exists (merge case)
-    const newRef = db.collection('ladder_scores').doc(trimmed);
+    const newRef = db.collection(COL('ladder_scores')).doc(trimmed);
     const newSnap = await newRef.get();
     let mergedSessions = { ...(oldData.sessions || {}) };
     if (newSnap.exists) {
@@ -3417,7 +3433,7 @@ async function promptSetDuprId(currentKey, currentDuprId, nombre) {
     if (keyChanged) await oldRef.delete();
 
     // 5. Update duprId in all registration docs for this player
-    const regSnap = await db.collection('ladder_registrations').get();
+    const regSnap = await db.collection(COL('ladder_registrations')).get();
     const batch = db.batch();
     regSnap.docs.forEach(d => {
       const inscritos = d.data().inscritos || [];
@@ -3450,12 +3466,12 @@ async function republishAllSessions() {
   try {
     status.textContent = 'Borrando ladder_scores…';
     // Step 1: delete all existing ladder_scores docs
-    const existing = await db.collection('ladder_scores').get();
+    const existing = await db.collection(COL('ladder_scores')).get();
     await Promise.all(existing.docs.map(d => d.ref.delete()));
 
     // Step 2: find all fixture docs that have scored matches
     status.textContent = 'Leyendo fixtures…';
-    const fxSnap = await db.collection('ladder_fixtures').get();
+    const fxSnap = await db.collection(COL('ladder_fixtures')).get();
 
     // Gather all unique sesionNum+categoria combos
     const combos = new Set();
@@ -3490,7 +3506,7 @@ async function deduplicateLadderScores() {
   status.textContent = 'Leyendo registros…';
   try {
     // Step 1: build uid→duprId map from all registrations
-    const regSnap = await db.collection('ladder_registrations').get();
+    const regSnap = await db.collection(COL('ladder_registrations')).get();
     const uidToDupr = {};
     const uidToName = {};
     regSnap.docs.forEach(d => {
@@ -3501,7 +3517,7 @@ async function deduplicateLadderScores() {
     });
 
     status.textContent = 'Leyendo ladder_scores…';
-    const scoresSnap = await db.collection('ladder_scores').get();
+    const scoresSnap = await db.collection(COL('ladder_scores')).get();
 
     // Step 2: group docs by canonical key (duprId if known, else docId)
     const canonical = {}; // canonicalKey -> { nombre, duprId, uid, sessions, docsToDelete: [] }
@@ -3550,7 +3566,7 @@ async function deduplicateLadderScores() {
     let merged = 0, deleted = 0;
     for (const c of mergeTargets) {
       // Write merged doc under canonical key
-      await db.collection('ladder_scores').doc(c.primaryDocId).set({
+      await db.collection(COL('ladder_scores')).doc(c.primaryDocId).set({
         nombre: c.nombre,
         duprId: c.duprId || null,
         uid: c.uid,
@@ -3559,7 +3575,7 @@ async function deduplicateLadderScores() {
       merged++;
       // Delete stale docs
       for (const oldId of c.extraDocIds) {
-        await db.collection('ladder_scores').doc(oldId).delete();
+        await db.collection(COL('ladder_scores')).doc(oldId).delete();
         deleted++;
       }
     }
@@ -3585,7 +3601,7 @@ async function seedPlayersToSession() {
     const now = firebase.firestore.Timestamp.now();
 
     // Collect confirmed players of the same category from OTHER sessions
-    const allSnaps = await db.collection('ladder_registrations').get();
+    const allSnaps = await db.collection(COL('ladder_registrations')).get();
     const candidateMap = {}; // uid -> player (deduplicate)
     allSnaps.docs.forEach(d => {
       const sn = parseInt((d.id.match(/\d+$/) || [])[0]);
@@ -3607,7 +3623,7 @@ async function seedPlayersToSession() {
     const shuffled = candidates.sort(() => Math.random() - 0.5).slice(0, count);
 
     // Load existing dest session to avoid duplicates
-    const ref = db.collection('ladder_registrations').doc(`t1_sesion_${destSn}`);
+    const ref = db.collection(COL('ladder_registrations')).doc(`t1_sesion_${destSn}`);
     const snap = await ref.get();
     const existing = snap.exists ? (snap.data().inscritos || []) : [];
     const existingUids = new Set(existing.map(p => p.uid));
@@ -3649,10 +3665,10 @@ async function resetLeague() {
       await Promise.all(snap.docs.map(d => d.ref.delete()));
     };
 
-    await dels('ladder_fixtures');
-    await dels('ladder_penalties');
-    await dels('ladder_notifications');
-    await dels('ladder_scores');
+    await dels(COL('ladder_fixtures'));
+    await dels(COL('ladder_penalties'));
+    await dels(COL('ladder_notifications'));
+    await dels(COL('ladder_scores'));
 
     // Clear inscritos from all registration docs (keep doc structure)
     const regSnap = await db.collection(COLLECTION).get();
@@ -3788,7 +3804,7 @@ async function doGenerateFixture(sesionNum, categoria, btn) {
   fixture.generatedAt  = firebase.firestore.Timestamp.now();
 
   const docId = `t1_sesion_${sesionNum}_${categoria}`;
-  await db.collection('ladder_fixtures').doc(docId).set(fixture);
+  await db.collection(COL('ladder_fixtures')).doc(docId).set(fixture);
   toast(`✓ Fixture generado · ${categoria} · Sesión ${sesionNum}`);
   openFixtureForCat(sesionNum, categoria);
 }
@@ -3850,7 +3866,7 @@ async function sortByRanking(confirmed, sesionNum) {
 
   try {
     // Load published ladder_scores — keyed by DUPR ID
-    const snap = await db.collection('ladder_scores').get();
+    const snap = await db.collection(COL('ladder_scores')).get();
 
     // Compute avg per DUPR ID from published sessions (ALL players, no minimum sessions)
     // Drop worst score only if 3+ sessions, drop 2 worst if 7+
@@ -3868,7 +3884,7 @@ async function sortByRanking(confirmed, sesionNum) {
     });
 
     // Load active penalties (forceB)
-    const penSnap = await db.collection('ladder_penalties')
+    const penSnap = await db.collection(COL('ladder_penalties'))
       .where('activeSesion', '==', sesionNum)
       .where('resolved', '==', false).get().catch(() => ({ docs: [] }));
     const forcedB = new Set(penSnap.docs.map(d => d.data().uid));
@@ -3925,7 +3941,7 @@ async function renderFixtureCatSection(sesionNum, counts) {
   // Load fixture status for each category in parallel
   const statuses = await Promise.all(cats.map(async cat => {
     try {
-      const snap = await db.collection('ladder_fixtures').doc(`t1_sesion_${sesionNum}_${cat}`).get();
+      const snap = await db.collection(COL('ladder_fixtures')).doc(`t1_sesion_${sesionNum}_${cat}`).get();
       if (!snap.exists) return { cat, status: 'none' };
       const fx = snap.data();
       return { cat, status: fx.status || 'r1_active', fx };
@@ -4023,7 +4039,7 @@ async function loadAndRenderFixture(sesionNum, categoria) {
 
   try {
     console.log('[fixture] loading', sesionNum, categoria);
-    const snap = await db.collection('ladder_fixtures').doc(`t1_sesion_${sesionNum}_${categoria}`).get();
+    const snap = await db.collection(COL('ladder_fixtures')).doc(`t1_sesion_${sesionNum}_${categoria}`).get();
     console.log('[fixture] loaded, exists:', snap.exists);
     if (!snap.exists) {
       const cnt = (_allData[sesionNum]||[]).filter(p=>p.status==='confirmed'&&p.categoria===categoria).length;
@@ -4048,7 +4064,7 @@ async function loadAndRenderFixture(sesionNum, categoria) {
         if (r != null) playerDuprRating[uid] = r;
       });
       fx.playerDuprRating = playerDuprRating;
-      db.collection(COLN('ladder_fixtures')).doc(`t1_sesion_${sesionNum}_${categoria}`)
+      db.collection(COL('ladder_fixtures')).doc(`t1_sesion_${sesionNum}_${categoria}`)
         .update({ playerDuprRating }).catch(() => {});
     }
     console.log('[fixture] rendering HTML...');
@@ -4080,7 +4096,7 @@ function rankByCourt(uids, stats) {
 
 async function generateRound2(sesionNum, categoria) {
   const docId = `t1_sesion_${sesionNum}_${categoria}`;
-  const snap = await db.collection('ladder_fixtures').doc(docId).get().catch(e=>{toast('✕ '+e.message,true);return null;});
+  const snap = await db.collection(COL('ladder_fixtures')).doc(docId).get().catch(e=>{toast('✕ '+e.message,true);return null;});
   if (!snap || !snap.exists) return;
   const fx = snap.data();
   const r1 = (fx.rounds||[])[0];
@@ -4105,7 +4121,7 @@ async function generateRound2(sesionNum, categoria) {
   const r2A = genMatches(newCourtA, matchesForGroup(newCourtA.length)).map((m,i) => ({...m, id:`r2_A_m${i+1}`, court:'A', round:2}));
   const r2B = genMatches(newCourtB, matchesForGroup(newCourtB.length)).map((m,i) => ({...m, id:`r2_B_m${i+1}`, court:'B', round:2}));
 
-  await db.collection('ladder_fixtures').doc(docId).update({
+  await db.collection(COL('ladder_fixtures')).doc(docId).update({
     rounds:      [...(fx.rounds||[]), {num:2, matchesA:r2A, matchesB:r2B}],
     courtA_r2:   newCourtA,
     courtB_r2:   newCourtB,
@@ -4281,7 +4297,7 @@ async function trySaveScore(sesionNum, categoria, roundNum, court, matchId) {
   if (s1 === s2) { toast('El resultado no puede ser empate', true); return; }
 
   const docId = `t1_sesion_${sesionNum}_${categoria}`;
-  const snap = await db.collection('ladder_fixtures').doc(docId).get();
+  const snap = await db.collection(COL('ladder_fixtures')).doc(docId).get();
   if (!snap.exists) return;
   const fx = snap.data();
 
@@ -4298,7 +4314,7 @@ async function trySaveScore(sesionNum, categoria, roundNum, court, matchId) {
   });
 
   if (!updated) { toast('No se encontró el partido', true); return; }
-  await db.collection('ladder_fixtures').doc(docId).update({rounds:updatedRounds});
+  await db.collection(COL('ladder_fixtures')).doc(docId).update({rounds:updatedRounds});
   const scrollY = window.scrollY;
   await loadAndRenderFixture(parseInt(sesionNum), categoria);
   requestAnimationFrame(() => requestAnimationFrame(() => window.scrollTo({ top: scrollY, behavior: 'instant' })));
@@ -4402,7 +4418,7 @@ async function savePenalty() {
   }[type];
 
   try {
-    await db.collection('ladder_penalties').add({
+    await db.collection(COL('ladder_penalties')).add({
       uid, nombre, sesionNum,
       type,
       ...effect,

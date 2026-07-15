@@ -668,6 +668,15 @@ const auth    = firebase.auth();
 // Ambiente de pruebas (nueva.*): usa las colecciones *_test aisladas de firestore.rules
 const IS_TEST_ENV = /^nueva/.test(location.hostname);
 const COL = (name) => IS_TEST_ENV ? `${name}_test` : name;
+if (IS_TEST_ENV) {
+  const _testBanner = () => {
+    const b = document.createElement('div');
+    b.textContent = '🧪 AMBIENTE DE PRUEBAS — datos de prueba, no afectan producción';
+    b.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:999999;background:#f59e0b;color:#111;text-align:center;font:700 12px/1.6 sans-serif;padding:4px 8px;letter-spacing:.03em;';
+    document.body.prepend(b);
+  };
+  document.body ? _testBanner() : document.addEventListener('DOMContentLoaded', _testBanner);
+}
 // No se usa Firebase Storage — boletas guardadas como base64 en Firestore
 
 // Sign-in anónimo para que Firestore acepte lecturas/escrituras autenticadas.
@@ -698,7 +707,7 @@ async function initSesion() {
 initSesion();
 
 const DOC_ID      = `t1_sesion_${NUM}`;
-const COLLECTION  = 'ladder_registrations';
+const COLLECTION  = COL('ladder_registrations');
 const estadoLabels = {
   proxima:'Próxima', pendiente:'Pendiente', jugada:'Jugada',
   cancelada:'Cancelada', 'gran-final':'Gran Final'
@@ -2925,7 +2934,7 @@ async function saveRegistration(user, duprId, categoria, paypalOrderId, status, 
       const updatedList = freshInscritos2.slice();
       updatedList[existingIdx2] = updatedEntry;
       await docRef.update({ inscritos: updatedList });
-      db.collection('ladder_payments').add({
+      db.collection(COL('ladder_payments')).add({
         uid: user.uid, nombre, email: user.email||'',
         sesionNum: NUM, docId: DOC_ID, categoria, status: updatedEntry.status,
         paypalOrderId, amount: SESSION_PRICE, currency: 'USD',

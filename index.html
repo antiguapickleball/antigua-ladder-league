@@ -1574,7 +1574,7 @@ let _scoresSnap = null;
 let _scoresUnsub = null;
 function ensureLiveRanking() {
   if (_scoresUnsub) return;
-  _scoresUnsub = db.collection('ladder_scores').onSnapshot(s => {
+  _scoresUnsub = db.collection(COL('ladder_scores')).onSnapshot(s => {
     const first = _scoresSnap === null;
     _scoresSnap = s;
     if (!first) loadPublicRanking(_activeCat);
@@ -1588,7 +1588,7 @@ async function loadPublicRanking(cat) {
   ensureLiveRanking();
 
   try {
-    const snap = _scoresSnap || await db.collection('ladder_scores').get();
+    const snap = _scoresSnap || await db.collection(COL('ladder_scores')).get();
 
     if (snap.empty) {
       renderStaticStandings(_activeCat);
@@ -1846,7 +1846,7 @@ async function loadCalendarCupos() {
     const el = document.getElementById(`cupos-s${s.num}`);
     if (!el) continue;
     try {
-      const snap = await db.collection('ladder_registrations').doc(`t1_sesion_${s.num}`).get();
+      const snap = await db.collection(COL('ladder_registrations')).doc(`t1_sesion_${s.num}`).get();
       const inscritos = snap.exists ? (snap.data().inscritos || []) : [];
       const counts = {};
       cats.forEach(c => {
@@ -1908,6 +1908,18 @@ document.addEventListener('DOMContentLoaded', () => {
     appId: "1:270487643715:web:701b74a71253ac599056f6"
   });
   const db = firebase.firestore();
+  // Ambiente de pruebas (nueva.*): usa las colecciones *_test aisladas de firestore.rules
+  const IS_TEST_ENV = /^nueva/.test(location.hostname);
+  const COL = (name) => IS_TEST_ENV ? `${name}_test` : name;
+  if (IS_TEST_ENV) {
+    const _testBanner = () => {
+      const b = document.createElement('div');
+      b.textContent = '🧪 AMBIENTE DE PRUEBAS — datos de prueba, no afectan producción';
+      b.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:999999;background:#f59e0b;color:#111;text-align:center;font:700 12px/1.6 sans-serif;padding:4px 8px;letter-spacing:.03em;';
+      document.body.prepend(b);
+    };
+    document.body ? _testBanner() : document.addEventListener('DOMContentLoaded', _testBanner);
+  }
   // Sign in anonymously so Firestore rules allow reads
   firebase.auth().signInAnonymously().catch(e => console.warn('anon auth:', e));
 </script>
