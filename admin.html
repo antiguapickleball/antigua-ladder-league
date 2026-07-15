@@ -1165,6 +1165,19 @@ let _moveTarget     = null;
 let _unsubscribers  = [];          // listeners de Firestore
 
 /* ══════════════════════════════════════════════════════
+   CONFIG DE SESIONES (Firestore ↔ SEMANAS)
+══════════════════════════════════════════════════════ */
+const CONFIG_DOC = 'ladder_config';
+const CONFIG_SEMANAS_ID = 't1_semanas';
+
+// Bono de dificultad de Cancha A (formato '2courts', 8+ jugadores; con 7 o menos
+// todos juegan en '1court' y este factor nunca aplica). Se calcula por RONDA,
+// no por sesión completa, para reflejar el sube/baja de mitad de sesión: si
+// alguien juega Ronda 1 en A y Ronda 2 en B (o al revés), cada ronda pesa según
+// su propia cancha, no la cancha de inicio de sesión.
+const COURT_A_FACTOR = 1.20;
+
+/* ══════════════════════════════════════════════════════
    INIT — verificar admin
 ══════════════════════════════════════════════════════ */
 APAuth.onReady(async function(user) {
@@ -1190,19 +1203,6 @@ APAuth.onReady(async function(user) {
   subscribeAll();
   subscribeNotifications();
 });
-
-/* ══════════════════════════════════════════════════════
-   CONFIG DE SESIONES (Firestore ↔ SEMANAS)
-══════════════════════════════════════════════════════ */
-const CONFIG_DOC = 'ladder_config';
-const CONFIG_SEMANAS_ID = 't1_semanas';
-
-// Bono de dificultad de Cancha A (formato '2courts', 8+ jugadores; con 7 o menos
-// todos juegan en '1court' y este factor nunca aplica). Se calcula por RONDA,
-// no por sesión completa, para reflejar el sube/baja de mitad de sesión: si
-// alguien juega Ronda 1 en A y Ronda 2 en B (o al revés), cada ronda pesa según
-// su propia cancha, no la cancha de inicio de sesión.
-const COURT_A_FACTOR = 1.20;
 
 async function loadSemanasConfig() {
   try {
