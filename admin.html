@@ -1176,7 +1176,12 @@ APAuth.onReady(async function(user) {
   document.getElementById('admin-panel').style.display = 'block';
   document.getElementById('nav-username').textContent = user.displayName || user.email || 'Admin';
 
-  await auth.signInAnonymously().catch(() => {});
+  // No bloquear la carga del panel en esto — las lecturas son públicas (firestore.rules
+  // `allow read: if true`) y cada escritura ya re-verifica/re-establece el auth anónimo
+  // justo antes de escribir (ver `if (!auth.currentUser) await auth.signInAnonymously()`
+  // en publishSession). Si esta llamada se cuelga (red/extensión del navegador), un
+  // `await` aquí dejaría todo el panel pegado en "cargando..." para siempre.
+  auth.signInAnonymously().catch(() => {});
 
   // Cargar config de sesiones desde Firestore (sobreescribe hardcode si existe)
   await loadSemanasConfig();
