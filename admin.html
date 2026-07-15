@@ -3749,12 +3749,10 @@ async function doGenerateFixture(sesionNum, categoria, btn) {
     // 2 courts: top 5 by ladder ranking → Court A, rest → Court B
     // For session 1 or when no ranking: use registration order
     const sorted = await sortByRanking(confirmed, sesionNum);
-    // Cancha A: top players by score (incl. players with <3 sessions), máx 5, Cancha B mínimo 4
-    // Truly new players (_score=-1) sort to the bottom so they naturally land in Court B
-    const maxA = Math.min(5, n - 4);
-    // Don't assign penalized or truly new players to Court A
-    const eligibleForA = sorted.filter(p => !p._isNew && !p._forcedB).length;
-    const courtASize = Math.min(maxA, eligibleForA);
+    // Cancha A: tamaño fijo según n (8→4, 9→5, 10→5, 11→5, ...), Cancha B se lleva el resto
+    // (mínimo 4). Los jugadores nuevos/penalizados igual se ordenan al fondo (sortByRanking),
+    // así que solo entran a Cancha A si no hay suficientes veteranos elegibles para llenar el cupo.
+    const courtASize = Math.min(5, n - 4);
     const cAuids = sorted.slice(0, courtASize).map(p => p.uid);
     const cBuids = sorted.slice(courtASize).map(p => p.uid);
     const r1A = genMatches(cAuids, matchesForGroup(cAuids.length)).map((m,i) => ({...m, id:`r1_A_m${i+1}`, court:'A', round:1}));
@@ -3887,9 +3885,16 @@ async function sortByRanking(confirmed, sesionNum) {
     });
 
     // Sort: penalized last → by score desc (new players score = -1, go to bottom naturally)
+    // → tie-break among never-played players (all tied at -1) by DUPR doubles rating desc
     withScore.sort((a, b) => {
       if (a._forcedB !== b._forcedB) return a._forcedB ? 1 : -1;
-      return b._score - a._score;  // -1 for new players puts them at bottom
+      if (a._score !== b._score) return b._score - a._score;
+      if (a._isNew && b._isNew) {
+        const ratingA = _duprRatingCache[(a.duprId || '').trim()] || 0;
+        const ratingB = _duprRatingCache[(b.duprId || '').trim()] || 0;
+        return ratingB - ratingA;
+      }
+      return 0;
     });
 
     return withScore;
