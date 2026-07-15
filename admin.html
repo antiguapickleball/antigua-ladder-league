@@ -491,7 +491,7 @@
         <table>
           <thead>
             <tr>
-              <th>#</th><th>Jugador</th><th>Sesión</th><th>Categoría</th><th>DUPR</th><th>Registro</th><th>Acciones</th>
+              <th>#</th><th>Jugador</th><th>Sesión</th><th>Categoría</th><th>DUPR</th><th>Pago</th><th>Registro</th><th>Acciones</th>
             </tr>
           </thead>
           <tbody id="waitlist-tbody"></tbody>
@@ -1461,12 +1461,22 @@ function renderWaitlist() {
         ? `<button class="btn-action btn-accept" onclick="manualPromote(${p.sesionNum},'${p.uid}')">↑ Promover</button>`
         : `<button class="btn-action btn-accept" onclick="invitarAPagar(${p.sesionNum},'${p.uid}')">📲 Avisar cupo</button>
            <button class="btn-action btn-move" onclick="sugerirCambio(${p.sesionNum},'${p.uid}')">🔄 Sin cupo — sugerir cambio</button>`;
+    const pagoCell = p.paypalOrderId
+      ? `<span style="font-size:.72rem;font-weight:700;color:#0070ba">💳 PayPal</span><br>
+         <span style="font-size:.66rem;color:var(--muted);font-family:monospace;cursor:pointer;user-select:all" title="Click para copiar ID" onclick="navigator.clipboard.writeText('${p.paypalOrderId}');toast('Order ID copiado');">${p.paypalOrderId.slice(0,12)}…</span>`
+      : p.boletaDocId
+        ? `<span style="font-size:.72rem;font-weight:700;color:#166534">🏦 Transferencia</span><br>
+           <button onclick="viewBoleta('${p.boletaDocId}')" style="font-size:.68rem;color:var(--red);background:none;border:none;cursor:pointer;padding:0;font-weight:700">📎 Ver boleta</button>`
+        : p.paymentMethod === 'manual'
+          ? `<span style="font-size:.72rem;color:var(--muted)">📋 Manual</span>`
+          : `<span style="font-size:.72rem;font-weight:700;color:#92400e">✕ Sin pagar</span>`;
     return `<tr class="waitlist-row">
       <td class="num" style="font-weight:700;color:#92400e">${pos}°</td>
       <td class="nombre">${p.nombre}<br><span style="font-size:.72rem;color:var(--muted)">${p.email||''}</span></td>
       <td style="white-space:nowrap;font-size:.8rem">${sesLabels(p.sesionNum)}</td>
       <td>${p.categoria ? `<span class="cat-badge ${p.categoria}">${catLabels[p.categoria]||p.categoria}</span>` : '—'}</td>
       <td class="dupr">${p.duprId||'—'}</td>
+      <td style="white-space:nowrap">${pagoCell}</td>
       <td class="fecha">${fecha}</td>
       <td class="actions">
         ${promoBtn}
