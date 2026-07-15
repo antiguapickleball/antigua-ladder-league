@@ -948,12 +948,12 @@
 let SEMANAS = [
   { num: 1, fecha: '4 Jul',  dia: 'Sábado', estado: 'jugada'    },
   { num: 2, fecha: '18 Jul', dia: 'Sábado', estado: 'pendiente' },
-  { num: 3, fecha: '25 Jul', dia: 'Sábado', estado: 'pendiente' },
-  { num: 4, fecha: '1 Ago',  dia: 'Sábado', estado: 'pendiente' },
-  { num: 5, fecha: '8 Ago',  dia: 'Sábado', estado: 'pendiente' },
-  { num: 6, fecha: '15 Ago', dia: 'Sábado', estado: 'pendiente' },
-  { num: 7, fecha: '22 Ago', dia: 'Sábado', estado: 'pendiente' },
-  { num: 8, fecha: '29 Ago', dia: 'Sábado', estado: 'pendiente' },
+  { num: 3, fecha: '1 Ago', dia: 'Sábado', estado: 'pendiente' },
+  { num: 4, fecha: '8 Ago',  dia: 'Sábado', estado: 'pendiente' },
+  { num: 5, fecha: '15 Ago',  dia: 'Sábado', estado: 'pendiente' },
+  { num: 6, fecha: '22 Ago', dia: 'Sábado', estado: 'pendiente' },
+  { num: 7, fecha: '29 Ago', dia: 'Sábado', estado: 'pendiente' },
+  { num: 8, fecha: '5 Sep', dia: 'Sábado', estado: 'pendiente' },
 ];
 
 const COLLECTION = 'ladder_registrations';
@@ -2883,7 +2883,7 @@ async function checkAndSuggestJugada(sesionNum, statusEl) {
 const DUPR_CSV_HEADER = ['matchType','event','date','playerA1','playerA1DuprId','playerA1ExternalId','playerA2','playerA2DuprId','playerA2ExternalId','playerB1','playerB1DuprId','playerB1ExternalId','playerB2','playerB2DuprId','playerB2ExternalId','teamAGame1','teamBGame1','teamAGame2','teamBGame2','teamAGame3','teamBGame3','teamAGame4','teamBGame4','teamAGame5','teamBGame5','location','scoreType'];
 const DUPR_LOCATION = 'Club Quattro, La Antigua Guatemala';
 const DUPR_MESES = { Ene:'01',Feb:'02',Mar:'03',Abr:'04',May:'05',Jun:'06',Jul:'07',Ago:'08',Sep:'09',Oct:'10',Nov:'11',Dic:'12' };
-const DUPR_TEMPORADA_YEAR = 2026; // Temporada 1: Jul–Ago 2026
+const DUPR_TEMPORADA_YEAR = 2026; // Temporada 1: Jul–Sep 2026
 
 function duprCsvEscape(val) {
   const s = (val === null || val === undefined) ? '' : String(val);
