@@ -665,6 +665,9 @@ const FIREBASE_CONFIG = {
 if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
 const db      = firebase.firestore();
 const auth    = firebase.auth();
+// Ambiente de pruebas (nueva.*): usa las colecciones *_test aisladas de firestore.rules
+const IS_TEST_ENV = /^nueva/.test(location.hostname);
+const COL = (name) => IS_TEST_ENV ? `${name}_test` : name;
 // No se usa Firebase Storage — boletas guardadas como base64 en Firestore
 
 // Sign-in anónimo para que Firestore acepte lecturas/escrituras autenticadas.
@@ -680,7 +683,7 @@ const NUM    = parseInt(params.get('n') || '1', 10);
 // Cargar config de sesiones desde Firestore antes de renderizar
 async function initSesion() {
   try {
-    const snap = await db.collection('ladder_config').doc('t1_semanas').get();
+    const snap = await db.collection(COL('ladder_config')).doc('t1_semanas').get();
     if (snap.exists && snap.data().semanas?.length) {
       SEMANAS = snap.data().semanas;
     }
@@ -908,7 +911,7 @@ async function loadUserDuprId(uid) {
 async function yaJugoCategoria(duprId, categoria) {
   if (!duprId) return false;
   try {
-    const doc = await db.collection('ladder_scores').doc(duprId).get();
+    const doc = await db.collection(COL('ladder_scores')).doc(duprId).get();
     if (!doc.exists) return false;
     const sessions = doc.data().sessions || {};
     return Object.values(sessions).some(s => s.categoria === categoria && s.pj > 0);
@@ -1206,7 +1209,7 @@ async function compressBoleta(file) {
 // ── Guardar boleta en colección separada de Firestore ──
 async function saveBoleta(uid, sesionNum, base64Data) {
   const docId = `${uid}_t1_sesion_${sesionNum}`;
-  await db.collection('ladder_boletas').doc(docId).set({
+  await db.collection(COL('ladder_boletas')).doc(docId).set({
     uid, sesionNum,
     data:      base64Data,
     savedAt:   firebase.firestore.Timestamp.now(),
@@ -1785,7 +1788,7 @@ function appendSegundaCategoria(container, user, myRegs, inscritos) {
       try {
         const reader = new FileReader();
         const b64 = await new Promise((res, rej) => { reader.onload = e => res(e.target.result); reader.onerror = rej; reader.readAsDataURL(file2); });
-        const boletaRef = await db.collection('ladder_boletas').add({ uid: user.uid, sesionNum: NUM, uploadedAt: firebase.firestore.Timestamp.now(), file: b64, fileName: file2.name });
+        const boletaRef = await db.collection(COL('ladder_boletas')).add({ uid: user.uid, sesionNum: NUM, uploadedAt: firebase.firestore.Timestamp.now(), file: b64, fileName: file2.name });
         boletaDocId = boletaRef.id;
       } catch (_) {}
       await saveRegistration(user, getDuprId2(), cat2, null, 'pending_review', { paymentMethod:'transfer', phone:phone2, boletaDocId, nombre: getNombre2() });
@@ -2375,7 +2378,7 @@ function mountPayPalButtonsSlot(user, reg) {
         });
         if (phone) db.collection('users').doc(user.uid).set({ phone }, { merge: true }).catch(() => {});
 
-        db.collection('ladder_payments').add({
+        db.collection(COL('ladder_payments')).add({
           uid: user.uid, nombre: reg.nombre, email: user.email||'',
           sesionNum: NUM, docId: DOC_ID, categoria: reg.categoria, status: updatedEntry.status,
           paypalOrderId: order.id, amount: SESSION_PRICE, currency: 'USD',
@@ -2737,7 +2740,7 @@ function mountPayPalButtonsMove(user, reg, targetNum) {
         }, { merge: true });
         if (phone) db.collection('users').doc(user.uid).set({ phone }, { merge: true }).catch(() => {});
 
-        db.collection('ladder_payments').add({
+        db.collection(COL('ladder_payments')).add({
           uid: user.uid, nombre: reg.nombre, email: user.email||'',
           sesionNum: targetNum, docId: `t1_sesion_${targetNum}`, categoria: reg.categoria, status: entry.status,
           paypalOrderId: order.id, amount: SESSION_PRICE, currency: 'USD',
@@ -2869,7 +2872,7 @@ async function forfeitSpot(user, reg, penaliza) {
   try {
     // Aviso de penalización −1 para que el admin lo aplique (no automático)
     if (penaliza) {
-      db.collection('ladder_notifications').add({
+      db.collection(COL('ladder_notifications')).add({
         type:       'late_cancel',
         sesionNum:  NUM,
         categoria:  reg.categoria,
@@ -2904,8 +2907,34 @@ async function saveRegistration(user, duprId, categoria, paypalOrderId, status, 
   // Guardia contra condición de carrera: re-verificar al momento de guardar
   const freshSnap2 = await docRef.get();
   const freshInscritos2 = freshSnap2.exists ? (freshSnap2.data().inscritos || []) : [];
-  // Bloquear si ya está inscrito en esta misma categoría (doble submit)
-  if (freshInscritos2.some(p => p.uid === user.uid && p.categoria === categoria)) return;
+  // Bloquear doble submit si ya está inscrito en esta misma categoría — PERO si este intento
+  // trae un pago real ya capturado (paypalOrderId), NUNCA hay que perderlo en silencio: se
+  // asocia al registro existente en vez de descartarlo. Esto puede pasar si el jugador entra
+  // a lista de espera gratis y, sin saberlo (ej. una pestaña/pago de PayPal que ya estaba en
+  // curso), termina de pagar después — sin este fix, el cargo quedaba hecho en PayPal pero el
+  // sitio nunca mostraba el pago (bug real reportado por un jugador, 2026-07-15).
+  const existingIdx2 = freshInscritos2.findIndex(p => p.uid === user.uid && p.categoria === categoria);
+  if (existingIdx2 !== -1) {
+    if (paypalOrderId && !freshInscritos2[existingIdx2].paid) {
+      const updatedEntry = {
+        ...freshInscritos2[existingIdx2],
+        paypalOrderId,
+        paidUSD: SESSION_PRICE,
+        paid:    true,
+      };
+      const updatedList = freshInscritos2.slice();
+      updatedList[existingIdx2] = updatedEntry;
+      await docRef.update({ inscritos: updatedList });
+      db.collection('ladder_payments').add({
+        uid: user.uid, nombre, email: user.email||'',
+        sesionNum: NUM, docId: DOC_ID, categoria, status: updatedEntry.status,
+        paypalOrderId, amount: SESSION_PRICE, currency: 'USD',
+        paidAt: firebase.firestore.Timestamp.now(), env: PAYPAL_ENV,
+      }).catch(() => {});
+      avisarNuevoRegistroAdmin(NUM, categoria, updatedEntry);
+    }
+    return;
+  }
   if (status === 'confirmed' && isFullForNew(freshInscritos2, categoria)) {
     status = 'waitlist';
   }
@@ -2938,7 +2967,7 @@ async function saveRegistration(user, duprId, categoria, paypalOrderId, status, 
 
   // Auditoría — registrar todo pago capturado (confirmado o en lista de espera autorizada)
   if (paypalOrderId) {
-    db.collection('ladder_payments').add({
+    db.collection(COL('ladder_payments')).add({
       uid: user.uid, nombre, email: user.email||'',
       sesionNum: NUM, docId: DOC_ID, categoria, status,
       paypalOrderId, amount: SESSION_PRICE, currency: 'USD',
