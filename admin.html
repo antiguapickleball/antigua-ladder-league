@@ -1215,6 +1215,7 @@ APAuth.onReady(async function(user) {
   // Cargar config de sesiones desde Firestore (sobreescribe hardcode si existe)
   await loadSemanasConfig();
 
+  _currentSession = getNextSessionNum();
   buildTabs();
   subscribeAll();
   subscribeNotifications();
@@ -1301,6 +1302,20 @@ async function saveSessions() {
   } finally {
     btn.disabled = false; btn.textContent = 'Guardar cambios';
   }
+}
+
+// Sesión con la que abre el panel por defecto: la próxima que no ha pasado (por fecha),
+// sin contar canceladas. Si ya pasaron todas (temporada terminada), abre en la última.
+const MES_MAP_ADMIN = { Ene:0,Feb:1,Mar:2,Abr:3,May:4,Jun:5,Jul:6,Ago:7,Sep:8,Oct:9,Nov:10,Dic:11 };
+function getNextSessionNum() {
+  const hoy = new Date();
+  const hoyYMD = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
+  const candidatas = SEMANAS.filter(s => s.estado !== 'cancelada');
+  const proxima = candidatas.find(s => {
+    const [day, mon] = s.fecha.split(' ');
+    return new Date(2026, MES_MAP_ADMIN[mon], parseInt(day, 10)) >= hoyYMD;
+  });
+  return proxima ? proxima.num : (candidatas[candidatas.length - 1]?.num || 1);
 }
 
 /* ══════════════════════════════════════════════════════
