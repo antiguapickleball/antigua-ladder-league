@@ -3751,6 +3751,82 @@ function genMatches(uids, total) {
   return matches;
 }
 
+// ── Balance de partidos por DUPR ──
+// Prioridad 1 (todos juegan una vez de pareja con todos, hasta donde sea matematicamente
+// posible) y prioridad 2 (mismo numero de partidos jugados) del genMatches original NUNCA
+// se sacrifican -- esto solo elige, entre los repartos que igualan la mejor cobertura de
+// parejas ya alcanzada hoy, el que deje el peor partido individual (mayor diferencia de
+// DUPR entre los 2 equipos de un mismo partido) lo menos desparejo posible.
+function _permute(arr) {
+  if (arr.length <= 1) return [arr];
+  const result = [];
+  for (let i = 0; i < arr.length; i++) {
+    const rest = [...arr.slice(0, i), ...arr.slice(i + 1)];
+    for (const p of _permute(rest)) result.push([arr[i], ...p]);
+  }
+  return result;
+}
+function _shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+function _uniquePairsCovered(matches) {
+  const s = new Set();
+  matches.forEach(m => { s.add(_pk(m.pair1[0], m.pair1[1])); s.add(_pk(m.pair2[0], m.pair2[1])); });
+  return s.size;
+}
+function _worstDuprDiff(matches, duprEff) {
+  let worst = 0;
+  matches.forEach(m => {
+    const s1 = m.pair1.reduce((s,u) => s + (duprEff[u]||0), 0);
+    const s2 = m.pair2.reduce((s,u) => s + (duprEff[u]||0), 0);
+    worst = Math.max(worst, Math.abs(s1 - s2));
+  });
+  return worst;
+}
+// Jugador sin DUPR -> se le asigna el promedio del grupo (de los que si tienen), solo para
+// este calculo. Si NADIE en el grupo tiene DUPR, retorna null (no hay balance posible).
+function _effectiveDuprMap(uids, duprRating) {
+  const known = uids.map(u => (duprRating||{})[u]).filter(v => v != null);
+  if (!known.length) return null;
+  const avg = known.reduce((a,b) => a+b, 0) / known.length;
+  const map = {};
+  uids.forEach(u => { map[u] = (duprRating||{})[u] != null ? duprRating[u] : avg; });
+  return map;
+}
+
+// Genera partidos priorizando SIEMPRE la cobertura de parejas y el reparto de descansos
+// (genMatches original, sin tocarlo) -- entre los repartos que logran esa misma mejor
+// cobertura, elige el de menor "peor partido" (mayor diferencia de DUPR en un mismo partido).
+// 4-5 jugadores: prueba las n! formas posibles (max. 120, instantaneo) -> optimo garantizado.
+// 6-7 jugadores: no existe una unica estructura optima para esos tamanos (matematicamente no
+// se puede cubrir cada pareja exactamente una vez), asi que prueba 300 ordenes al azar sobre
+// el mismo algoritmo de hoy -> mejora fuerte, sin garantia de optimo absoluto.
+function genMatchesBalanced(uids, total, duprRating) {
+  const baseline = genMatches(uids, total);
+  if (uids.length < 4 || uids.length > 7 || total <= 0) return baseline;
+
+  const duprEff = _effectiveDuprMap(uids, duprRating);
+  if (!duprEff) return baseline; // nadie del grupo tiene DUPR -- sin cambios de comportamiento
+
+  const baselineCoverage = _uniquePairsCovered(baseline);
+  const attempts = uids.length <= 5 ? _permute(uids) : Array.from({length: 300}, () => _shuffle(uids));
+
+  let best = baseline;
+  let bestWorst = _worstDuprDiff(baseline, duprEff);
+  for (const order of attempts) {
+    const candidate = genMatches(order, total);
+    if (_uniquePairsCovered(candidate) < baselineCoverage) continue; // nunca peor que hoy
+    const w = _worstDuprDiff(candidate, duprEff);
+    if (w < bestWorst) { bestWorst = w; best = candidate; }
+  }
+  return best;
+}
+
 // ── Generate and save fixture ──
 async function doGenerateFixture(sesionNum, categoria, btn) {
   const isS1 = sesionNum === 1;
@@ -3786,8 +3862,8 @@ async function doGenerateFixture(sesionNum, categoria, btn) {
     const courtASize = Math.min(5, n - 4);
     const cAuids = sorted.slice(0, courtASize).map(p => p.uid);
     const cBuids = sorted.slice(courtASize).map(p => p.uid);
-    const r1A = genMatches(cAuids, matchesForGroup(cAuids.length)).map((m,i) => ({...m, id:`r1_A_m${i+1}`, court:'A', round:1}));
-    const r1B = genMatches(cBuids, matchesForGroup(cBuids.length)).map((m,i) => ({...m, id:`r1_B_m${i+1}`, court:'B', round:1}));
+    const r1A = genMatchesBalanced(cAuids, matchesForGroup(cAuids.length), playerDuprRating).map((m,i) => ({...m, id:`r1_A_m${i+1}`, court:'A', round:1}));
+    const r1B = genMatchesBalanced(cBuids, matchesForGroup(cBuids.length), playerDuprRating).map((m,i) => ({...m, id:`r1_B_m${i+1}`, court:'B', round:1}));
     fixture = {
       format:'2courts', totalRounds:2,
       courtA:cAuids, courtB:cBuids,
@@ -3798,9 +3874,9 @@ async function doGenerateFixture(sesionNum, categoria, btn) {
     const uids = confirmed.map(p => p.uid);
     const totalRounds = n <= 5 ? 2 : 1;
     const perRound = matchesForGroup(n);
-    const r1 = genMatches(uids, perRound).map((m,i) => ({...m, id:`r1_m${i+1}`, round:1}));
+    const r1 = genMatchesBalanced(uids, perRound, playerDuprRating).map((m,i) => ({...m, id:`r1_m${i+1}`, round:1}));
     const r2 = totalRounds === 2
-      ? genMatches(uids, perRound).map((m,i) => ({...m, id:`r2_m${i+1}`, round:2}))
+      ? genMatchesBalanced(uids, perRound, playerDuprRating).map((m,i) => ({...m, id:`r2_m${i+1}`, round:2}))
       : null;
     fixture = {
       format:'1court', totalRounds,
@@ -4133,8 +4209,8 @@ async function generateRound2(sesionNum, categoria) {
   const newCourtA = [...stayA, ...upB];
   const newCourtB = [...stayB, ...downA];
 
-  const r2A = genMatches(newCourtA, matchesForGroup(newCourtA.length)).map((m,i) => ({...m, id:`r2_A_m${i+1}`, court:'A', round:2}));
-  const r2B = genMatches(newCourtB, matchesForGroup(newCourtB.length)).map((m,i) => ({...m, id:`r2_B_m${i+1}`, court:'B', round:2}));
+  const r2A = genMatchesBalanced(newCourtA, matchesForGroup(newCourtA.length), fx.playerDuprRating).map((m,i) => ({...m, id:`r2_A_m${i+1}`, court:'A', round:2}));
+  const r2B = genMatchesBalanced(newCourtB, matchesForGroup(newCourtB.length), fx.playerDuprRating).map((m,i) => ({...m, id:`r2_B_m${i+1}`, court:'B', round:2}));
 
   await db.collection(COL('ladder_fixtures')).doc(docId).update({
     rounds:      [...(fx.rounds||[]), {num:2, matchesA:r2A, matchesB:r2B}],
