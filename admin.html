@@ -950,8 +950,15 @@ const COL = (name) => IS_TEST_ENV ? `${name}_test` : name;
 if (IS_TEST_ENV) {
   const _testBanner = () => {
     const b = document.createElement('div');
-    b.textContent = '🧪 AMBIENTE DE PRUEBAS — datos de prueba, no afectan producción';
-    b.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:999999;background:#f59e0b;color:#111;text-align:center;font:700 12px/1.6 sans-serif;padding:4px 8px;letter-spacing:.03em;';
+    b.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:999999;background:#f59e0b;color:#111;text-align:center;font:700 12px/1.6 sans-serif;padding:4px 8px;letter-spacing:.03em;display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;';
+    const span = document.createElement('span');
+    span.textContent = '🧪 AMBIENTE DE PRUEBAS — datos de prueba, no afectan producción';
+    const btn = document.createElement('button');
+    btn.textContent = '🔄 Sincronizar con producción';
+    btn.style.cssText = 'font:700 11px/1.4 sans-serif;background:#111;color:#f59e0b;border:none;padding:3px 10px;cursor:pointer;border-radius:3px;';
+    btn.onclick = () => syncTestDataFromProduction(btn);
+    b.appendChild(span);
+    b.appendChild(btn);
     document.body.prepend(b);
   };
   document.body ? _testBanner() : document.addEventListener('DOMContentLoaded', _testBanner);
@@ -3705,6 +3712,45 @@ async function resetLeague() {
     console.error(e);
     toast('✕ Error durante el reset: ' + e.message, true);
   }
+}
+
+// Solo tiene efecto en el ambiente de pruebas (botón en el banner naranja, ver arriba) —
+// copia inscripciones, ranking y config REALES de producción a las colecciones *_test,
+// para simular con datos actuales sin tocar nada real. Nunca escribe en las colecciones
+// reales (los nombres de origen están hardcodeados, no pasan por COL()).
+async function syncTestDataFromProduction(btn) {
+  if (!IS_TEST_ENV) return;
+  if (!confirm('Esto sobreescribe las colecciones _test con una copia de los datos REALES de producción (inscripciones, ranking, config). No toca nada real. ¿Continuar?')) return;
+
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Sincronizando…'; }
+  try {
+    // Inscripciones — todas las semanas conocidas
+    for (const s of SEMANAS) {
+      const docId = `t1_sesion_${s.num}`;
+      const snap = await db.collection('ladder_registrations').doc(docId).get();
+      if (snap.exists) await db.collection('ladder_registrations_test').doc(docId).set(snap.data());
+    }
+
+    // Ranking — espejo exacto: borra lo que sobre en _test, luego copia todo lo real
+    const [realScores, testScores] = await Promise.all([
+      db.collection('ladder_scores').get(),
+      db.collection('ladder_scores_test').get(),
+    ]);
+    const realIds = new Set(realScores.docs.map(d => d.id));
+    const staleDocs = testScores.docs.filter(d => !realIds.has(d.id));
+    await Promise.all(staleDocs.map(d => d.ref.delete()));
+    await Promise.all(realScores.docs.map(d => db.collection('ladder_scores_test').doc(d.id).set(d.data())));
+
+    // Config de semanas
+    const cfgSnap = await db.collection('ladder_config').doc('t1_semanas').get();
+    if (cfgSnap.exists) await db.collection('ladder_config_test').doc('t1_semanas').set(cfgSnap.data());
+
+    toast(`✓ Ambiente de pruebas sincronizado con producción${staleDocs.length ? ` (${staleDocs.length} doc(s) viejos de ranking borrados)` : ''}`);
+  } catch (e) {
+    console.error(e);
+    toast('✕ Error al sincronizar: ' + (e.message || e), true);
+  }
+  if (btn) { btn.disabled = false; btn.textContent = '🔄 Sincronizar con producción'; }
 }
 
 /* ══════════════════════════════════════════════════════
