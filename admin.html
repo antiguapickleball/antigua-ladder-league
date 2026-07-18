@@ -4509,6 +4509,43 @@ async function savePenalty() {
   }[type];
 
   try {
+    // Siempre sale del roster de la sesión ACTUAL, sin importar el tipo — no siguió jugando.
+    const docId = `t1_sesion_${sesionNum}`;
+    const docRef = db.collection(COLLECTION).doc(docId);
+    const snap = await docRef.get();
+    const list = snap.exists ? (snap.data().inscritos || []) : [];
+    const player = list.find(p => p.uid === uid);
+    await docRef.update({ inscritos: list.filter(p => p.uid !== uid) });
+    // Si tenía cupo confirmado, liberarlo promueve al siguiente de la lista de espera
+    if (player?.status === 'confirmed' && player.categoria) promoteWaitlist(sesionNum, player.categoria);
+
+    // Cancelaciones (48h+ / 24-48h) → se reubica automático en la siguiente sesión.
+    // No-shows (<24h / total) → NO se mueve: la inscripción se cancela del todo; la
+    // penalización (Cancha B / lista de espera) queda guardada y aplica sola si vuelve
+    // a inscribirse en Sesión N+1 (vía sortByRanking/forcedB al generar ese fixture).
+    let moveMsg = '';
+    if ((type === 'cancel_48' || type === 'cancel_24_48') && player) {
+      const targetNum = sesionNum + 1;
+      const dstDocId  = `t1_sesion_${targetNum}`;
+      const dstRef    = db.collection(COLLECTION).doc(dstDocId);
+      const dstSnap   = await dstRef.get();
+      const dstList   = dstSnap.exists ? (dstSnap.data().inscritos || []) : [];
+      const confirmedCount = dstList.filter(p => p.status === 'confirmed' && p.categoria === player.categoria).length;
+      const finalStatus = confirmedCount >= 10 ? 'waitlist' : 'confirmed';
+      await dstRef.set({
+        sesionNum: targetNum,
+        inscritos: firebase.firestore.FieldValue.arrayUnion({
+          ...player,
+          status:    finalStatus,
+          movedFrom: sesionNum,
+          movedAt:   firebase.firestore.Timestamp.now(),
+        }),
+      }, { merge: true });
+      moveMsg = finalStatus === 'waitlist'
+        ? ` · movido a Sesión ${targetNum} (lista de espera, categoría llena)`
+        : ` · movido a Sesión ${targetNum}`;
+    }
+
     await db.collection(COL('ladder_penalties')).add({
       uid, nombre, sesionNum,
       type,
@@ -4519,10 +4556,10 @@ async function savePenalty() {
     });
     closeModal('modal-penalty');
     const msg = {
-      cancel_48:    `✓ Cancelación sin penalización registrada para ${nombre}`,
-      cancel_24_48: `✓ Cancelación tardía registrada (sin reintegro) · ${nombre}`,
-      no_show_lt24: `⚠️ Penalización registrada · ${nombre} entra a Cancha B en Sesión ${sesionNum+1}`,
-      no_show:      `⚠️ Penalización registrada · ${nombre} entra a lista de espera en Sesión ${sesionNum+1}`,
+      cancel_48:    `✓ Cancelación sin penalización registrada para ${nombre}${moveMsg}`,
+      cancel_24_48: `✓ Cancelación tardía registrada (sin reintegro) · ${nombre}${moveMsg}`,
+      no_show_lt24: `⚠️ Penalización registrada · ${nombre} sale del roster · si se inscribe en Sesión ${sesionNum+1} entra forzado a Cancha B`,
+      no_show:      `⚠️ Penalización registrada · ${nombre} sale del roster · si se inscribe en Sesión ${sesionNum+1} entra forzado a lista de espera`,
     }[type];
     toast(msg);
   } catch(err) {
