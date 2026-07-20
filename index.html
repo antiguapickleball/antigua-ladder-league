@@ -1554,7 +1554,8 @@ const JUGADORES = {
   ],
 };
 
-const SEMANAS = [
+// Fallback — se sobreescribe con datos de Firestore en loadSemanasConfig()
+let SEMANAS = [
   { num: 1, fecha: '4 Jul',  estado: 'jugada'                         },
   { num: 2, fecha: '18 Jul', estado: 'jugada'                      },
   { num: 3, fecha: '1 Ago', estado: 'pendiente'                      },
@@ -1863,16 +1864,31 @@ async function loadCalendarCupos() {
   }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-  // Wait for anonymous auth before reading Firestore
+// Carga el estado real de las sesiones desde Firestore (jugada/pendiente/cancelada) —
+// SEMANAS hardcodeado arriba es solo el fallback si esto falla.
+async function loadSemanasConfig() {
+  try {
+    const snap = await db.collection(COL('ladder_config')).doc('t1_semanas').get();
+    if (snap.exists && snap.data().semanas?.length) {
+      SEMANAS = snap.data().semanas;
+    }
+  } catch(e) { /* usa fallback hardcodeado */ }
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
+  await loadSemanasConfig();
+  renderCalendar();
+  renderNextSessionCard();
+
+  // Wait for anonymous auth before reading Firestore — para entonces SEMANAS
+  // y las tarjetas del calendario ya están listas, así que loadCalendarCupos()
+  // encuentra los elementos #cupos-sN correctos.
   firebase.auth().onAuthStateChanged(user => {
     if (user) {
       loadPublicRanking(_activeCat || 'principiante');
       loadCalendarCupos();
     }
   });
-  renderCalendar();
-  renderNextSessionCard();
 
   document.querySelectorAll('.s-tab').forEach(btn => {
     btn.addEventListener('click', () => {

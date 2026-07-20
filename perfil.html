@@ -910,7 +910,8 @@ function catRows(scoreDocs, cat) {
   return rows;
 }
 
-const SEMANAS = [
+// Fallback — se sobreescribe con datos de Firestore en loadSemanasConfig()
+let SEMANAS = [
   { num: 1, fecha: '4 Jul',  estado: 'jugada'                         },
   { num: 2, fecha: '18 Jul', estado: 'jugada'                      },
   { num: 3, fecha: '1 Ago', estado: 'pendiente'                      },
@@ -962,6 +963,17 @@ function myCategoria() {
   return null;
 }
 
+// Carga el estado real de las sesiones desde Firestore (jugada/pendiente/cancelada) —
+// SEMANAS hardcodeado arriba es solo el fallback si esto falla.
+async function loadSemanasConfig() {
+  try {
+    const snap = await db.collection(COL('ladder_config')).doc('t1_semanas').get();
+    if (snap.exists && snap.data().semanas?.length) {
+      SEMANAS = snap.data().semanas;
+    }
+  } catch(e) { /* usa fallback hardcodeado */ }
+}
+
 // ── Carga principal ──
 async function loadProfile(user) {
   _user = user;
@@ -973,6 +985,7 @@ async function loadProfile(user) {
   renderNavChip(user);
 
   await whenAuthed();
+  await loadSemanasConfig();
 
   const prof = await loadProfileDoc(user.uid);
   _duprId = ((prof && prof.duprId) || '').trim();
