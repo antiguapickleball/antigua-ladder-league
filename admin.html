@@ -1193,12 +1193,21 @@ let _unsubscribers  = [];          // listeners de Firestore
 const CONFIG_DOC = COL('ladder_config');
 const CONFIG_SEMANAS_ID = 't1_semanas';
 
-// Bono de dificultad de Cancha A (formato '2courts', 8+ jugadores; con 7 o menos
-// todos juegan en '1court' y este factor nunca aplica). Se calcula por RONDA,
-// no por sesión completa, para reflejar el sube/baja de mitad de sesión: si
+// Bono de dificultad por cancha (formatos '2courts'/'3courts', 8+ jugadores; con 7
+// o menos todos juegan en '1court' y estos factores nunca aplican). Se calcula por
+// RONDA, no por sesión completa, para reflejar el sube/baja de mitad de sesión: si
 // alguien juega Ronda 1 en A y Ronda 2 en B (o al revés), cada ronda pesa según
 // su propia cancha, no la cancha de inicio de sesión.
+// En '2courts' solo A tiene bono (B = 1.0, sin cambios). En '3courts' (12 jugadores,
+// canchas A/B/C) B pasa a tener un bono intermedio — decisión de Luis 2026-07-20.
 const COURT_A_FACTOR = 1.20;
+const COURT_B_FACTOR = 1.10; // solo aplica cuando fx.format === '3courts'
+function courtFactor(court, format, isS1) {
+  if (isS1) return 1.0;
+  if (court === 'A') return COURT_A_FACTOR;
+  if (court === 'B' && format === '3courts') return COURT_B_FACTOR;
+  return 1.0;
+}
 
 /* ══════════════════════════════════════════════════════
    INIT — verificar admin
@@ -2971,6 +2980,10 @@ async function exportDuprCsv() {
       if (fx.format === '2courts') {
         (r.matchesA||[]).forEach(m => allMatches.push(m));
         (r.matchesB||[]).forEach(m => allMatches.push(m));
+      } else if (fx.format === '3courts') {
+        (r.matchesA||[]).forEach(m => allMatches.push(m));
+        (r.matchesB||[]).forEach(m => allMatches.push(m));
+        (r.matchesC||[]).forEach(m => allMatches.push(m));
       } else {
         (r.matches||[]).forEach(m => allMatches.push(m));
       }
@@ -3055,8 +3068,8 @@ async function publishSession(sesionNum, categoria) {
     // que se jugó ESA ronda, no la cancha de inicio de sesión (corrige el bug de
     // sube/baja a mitad de sesión — ver bitácora 2026-07-05).
     const processMatches = (matches, uids, court) => {
-      const stats = computeStandings(matches, uids, court, isS1);
-      const factor = (!isS1 && court === 'A') ? COURT_A_FACTOR : 1.0;
+      const stats = computeStandings(matches, uids, court, isS1, fx.format);
+      const factor = courtFactor(court, fx.format, isS1);
       const key = `${sesionNum}_${cat}`;
       Object.entries(stats).forEach(([uid, s]) => {
         if (s.pj === 0) return;
@@ -3080,6 +3093,19 @@ async function publishSession(sesionNum, categoria) {
       if (r2) {
         processMatches(r2.matchesA||[], fx.courtA_r2||fx.courtA, 'A');
         processMatches(r2.matchesB||[], fx.courtB_r2||fx.courtB, 'B');
+      }
+    } else if (fx.format === '3courts') {
+      const rounds = fx.rounds || [];
+      const r1 = rounds[0], r2 = rounds[1];
+      if (r1) {
+        processMatches(r1.matchesA||[], fx.courtA, 'A');
+        processMatches(r1.matchesB||[], fx.courtB, 'B');
+        processMatches(r1.matchesC||[], fx.courtC, 'C');
+      }
+      if (r2) {
+        processMatches(r2.matchesA||[], fx.courtA_r2||fx.courtA, 'A');
+        processMatches(r2.matchesB||[], fx.courtB_r2||fx.courtB, 'B');
+        processMatches(r2.matchesC||[], fx.courtC_r2||fx.courtC, 'C');
       }
     } else {
       (fx.rounds||[]).forEach(r => processMatches(r.matches||[], fx.courtA, null));
@@ -3225,8 +3251,8 @@ async function computeGlobalLadder() {
     // Mismo criterio que publishSession(): puntos ponderados por RONDA, no por
     // sesión completa (corrige sube/baja a mitad de sesión).
     const addStats = (matches, uids, court) => {
-      const stats = computeStandings(matches, uids, court, isS1);
-      const factor = (!isS1 && court === 'A') ? COURT_A_FACTOR : 1.0;
+      const stats = computeStandings(matches, uids, court, isS1, fx.format);
+      const factor = courtFactor(court, fx.format, isS1);
       Object.entries(stats).forEach(([uid, s]) => {
         if (s.pj === 0) return;
         const key = getKey(uid, pn[uid]);
@@ -3250,6 +3276,19 @@ async function computeGlobalLadder() {
       if (r2) {
         addStats(r2.matchesA||[], fx.courtA_r2||fx.courtA, 'A');
         addStats(r2.matchesB||[], fx.courtB_r2||fx.courtB, 'B');
+      }
+    } else if (fx.format === '3courts') {
+      const rounds = fx.rounds || [];
+      const r1 = rounds[0], r2 = rounds[1];
+      if (r1) {
+        addStats(r1.matchesA||[], fx.courtA, 'A');
+        addStats(r1.matchesB||[], fx.courtB, 'B');
+        addStats(r1.matchesC||[], fx.courtC, 'C');
+      }
+      if (r2) {
+        addStats(r2.matchesA||[], fx.courtA_r2||fx.courtA, 'A');
+        addStats(r2.matchesB||[], fx.courtB_r2||fx.courtB, 'B');
+        addStats(r2.matchesC||[], fx.courtC_r2||fx.courtC, 'C');
       }
     } else {
       (fx.rounds||[]).forEach(r => addStats(r.matches||[], fx.courtA, null));
@@ -3898,7 +3937,25 @@ async function doGenerateFixture(sesionNum, categoria, btn) {
   const n = confirmed.length;
   let fixture;
 
-  if (n >= 8) {
+  if (n === 12) {
+    // 3 canchas virtuales A/B/C de 4 jugadores cada una (solo Intermedio, cupo 12) —
+    // 2 canchas físicas siguen alcanzando: cada cancha virtual juega round robin simple
+    // (4 jugadores, 3 partidos, sin descansos) y se turnan en las 2 canchas físicas.
+    // Diseño acordado con Luis 2026-07-20, ver bitácora.
+    const sorted = await sortByRanking(confirmed, sesionNum);
+    const cAuids = sorted.slice(0, 4).map(p => p.uid);
+    const cBuids = sorted.slice(4, 8).map(p => p.uid);
+    const cCuids = sorted.slice(8, 12).map(p => p.uid);
+    const r1A = genMatchesBalanced(cAuids, matchesForGroup(cAuids.length), playerDuprRating).map((m,i) => ({...m, id:`r1_A_m${i+1}`, court:'A', round:1}));
+    const r1B = genMatchesBalanced(cBuids, matchesForGroup(cBuids.length), playerDuprRating).map((m,i) => ({...m, id:`r1_B_m${i+1}`, court:'B', round:1}));
+    const r1C = genMatchesBalanced(cCuids, matchesForGroup(cCuids.length), playerDuprRating).map((m,i) => ({...m, id:`r1_C_m${i+1}`, court:'C', round:1}));
+    fixture = {
+      format:'3courts', totalRounds:2,
+      courtA:cAuids, courtB:cBuids, courtC:cCuids,
+      rounds:[{num:1, matchesA:r1A, matchesB:r1B, matchesC:r1C}],
+      r2generated:false,
+    };
+  } else if (n >= 8) {
     // 2 courts: top 5 by ladder ranking → Court A, rest → Court B
     // For session 1 or when no ranking: use registration order
     const sorted = await sortByRanking(confirmed, sesionNum);
@@ -4103,9 +4160,13 @@ async function renderFixtureCatSection(sesionNum, counts) {
       const r2 = (fx?.rounds||[])[1];
       const allR1 = fx?.format === '2courts'
         ? (r1?.matchesA||[]).every(m=>m.score) && (r1?.matchesB||[]).every(m=>m.score) && (r1?.matchesA||[]).length > 0
+        : fx?.format === '3courts'
+        ? (r1?.matchesA||[]).every(m=>m.score) && (r1?.matchesB||[]).every(m=>m.score) && (r1?.matchesC||[]).every(m=>m.score) && (r1?.matchesA||[]).length > 0
         : (r1?.matches||[]).every(m=>m.score) && (r1?.matches||[]).length > 0;
       const allR2 = fx?.format === '2courts'
         ? (r2?.matchesA||[]).every(m=>m.score) && (r2?.matchesB||[]).every(m=>m.score) && (r2?.matchesA||[]).length > 0
+        : fx?.format === '3courts'
+        ? (r2?.matchesA||[]).every(m=>m.score) && (r2?.matchesB||[]).every(m=>m.score) && (r2?.matchesC||[]).every(m=>m.score) && (r2?.matchesA||[]).length > 0
         : (r2?.matches||[]).every(m=>m.score) && (r2?.matches||[]).length > 0;
       // R2 existe si fue generada (2courts) o ya venía pre-generada (1court ≤5 jugadores)
       const r2exists = fx?.r2generated || (fx?.format === '1court' && (fx?.rounds||[]).length >= 2);
@@ -4238,6 +4299,48 @@ async function generateRound2(sesionNum, categoria) {
   const fx = snap.data();
   const r1 = (fx.rounds||[])[0];
 
+  if (fx.format === '3courts') {
+    // Ascenso/descenso escalonado entre 3 canchas: 2 mejores de C → B, 2 mejores de
+    // B → A, 2 peores de A → B, 2 peores de B → C. Diseño acordado con Luis 2026-07-20.
+    const statsA = computeStandings(r1.matchesA||[], fx.courtA, 'A', fx.isSession1, '3courts');
+    const statsB = computeStandings(r1.matchesB||[], fx.courtB, 'B', fx.isSession1, '3courts');
+    const statsC = computeStandings(r1.matchesC||[], fx.courtC, 'C', fx.isSession1, '3courts');
+    const rankA  = rankByCourt(fx.courtA||[], statsA);
+    const rankB  = rankByCourt(fx.courtB||[], statsB);
+    const rankC  = rankByCourt(fx.courtC||[], statsC);
+
+    const topA = rankA.slice(0, 2), bottomA = rankA.slice(2);
+    const topB = rankB.slice(0, 2), bottomB = rankB.slice(2);
+    const topC = rankC.slice(0, 2), bottomC = rankC.slice(2);
+
+    const newCourtA = [...topA, ...topB];
+    const newCourtB = [...bottomA, ...topC];
+    const newCourtC = [...bottomB, ...bottomC];
+
+    const r2A = genMatchesBalanced(newCourtA, matchesForGroup(newCourtA.length), fx.playerDuprRating).map((m,i) => ({...m, id:`r2_A_m${i+1}`, court:'A', round:2}));
+    const r2B = genMatchesBalanced(newCourtB, matchesForGroup(newCourtB.length), fx.playerDuprRating).map((m,i) => ({...m, id:`r2_B_m${i+1}`, court:'B', round:2}));
+    const r2C = genMatchesBalanced(newCourtC, matchesForGroup(newCourtC.length), fx.playerDuprRating).map((m,i) => ({...m, id:`r2_C_m${i+1}`, court:'C', round:2}));
+
+    await db.collection(COL('ladder_fixtures')).doc(docId).update({
+      rounds:       [...(fx.rounds||[]), {num:2, matchesA:r2A, matchesB:r2B, matchesC:r2C}],
+      courtA_r2:    newCourtA,
+      courtB_r2:    newCourtB,
+      courtC_r2:    newCourtC,
+      promotedToA:  topB,
+      promotedToB:  topC,
+      relegatedToB: bottomA,
+      relegatedToC: bottomB,
+      r2generated:  true,
+      status:       'r2_active',
+    });
+
+    toast('✓ Ronda 2 generada — grupos actualizados');
+    const _sy3 = window.scrollY;
+    await loadAndRenderFixture(parseInt(sesionNum), categoria);
+    requestAnimationFrame(() => requestAnimationFrame(() => window.scrollTo({ top: _sy3, behavior: 'instant' })));
+    return;
+  }
+
   // Rank each court by R1 performance
   const statsA = computeStandings(r1.matchesA||[], fx.courtA, 'A', fx.isSession1);
   const statsB = computeStandings(r1.matchesB||[], fx.courtB, 'B', fx.isSession1);
@@ -4293,6 +4396,21 @@ function renderFixtureHTML(fx, sesionNum, categoria) {
       <div class="court-block court-b">
         <div class="court-label">Cancha B</div>
         ${(fx.courtB||[]).map((u,i)=>`<div class="court-player"><span style="color:var(--muted);font-size:.7rem;margin-right:6px">${i+1}.</span>${pn[u]||u}${ratingBadge(u)}</div>`).join('')}
+      </div>
+    </div>`;
+  } else if (fx.format === '3courts') {
+    html += `<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:24px">
+      <div class="court-block court-a">
+        <div class="court-label">🏆 Cancha A</div>
+        ${(fx.courtA||[]).map((u,i)=>`<div class="court-player"><span style="color:var(--muted);font-size:.7rem;margin-right:6px">${i+1}.</span>${pn[u]||u}${ratingBadge(u)}</div>`).join('')}
+      </div>
+      <div class="court-block court-b">
+        <div class="court-label">Cancha B</div>
+        ${(fx.courtB||[]).map((u,i)=>`<div class="court-player"><span style="color:var(--muted);font-size:.7rem;margin-right:6px">${i+1}.</span>${pn[u]||u}${ratingBadge(u)}</div>`).join('')}
+      </div>
+      <div class="court-block court-b">
+        <div class="court-label">Cancha C</div>
+        ${(fx.courtC||[]).map((u,i)=>`<div class="court-player"><span style="color:var(--muted);font-size:.7rem;margin-right:6px">${i+1}.</span>${pn[u]||u}${ratingBadge(u)}</div>`).join('')}
       </div>
     </div>`;
   } else {
@@ -4351,6 +4469,63 @@ function renderFixtureHTML(fx, sesionNum, categoria) {
           ${allScoredB ? renderStandingsTable(computeStandings(round.matchesB,courtBuids,'B',isS1),pn, round.num===1?movement?.B:null) : ''}
         </div>
       </div>`;
+    } else if (fx.format === '3courts') {
+      const allScoredA = (round.matchesA||[]).length > 0 && (round.matchesA||[]).every(m=>m.score);
+      const allScoredB = (round.matchesB||[]).length > 0 && (round.matchesB||[]).every(m=>m.score);
+      const allScoredC = (round.matchesC||[]).length > 0 && (round.matchesC||[]).every(m=>m.score);
+      const r1Complete = allScoredA && allScoredB && allScoredC;
+
+      // Para R1: quién sube/baja para R2 (solo si R1 está completa y R2 aún no existe)
+      let movement = null;
+      if (round.num === 1 && r1Complete && !fx.r2generated) {
+        const statsA = computeStandings(round.matchesA||[], fx.courtA, 'A', isS1, '3courts');
+        const statsB = computeStandings(round.matchesB||[], fx.courtB, 'B', isS1, '3courts');
+        const statsC = computeStandings(round.matchesC||[], fx.courtC, 'C', isS1, '3courts');
+        const rankA  = rankByCourt(fx.courtA||[], statsA);
+        const rankB  = rankByCourt(fx.courtB||[], statsB);
+        const rankC  = rankByCourt(fx.courtC||[], statsC);
+        const downA  = new Set(rankA.slice(2));
+        const upFromB = new Set(rankB.slice(0, 2));
+        const downFromB = new Set(rankB.slice(2));
+        const upC    = new Set(rankC.slice(0, 2));
+        // movementA: entran de B; movementB: suben a A y bajan a C; movementC: entran de B
+        movement = {
+          A: { up: upFromB, down: new Set() },
+          B: { up: upC, down: new Set([...downA]) },
+          C: { up: new Set(), down: downFromB },
+        };
+      }
+
+      const courtAuids = round.num === 2 ? (fx.courtA_r2||fx.courtA||[]) : (fx.courtA||[]);
+      const courtBuids = round.num === 2 ? (fx.courtB_r2||fx.courtB||[]) : (fx.courtB||[]);
+      const courtCuids = round.num === 2 ? (fx.courtC_r2||fx.courtC||[]) : (fx.courtC||[]);
+
+      const progFor = (matches) => {
+        const scored = (matches||[]).filter(m=>m.score).length;
+        const total  = (matches||[]).length;
+        return scored < total ? ` <span style="font-weight:400;font-size:.7rem;opacity:.8">(${scored}/${total} resultados)</span>` : ` <span style="font-size:.7rem">✓</span>`;
+      };
+
+      html += `<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px">
+        <div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:.75rem;font-weight:900;text-transform:uppercase;letter-spacing:.1em;color:#065f46;margin-bottom:8px;background:#dcfce7;padding:4px 10px">Cancha A${progFor(round.matchesA)}</div>
+          ${round.num === 2 ? `<div style="font-size:.75rem;color:var(--muted);margin-bottom:8px;padding:4px 0">${courtAuids.map(u=>`<span style="display:inline-block;background:${(fx.promotedToA||[]).includes(u)?'#dcfce7':'#f0f0ee'};padding:1px 6px;margin:1px;font-size:.72rem">${(fx.promotedToA||[]).includes(u)?'⬆ ':''} ${pn[u]||u}</span>`).join('')}</div>` : ''}
+          ${(round.matchesA||[]).map(m=>renderMatchRow(m,pn,'A',isS1,sesionNum,categoria,round.num)).join('')}
+          ${allScoredA ? renderStandingsTable(computeStandings(round.matchesA,courtAuids,'A',isS1,'3courts'),pn, round.num===1?movement?.A:null) : ''}
+        </div>
+        <div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:.75rem;font-weight:900;text-transform:uppercase;letter-spacing:.1em;color:#1d4ed8;margin-bottom:8px;background:#dbeafe;padding:4px 10px">Cancha B${progFor(round.matchesB)}</div>
+          ${round.num === 2 ? `<div style="font-size:.75rem;color:var(--muted);margin-bottom:8px;padding:4px 0">${courtBuids.map(u=>`<span style="display:inline-block;background:${(fx.promotedToB||[]).includes(u)?'#dcfce7':(fx.relegatedToB||[]).includes(u)?'#fef2f2':'#f0f0ee'};padding:1px 6px;margin:1px;font-size:.72rem">${(fx.promotedToB||[]).includes(u)?'⬆ ':(fx.relegatedToB||[]).includes(u)?'⬇ ':''} ${pn[u]||u}</span>`).join('')}</div>` : ''}
+          ${(round.matchesB||[]).map(m=>renderMatchRow(m,pn,'B',isS1,sesionNum,categoria,round.num)).join('')}
+          ${allScoredB ? renderStandingsTable(computeStandings(round.matchesB,courtBuids,'B',isS1,'3courts'),pn, round.num===1?movement?.B:null) : ''}
+        </div>
+        <div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:.75rem;font-weight:900;text-transform:uppercase;letter-spacing:.1em;color:#92400e;margin-bottom:8px;background:#fef3c7;padding:4px 10px">Cancha C${progFor(round.matchesC)}</div>
+          ${round.num === 2 ? `<div style="font-size:.75rem;color:var(--muted);margin-bottom:8px;padding:4px 0">${courtCuids.map(u=>`<span style="display:inline-block;background:${(fx.relegatedToC||[]).includes(u)?'#fef2f2':'#f0f0ee'};padding:1px 6px;margin:1px;font-size:.72rem">${(fx.relegatedToC||[]).includes(u)?'⬇ ':''} ${pn[u]||u}</span>`).join('')}</div>` : ''}
+          ${(round.matchesC||[]).map(m=>renderMatchRow(m,pn,'C',isS1,sesionNum,categoria,round.num)).join('')}
+          ${allScoredC ? renderStandingsTable(computeStandings(round.matchesC,courtCuids,'C',isS1,'3courts'),pn, round.num===1?movement?.C:null) : ''}
+        </div>
+      </div>`;
     } else {
       const allScored = (round.matches||[]).length > 0 && (round.matches||[]).every(m=>m.score);
       html += `<div>${(round.matches||[]).map(m=>renderMatchRow(m,pn,null,isS1,sesionNum,categoria,round.num)).join('')}</div>`;
@@ -4383,6 +4558,39 @@ function renderFixtureHTML(fx, sesionNum, categoria) {
       const pending = [];
       if (pendA > 0) pending.push(`${pendA} partido${pendA>1?'s':''} en Cancha A`);
       if (pendB > 0) pending.push(`${pendB} partido${pendB>1?'s':''} en Cancha B`);
+      html += `<div style="margin:16px 0;padding:12px 16px;background:#fafaf8;border:1px solid var(--border);font-size:.82rem;color:var(--muted)">
+        ⏳ Faltan resultados: ${pending.join(' · ')}
+      </div>`;
+    }
+  }
+
+  // Botón Generar Ronda 2 (3 canchas) — mismo criterio que 2courts, con Cancha C también completa
+  if (fx.format === '3courts' && fx.totalRounds === 2 && !fx.r2generated) {
+    const r1 = (fx.rounds||[])[0];
+    const r1Complete = r1 &&
+      (r1.matchesA||[]).length > 0 && (r1.matchesA||[]).every(m=>m.score) &&
+      (r1.matchesB||[]).length > 0 && (r1.matchesB||[]).every(m=>m.score) &&
+      (r1.matchesC||[]).length > 0 && (r1.matchesC||[]).every(m=>m.score);
+    if (r1Complete) {
+      html += `<div style="margin:20px 0;padding:16px;background:#f0fdf4;border:2px solid #6ee7b7;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+        <div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:1rem;text-transform:uppercase;color:#065f46">✓ Ronda 1 completa</div>
+          <div style="font-size:.82rem;color:#065f46;margin-top:2px">Ascenso/descenso escalonado entre A/B/C para Ronda 2. Puedes ajustar manualmente desde "Editar" si necesitas mover un jugador.</div>
+        </div>
+        <button class="btn-modal btn-save" onclick="generateRound2('${sesionNum}','${categoria}')" style="background:#065f46;white-space:nowrap">▶ Generar Ronda 2</button>
+      </div>`;
+    } else {
+      const r1p = (fx.rounds||[])[0];
+      const doneA = (r1p?.matchesA||[]).filter(m=>m.score).length;
+      const pendA = (r1p?.matchesA||[]).length - doneA;
+      const doneB = (r1p?.matchesB||[]).filter(m=>m.score).length;
+      const pendB = (r1p?.matchesB||[]).length - doneB;
+      const doneC = (r1p?.matchesC||[]).filter(m=>m.score).length;
+      const pendC = (r1p?.matchesC||[]).length - doneC;
+      const pending = [];
+      if (pendA > 0) pending.push(`${pendA} partido${pendA>1?'s':''} en Cancha A`);
+      if (pendB > 0) pending.push(`${pendB} partido${pendB>1?'s':''} en Cancha B`);
+      if (pendC > 0) pending.push(`${pendC} partido${pendC>1?'s':''} en Cancha C`);
       html += `<div style="margin:16px 0;padding:12px 16px;background:#fafaf8;border:1px solid var(--border);font-size:.82rem;color:var(--muted)">
         ⏳ Faltan resultados: ${pending.join(' · ')}
       </div>`;
@@ -4447,6 +4655,7 @@ async function trySaveScore(sesionNum, categoria, roundNum, court, matchId) {
       return {...m, score:{s1,s2}};
     });
     if (fx.format === '2courts') return {...r, matchesA:upd(r.matchesA), matchesB:upd(r.matchesB)};
+    if (fx.format === '3courts') return {...r, matchesA:upd(r.matchesA), matchesB:upd(r.matchesB), matchesC:upd(r.matchesC)};
     return {...r, matches:upd(r.matches)};
   });
 
@@ -4458,7 +4667,7 @@ async function trySaveScore(sesionNum, categoria, roundNum, court, matchId) {
 }
 
 // ── Standings computation ──
-function computeStandings(matches, uids, court, isS1) {
+function computeStandings(matches, uids, court, isS1, format) {
   const pts = {w:1, l:0};
   const s = {};
   (uids||[]).forEach(u => s[u] = {pj:0, pg:0, pp:0, pf:0, pc:0, pts:0});
@@ -4475,11 +4684,11 @@ function computeStandings(matches, uids, court, isS1) {
   });
 
   const maxPts = 1;
-  const courtFactor = (!isS1 && court === 'A') ? COURT_A_FACTOR : 1.0;
+  const factor = courtFactor(court, format, isS1);
   Object.values(s).forEach(r => {
     r.pctPG      = r.pj > 0 ? r.pg / r.pj : 0;
     r.pctPts     = (r.pf+r.pc) > 0 ? r.pf / (r.pf+r.pc) : 0;
-    r.ladderScore= r.pj > 0 ? (r.pts / (r.pj * maxPts)) * courtFactor : 0;
+    r.ladderScore= r.pj > 0 ? (r.pts / (r.pj * maxPts)) * factor : 0;
   });
   return s;
 }
