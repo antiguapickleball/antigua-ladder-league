@@ -773,7 +773,7 @@ function loadInscritos(currentUser) {
 const PAYPAL_ENV      = 'production';   // client-id LIVE activo
 const SESSION_PRICE   = '10.00';
 const TRANSFER_PRICE  = 'Q75';
-const CAP_POR_CAT     = { principiante:10, intermedio:12, open:10 };  // máximo confirmados por categoría
+const CAP_POR_CAT     = 10;          // máximo confirmados por categoría
 
 // Correo al admin (antiguapickleball@gmail.com) vía EmailJS cuando se libera un cupo.
 window.EMAIL_CFG = {
@@ -846,10 +846,10 @@ function getOccupiedCounts(inscritos) {
 // Cupo lleno para gente NUEVA (usa getOccupiedCounts). NO usar para el chequeo de
 // "¿ya me ganaron el cupo?" de quien ya fue invitado — eso sigue usando isFull() (solo confirmed).
 function isFullForNew(inscritos, cat) {
-  return getOccupiedCounts(inscritos)[cat] >= CAP_POR_CAT[cat];
+  return getOccupiedCounts(inscritos)[cat] >= CAP_POR_CAT;
 }
 function isFull(inscritos, cat) {
-  return getCounts(inscritos)[cat] >= CAP_POR_CAT[cat];
+  return getCounts(inscritos)[cat] >= CAP_POR_CAT;
 }
 
 // ── Buscar sesiones alternativas con espacio disponible ──
@@ -870,8 +870,8 @@ async function loadAltSessions(categoria) {
       const snap = await db.collection(COLLECTION).doc(`t1_sesion_${s.num}`).get();
       const inscritos = snap.exists ? (snap.data().inscritos || []) : [];
       const count = getOccupiedCounts(inscritos)[categoria] || 0;
-      if (count < CAP_POR_CAT[categoria]) {
-        results.push({ num: s.num, fecha: s.fecha, disponibles: CAP_POR_CAT[categoria] - count });
+      if (count < CAP_POR_CAT) {
+        results.push({ num: s.num, fecha: s.fecha, disponibles: CAP_POR_CAT - count });
       }
     }));
 
@@ -1396,7 +1396,7 @@ function renderRegContainer(user, inscritos) {
       <div class="cat-options" id="cat-options">
         ${CATEGORIAS.map(c => {
           const count = counts[c.id];
-          const full  = occupied[c.id] >= CAP_POR_CAT[c.id];
+          const full  = occupied[c.id] >= CAP_POR_CAT;
           const waitCount = getWaitCounts(_inscritos)[c.id] || 0;
           const yaEnCat = myRegs.some(r => r.categoria === c.id);
           return `<label class="cat-option${full?' cat-full':''}${yaEnCat?' cat-full':''}" ${yaEnCat?'title="Ya estás inscrito en esta categoría"':''}>
@@ -1404,7 +1404,7 @@ function renderRegContainer(user, inscritos) {
             <div class="cat-option-inner">
               <div class="cat-option-top">
                 <span class="cat-option-name">${c.label}</span>
-                <span class="cat-option-cap ${full||yaEnCat?'full':''}">${yaEnCat?'YA INSCRITO':count+'/'+CAP_POR_CAT[c.id]+(full?' · LLENO':'')}</span>
+                <span class="cat-option-cap ${full||yaEnCat?'full':''}">${yaEnCat?'YA INSCRITO':count+'/'+CAP_POR_CAT+(full?' · LLENO':'')}</span>
               </div>
               <span class="cat-option-rango">DUPR ${c.rango} · ${c.hora}</span>
               ${yaEnCat ? '' : full ? `<span class="cat-option-wait">⏳ Lista de espera${waitCount > 0 ? ` · ${waitCount} esperando` : ' disponible'}</span>` : ''}
@@ -1700,14 +1700,14 @@ function appendSegundaCategoria(container, user, myRegs, inscritos) {
           ${CATEGORIAS.map(c => {
             const yaEn  = catsInscritas.has(c.id);
             const count = counts[c.id] || 0;
-            const full  = (occupied[c.id] || 0) >= CAP_POR_CAT[c.id];
+            const full  = (occupied[c.id] || 0) >= CAP_POR_CAT;
             const wc    = waitCounts[c.id] || 0;
             return `<label class="cat-option${yaEn||full?' cat-full':''}">
               <input type="radio" name="categoria2" value="${c.id}" ${yaEn?'disabled':''} />
               <div class="cat-option-inner">
                 <div class="cat-option-top">
                   <span class="cat-option-name">${c.label}</span>
-                  <span class="cat-option-cap ${yaEn||full?'full':''}">${yaEn?'YA INSCRITO':count+'/'+CAP_POR_CAT[c.id]+(full?' · LLENO':'')}</span>
+                  <span class="cat-option-cap ${yaEn||full?'full':''}">${yaEn?'YA INSCRITO':count+'/'+CAP_POR_CAT+(full?' · LLENO':'')}</span>
                 </div>
                 <span class="cat-option-rango">DUPR ${c.rango} · ${c.hora}</span>
                 ${!yaEn && full ? `<span class="cat-option-wait">⏳ Lista de espera${wc>0?' · '+wc+' esperando':' disponible'}</span>` : ''}

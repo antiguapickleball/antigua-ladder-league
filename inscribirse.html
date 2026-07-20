@@ -335,7 +335,7 @@
     };
     document.body ? _testBanner() : document.addEventListener('DOMContentLoaded', _testBanner);
   }
-  const CAP_POR_CAT = { principiante:10, intermedio:12, open:10 };
+  const CAP_POR_CAT = 10;
 
   // Fallback — se sobreescribe con datos de Firestore
   let SEMANAS = [
@@ -395,7 +395,7 @@
   function totalConfirmed(counts, num) {
     return CATS.reduce((a,c) => a + counts[num][c].confirmed, 0);
   }
-  const TOTAL_MAX = CATS.reduce((a,c) => a + CAP_POR_CAT[c], 0); // 32
+  const TOTAL_MAX = CAP_POR_CAT * CATS.length; // 30
 
   // ── Render ────────────────────────────────────────────────────────────────
   function badgeHtml(estado, available) {

@@ -850,10 +850,9 @@
    + ladder_scores (ranking). Ya no hay datos de relleno. */
 const CAT_LABELS = { principiante:'Principiante', intermedio:'Intermedio', open:'Open' };
 
-// Deben coincidir con COURT_A_FACTOR/COURT_B_FACTOR en admin.html — solo para
-// mostrarle al jugador de dónde sale su puntaje, no se usa para publicar nada.
+// Debe coincidir con COURT_A_FACTOR en admin.html — solo para mostrarle al
+// jugador de dónde sale su puntaje, no se usa para publicar nada.
 const COURT_A_FACTOR = 1.20;
-const COURT_B_FACTOR = 1.10; // solo aplica cuando el fixture es formato '3courts'
 
 // Perfil del usuario (para DUPR ID) — lectura por documentId (la sesión anónima no puede leer el doc directo)
 let _profileCache;
@@ -1137,8 +1136,6 @@ function extractMyMatches(fx, uid) {
   (fx.rounds || []).forEach(round => {
     const grupos = fx.format === '2courts'
       ? [{ lista: round.matchesA || [], cancha: 'A' }, { lista: round.matchesB || [], cancha: 'B' }]
-      : fx.format === '3courts'
-      ? [{ lista: round.matchesA || [], cancha: 'A' }, { lista: round.matchesB || [], cancha: 'B' }, { lista: round.matchesC || [], cancha: 'C' }]
       : [{ lista: round.matches || [], cancha: null }];
     grupos.forEach(({ lista, cancha }) => {
       lista.forEach(m => {
@@ -1167,13 +1164,7 @@ function extractMyMatches(fx, uid) {
 // Calcula la tabla de un grupo (misma lógica que computeStandings en admin.html,
 // agregando el puntaje ponderado por cancha) — para que el jugador vea de dónde
 // sale exactamente el número final de su sesión, no solo su propio resultado.
-function courtFactor(court, format, isS1) {
-  if (isS1) return 1.0;
-  if (court === 'A') return COURT_A_FACTOR;
-  if (court === 'B' && format === '3courts') return COURT_B_FACTOR;
-  return 1.0;
-}
-function computeCourtStandings(matches, uids, court, isS1, format) {
+function computeCourtStandings(matches, uids, court, isS1) {
   const s = {};
   (uids || []).forEach(u => s[u] = { pj:0, pg:0, pp:0, pf:0, pc:0 });
   (matches || []).forEach(m => {
@@ -1186,7 +1177,7 @@ function computeCourtStandings(matches, uids, court, isS1, format) {
     (win||[]).forEach(u => { if (s[u]) { s[u].pg++; s[u].pf += wp; s[u].pc += lp; } });
     (los||[]).forEach(u => { if (s[u]) { s[u].pp++; s[u].pf += lp; s[u].pc += wp; } });
   });
-  const factor = courtFactor(court, format, isS1);
+  const factor = (!isS1 && court === 'A') ? COURT_A_FACTOR : 1.0;
   Object.values(s).forEach(r => {
     r.pctPG = r.pj > 0 ? r.pg / r.pj : 0;
     r.score = r.pj > 0 ? r.pctPG * factor : 0;
@@ -1203,22 +1194,15 @@ function buildStandingsHTML(fx, uid, pn) {
     if (fx.format === '2courts') {
       const uidsA = round.num === 2 ? (fx.courtA_r2 || fx.courtA) : fx.courtA;
       const uidsB = round.num === 2 ? (fx.courtB_r2 || fx.courtB) : fx.courtB;
-      if (uidsA && uidsA.includes(uid)) bloques.push({ ronda: round.num, cancha:'A', uids:uidsA, matches: round.matchesA||[], format: fx.format });
-      if (uidsB && uidsB.includes(uid)) bloques.push({ ronda: round.num, cancha:'B', uids:uidsB, matches: round.matchesB||[], format: fx.format });
-    } else if (fx.format === '3courts') {
-      const uidsA = round.num === 2 ? (fx.courtA_r2 || fx.courtA) : fx.courtA;
-      const uidsB = round.num === 2 ? (fx.courtB_r2 || fx.courtB) : fx.courtB;
-      const uidsC = round.num === 2 ? (fx.courtC_r2 || fx.courtC) : fx.courtC;
-      if (uidsA && uidsA.includes(uid)) bloques.push({ ronda: round.num, cancha:'A', uids:uidsA, matches: round.matchesA||[], format: fx.format });
-      if (uidsB && uidsB.includes(uid)) bloques.push({ ronda: round.num, cancha:'B', uids:uidsB, matches: round.matchesB||[], format: fx.format });
-      if (uidsC && uidsC.includes(uid)) bloques.push({ ronda: round.num, cancha:'C', uids:uidsC, matches: round.matchesC||[], format: fx.format });
+      if (uidsA && uidsA.includes(uid)) bloques.push({ ronda: round.num, cancha:'A', uids:uidsA, matches: round.matchesA||[] });
+      if (uidsB && uidsB.includes(uid)) bloques.push({ ronda: round.num, cancha:'B', uids:uidsB, matches: round.matchesB||[] });
     } else {
-      bloques.push({ ronda: round.num, cancha:null, uids: fx.courtA||[], matches: round.matches||[], format: fx.format });
+      bloques.push({ ronda: round.num, cancha:null, uids: fx.courtA||[], matches: round.matches||[] });
     }
   });
 
   return bloques.map(b => {
-    const stats = computeCourtStandings(b.matches, b.uids, b.cancha, isS1, b.format);
+    const stats = computeCourtStandings(b.matches, b.uids, b.cancha, isS1);
     const filas = Object.entries(stats)
       .sort(([,a],[,b2]) => b2.score - a.score)
       .map(([u, r]) => `<tr class="${u===uid?'me':''}">
@@ -1229,14 +1213,14 @@ function buildStandingsHTML(fx, uid, pn) {
         <td>${(r.pctPG*100).toFixed(0)}%</td>
         <td class="score-col">${r.score.toFixed(2)}</td>
       </tr>`).join('');
-    const factor = courtFactor(b.cancha, b.format, isS1);
+    const factor = (!isS1 && b.cancha === 'A') ? COURT_A_FACTOR : 1.0;
     return `<div class="standings-block">
       <div class="standings-title">Ronda ${b.ronda}${b.cancha ? ' · Cancha ' + b.cancha : ''} — así se calculó tu puntaje</div>
       <table class="standings-table">
         <thead><tr><th>Jugador</th><th>PJ</th><th>PG</th><th>PP</th><th>%PG</th><th>Puntos</th></tr></thead>
         <tbody>${filas}</tbody>
       </table>
-      <div class="standings-formula">Puntos = (partidos ganados ÷ partidos jugados)${factor !== 1 ? ` × ${factor.toFixed(2)} (bono Cancha ${b.cancha})` : ''}</div>
+      <div class="standings-formula">Puntos = (partidos ganados ÷ partidos jugados)${factor !== 1 ? ` × ${factor.toFixed(2)} (bono Cancha A)` : ''}</div>
     </div>`;
   }).join('');
 }
