@@ -1907,6 +1907,27 @@ document.addEventListener('DOMContentLoaded', async () => {
     entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); obs.unobserve(e.target); } });
   }, { threshold: 0.06 });
   document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
+
+  // Si se llega con un ancla (ej. index.html#calendario desde otra página), el navegador
+  // salta ahí apenas carga — pero el Ranking (#standings, arriba de #calendario y
+  // #reglamento en el documento) se llena con datos de Firestore después del login
+  // anónimo y crece de tamaño, empujando hacia abajo cualquier ancla debajo de él sin
+  // que el navegador reajuste el scroll. Reintentamos el salto al ancla un par de veces
+  // después de que ese contenido asíncrono tuvo tiempo de asentarse.
+  if (location.hash) {
+    const target = document.querySelector(location.hash);
+    if (target) {
+      // No reforzar el salto si el usuario ya interactuó con la página por su cuenta
+      // (si no, lo "jalaríamos" de vuelta aunque ya se haya movido a propósito).
+      let userScrolled = false;
+      const markScrolled = () => { userScrolled = true; };
+      window.addEventListener('wheel', markScrolled, { once: true, passive: true });
+      window.addEventListener('touchmove', markScrolled, { once: true, passive: true });
+      const reScrollToHash = () => { if (!userScrolled) target.scrollIntoView(); };
+      setTimeout(reScrollToHash, 500);
+      setTimeout(reScrollToHash, 1500);
+    }
+  }
 });
 </script>
 
