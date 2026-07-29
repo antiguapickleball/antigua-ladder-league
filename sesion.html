@@ -975,11 +975,13 @@ async function salirDeSesion(sesionNum, categoria, uid, eraConfirmado) {
   if (eraConfirmado) await liberarCupoParaEspera(sesionNum, categoria);
 }
 
-// Al liberarse un cupo confirmado: si alguien de la lista de espera de esa categoría YA
-// pagó (tarjeta o transferencia previa — "espera autorizada"), se confirma directo, igual
-// que siempre. Si no, el cupo se CONGELA (todos los de espera sin pagar pasan a
-// `slot_available` sin `invitedAt`) para que nadie ajeno lo tome mientras el admin avisa
-// a la lista de espera desde el panel (botón "🔔 avisar cupo", ventana de HOLD_HOURS).
+// Al liberarse un cupo confirmado: si el PRIMERO (más antiguo) de la lista de espera de esa
+// categoría YA pagó (tarjeta o transferencia previa — "espera autorizada"), se confirma
+// directo, igual que siempre. Si no, el cupo se CONGELA (todos los de espera sin pagar
+// pasan a `slot_available` sin `invitedAt`) para que nadie ajeno lo tome mientras el admin
+// avisa a la lista de espera desde el panel (botón "🔔 avisar cupo", ventana de HOLD_HOURS).
+// OJO: solo se salta el aviso si el más antiguo ya pagó — nunca se busca a alguien pagado
+// más atrás en la fila, o se le adelantaría el turno a quien lleva más tiempo esperando.
 async function liberarCupoParaEspera(sesionNum, categoria) {
   const ref  = db.collection(COLLECTION).doc(`t1_sesion_${sesionNum}`);
   const snap = await ref.get();
@@ -991,7 +993,7 @@ async function liberarCupoParaEspera(sesionNum, categoria) {
     .sort((a, b) => (a.registeredAt?.seconds || 0) - (b.registeredAt?.seconds || 0));
   if (!espera.length) return;
 
-  const pagado = espera.find(esPagado);
+  const pagado = esPagado(espera[0]) ? espera[0] : null;
   if (pagado) {
     const updated = inscritos.map(p =>
       p.uid === pagado.uid ? { ...p, status: 'confirmed', promotedAt: firebase.firestore.Timestamp.now() } : p
@@ -1938,6 +1940,11 @@ function renderYaInscrito(container, user, reg, inscritos) {
   let accionHTML = '', salirHTML = '', forceWaitlistMove = false;
   if (isDenied) {
     // sin acciones — contacto admin
+  } else if (isSlot && pagado) {
+    // Invitado a un cupo liberado pero YA había pagado antes (espera autorizada) — no se
+    // le vuelve a cobrar. Se confirma solo (independiente de si su ventana ya venció).
+    accionHTML = `<div class="reg-msg info" style="text-align:center">⏳ Ya habías pagado — confirmando tu cupo automáticamente…</div>`;
+    autoConfirmSlotYaPagado(user, reg);
   } else if (isSlot && slotVencido) {
     // Venció su ventana de HOLD_HOURS para pagar — vuelve a lista de espera normal.
     accionHTML = `<div style="border:1px solid #fcd34d;background:#fffbeb;padding:12px 14px;font-size:.84rem;color:#92400e;line-height:1.6">
@@ -2997,6 +3004,26 @@ async function updateOwnEntry(user, patch) {
   const updated = inscritos.map(p => p.uid === user.uid ? { ...p, ...patch } : p);
   await docRef.update({ inscritos: updated });
   return updated.find(p => p.uid === user.uid);
+}
+
+// Invitado a un cupo liberado (`slot_available`) que YA había pagado antes (espera
+// autorizada): confirma solo, sin pedirle pagar de nuevo. `_autoConfirming` evita disparar
+// el write más de una vez si el re-render (onSnapshot) se dispara varias veces seguidas.
+let _autoConfirming = null;
+async function autoConfirmSlotYaPagado(user, reg) {
+  if (_autoConfirming === reg.uid) return;
+  _autoConfirming = reg.uid;
+  try {
+    const updatedEntry = await updateOwnEntry(user, {
+      status:     'confirmed',
+      promotedAt: firebase.firestore.Timestamp.now(),
+    });
+    avisarPagoCupoAdmin(NUM, reg.categoria, updatedEntry, false);
+  } catch (err) {
+    console.error('autoConfirmSlotYaPagado error:', err);
+  } finally {
+    _autoConfirming = null;
+  }
 }
 
 // Salir de lista de espera — único caso de retiro (gratis, no ocupa cupo pagado).

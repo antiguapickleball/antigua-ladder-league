@@ -2149,7 +2149,9 @@ async function promoteWaitlist(sesionNum, categoria) {
 
     if (waitlist.length === 0) return; // nadie en espera para esta categoría
 
-    const pagado = waitlist.find(esPagado);
+    // OJO: solo se salta el aviso si el MÁS ANTIGUO de la fila ya pagó — nunca se busca a
+    // alguien pagado más atrás, o se le adelantaría el turno a quien lleva más tiempo esperando.
+    const pagado = esPagado(waitlist[0]) ? waitlist[0] : null;
 
     if (pagado) {
       // Ya pagó (espera autorizada) → confirmar directo, sin congelar ni avisar nada
