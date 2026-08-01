@@ -963,16 +963,69 @@ function esPagado(reg) {
       || (reg.paymentMethod === 'transfer' && reg.status === 'confirmed');
 }
 
-// Quita a `uid` de la sesión `sesionNum`. Si se liberó un cupo confirmado y hay gente
-// en espera de esa categoría, se congela el cupo automáticamente (ver liberarCupoParaEspera).
-async function salirDeSesion(sesionNum, categoria, uid, eraConfirmado) {
+// Quita a `uid` de la sesión `sesionNum`. Siempre avisa por correo al admin (ver
+// avisarSalidaAdmin) — a diferencia de liberarCupoParaEspera, este aviso no depende de que
+// haya lista de espera. Si se liberó un cupo confirmado y hay gente en espera de esa
+// categoría, además se congela el cupo automáticamente (ver liberarCupoParaEspera).
+async function salirDeSesion(sesionNum, categoria, uid, eraConfirmado, contexto = {}) {
   const ref  = db.collection(COLLECTION).doc(`t1_sesion_${sesionNum}`);
   const snap = await ref.get();
   if (!snap.exists) return;
-  const updated = (snap.data().inscritos || []).filter(p => p.uid !== uid);
+  const inscritos = snap.data().inscritos || [];
+  const jugador = inscritos.find(p => p.uid === uid && p.categoria === categoria);
+  const catLlenaAntes = inscritos.filter(p => p.status === 'confirmed' && p.categoria === categoria).length >= CAP_POR_CAT;
+  const updated = inscritos.filter(p => p.uid !== uid);
   await ref.update({ inscritos: updated });
 
+  if (jugador) avisarSalidaAdmin(sesionNum, categoria, jugador, eraConfirmado, catLlenaAntes, contexto);
+
   if (eraConfirmado) await liberarCupoParaEspera(sesionNum, categoria);
+}
+
+// Aviso por correo al admin CADA VEZ que un jugador cancela o se mueve de sesión por su
+// cuenta (autoservicio desde esta página) — a propósito siempre, haya o no lista de espera,
+// para que Luis se entere sin tener que revisar Firestore a mano. Si el cupo que deja era
+// confirmado y la categoría estaba llena (10/10), lo destaca como cupo nuevo disponible.
+function avisarSalidaAdmin(sesionNum, categoria, jugador, eraConfirmado, catLlenaAntes, contexto = {}) {
+  const catLabel = { principiante:'Principiante', intermedio:'Intermedio', open:'Open' }[categoria] || categoria;
+  const sem   = SEMANAS.find(s => s.num === sesionNum);
+  const fecha = sem ? sem.fecha : `Semana ${sesionNum}`;
+
+  const esMove = contexto.motivo === 'move';
+  const accionTxt = esMove
+    ? `Se movió a la Semana ${contexto.destino}`
+    : (contexto.penalizado ? 'Canceló su cupo (cancelación TARDÍA)' : 'Canceló su cupo (a tiempo, sin penalización)');
+
+  let encabezado, accion, asunto;
+  if (eraConfirmado && catLlenaAntes) {
+    encabezado = '🟢 Cupo LIBRE — la categoría estaba llena';
+    accion     = `La categoría ${catLabel} estaba llena (${CAP_POR_CAT}/${CAP_POR_CAT}) y ahora quedó 1 cupo abierto para nuevas inscripciones.`;
+    asunto     = `🟢 Cupo libre (categoría llena) · Semana ${sesionNum} ${catLabel}`;
+  } else if (eraConfirmado) {
+    encabezado = 'Cupo liberado';
+    accion     = `Quedó cupo disponible en ${catLabel} (la categoría no estaba llena).`;
+    asunto     = `Cupo liberado · Semana ${sesionNum} ${catLabel}`;
+  } else {
+    encabezado = 'Salida de lista de espera';
+    accion     = `Estaba en lista de espera, no ocupaba un cupo confirmado.`;
+    asunto     = `Salida de lista de espera · Semana ${sesionNum} ${catLabel}`;
+  }
+  if (!esMove && contexto.penalizado) {
+    accion += ` ⚠️ Cancelación tardía — pendiente forzar Cancha B para su próxima inscripción desde "Notificaciones" en el panel.`;
+  }
+
+  const payload = {
+    to:         'antiguapickleball@gmail.com',
+    encabezado,
+    accion,
+    asunto,
+    jugador:    `${jugador.nombre}${jugador.duprId ? ' (DUPR: ' + jugador.duprId + ')' : ''} — ${accionTxt}`,
+    sesion:     `Semana ${sesionNum} · ${fecha}`,
+    categoria:  catLabel,
+    waLink:     '',
+    panelLink:  'https://ladder.antigua-pickleball.com/admin.html',
+  };
+  try { enviarCorreoAdmin(payload); } catch (_) {}
 }
 
 // Al liberarse un cupo confirmado: si el PRIMERO (más antiguo) de la lista de espera de esa
@@ -1915,7 +1968,7 @@ function renderYaInscrito(container, user, reg, inscritos) {
   const faseMover        = isConfirmed && horas >= 48;                                    // cambio de sesión (confirmado si hay cupo)
   const faseWaitMove     = isConfirmed && horas >= 24 && horas < 48;                       // solo a lista de espera de otra sesión
   const faseForfeitFree  = isConfirmed && horas < 24 && v7pm && ahora < v7pm && !yaPaso;   // liberar, sin penalización
-  const faseForfeitPenal = isConfirmed && v7pm && ahora >= v7pm && !yaPaso;                // liberar, −1 posición
+  const faseForfeitPenal = isConfirmed && v7pm && ahora >= v7pm && !yaPaso;                // liberar, fuerza Cancha B próx. sesión
 
   const waitPos = isWait
     ? inscritos.filter(p => p.status==='waitlist' && p.categoria===reg.categoria)
@@ -2081,9 +2134,9 @@ function renderYaInscrito(container, user, reg, inscritos) {
       <button class="btn-unregister" id="btn-forfeit">Liberar mi lugar (sin reembolso)</button>`;
   } else if (faseForfeitPenal) {
     accionHTML = `<div style="border:1px solid #fecaca;background:#fef2f2;padding:10px 12px;font-size:.8rem;color:#991b1b;line-height:1.5;margin-top:8px">
-        ⚠️ Ya pasó el viernes 7:00 pm: si sales ahora <strong>pierdes el pago</strong> y se registra <strong>−1 posición</strong> en la tabla. Tu cupo pasa al primero en lista de espera.
+        ⚠️ Ya pasó el viernes 7:00 pm: si sales ahora <strong>pierdes el pago</strong> y quedas <strong>forzado a Cancha B</strong> en tu próxima inscripción. Tu cupo pasa al primero en lista de espera.
       </div>
-      <button class="btn-unregister" id="btn-forfeit">Salir de la sesión (−1 posición)</button>`;
+      <button class="btn-unregister" id="btn-forfeit">Salir de la sesión (Cancha B forzada)</button>`;
   }
 
   // Texto de estado para confirmados
@@ -2091,7 +2144,7 @@ function renderYaInscrito(container, user, reg, inscritos) {
     faseMover        ? '✓ Puedes cambiar de sesión sin costo (hasta 48 h antes)' :
     faseWaitMove     ? '⏳ Menos de 48 h: solo puedes pasar a lista de espera de otra sesión' :
     faseForfeitFree  ? '⚠️ Solo puedes liberar tu lugar — sin reembolso, sin penalización' :
-    faseForfeitPenal ? '⚠️ Después del viernes 7 pm: salir penaliza −1 posición' : '';
+    faseForfeitPenal ? '⚠️ Después del viernes 7 pm: salir fuerza Cancha B en tu próxima inscripción' : '';
 
   container.innerHTML = `
     <div class="reg-box">
@@ -2668,7 +2721,7 @@ async function moveToSession(user, reg, forceWaitlist) {
     }, { merge: true });
 
     // Quitar de la sesión actual. Si dejaba un cupo CONFIRMADO libre, promover al primero en espera.
-    await salirDeSesion(NUM, reg.categoria, user.uid, reg.status === 'confirmed');
+    await salirDeSesion(NUM, reg.categoria, user.uid, reg.status === 'confirmed', { motivo: 'move', destino: targetNum });
 
     if (reg.status === 'confirmed' && newStatus === 'waitlist') {
       alert(forceWaitlist
@@ -2766,7 +2819,7 @@ function mountPayPalButtonsMove(user, reg, targetNum) {
         avisarNuevoRegistroAdmin(targetNum, reg.categoria, entry);
 
         // Quitar del origen (estaba en lista de espera, no confirmado → no dispara congelamiento)
-        await salirDeSesion(NUM, reg.categoria, user.uid, false);
+        await salirDeSesion(NUM, reg.categoria, user.uid, false, { motivo: 'move', destino: targetNum });
 
         const catLabel = { principiante:'Principiante', intermedio:'Intermedio', open:'Open' }[reg.categoria] || reg.categoria;
         document.getElementById('reg-container').innerHTML = lleno ? `
@@ -2853,7 +2906,7 @@ async function submitTransferMove(user, reg, targetNum) {
     avisarNuevoRegistroAdmin(targetNum, reg.categoria, entry);
 
     // Quitar del origen (estaba en lista de espera, no confirmado → no dispara congelamiento)
-    await salirDeSesion(NUM, reg.categoria, user.uid, false);
+    await salirDeSesion(NUM, reg.categoria, user.uid, false, { motivo: 'move', destino: targetNum });
 
     document.getElementById('reg-container').innerHTML = `
       <div class="reg-box">
@@ -2878,7 +2931,7 @@ async function submitTransferMove(user, reg, targetNum) {
 // ── Liberar el lugar (forfeit) — sin reembolso. penaliza=true aplica aviso de −1 ──
 async function forfeitSpot(user, reg, penaliza) {
   const msg = penaliza
-    ? '⚠️ Ya pasó el viernes 7:00 pm. Si sales ahora pierdes el pago y se registra −1 posición en la tabla.\n\n¿Confirmas que quieres salir de la sesión?'
+    ? '⚠️ Ya pasó el viernes 7:00 pm. Si sales ahora pierdes el pago y quedas forzado a Cancha B en tu próxima inscripción.\n\n¿Confirmas que quieres salir de la sesión?'
     : 'Vas a liberar tu lugar. Pierdes tu inscripción y el pago (sin reembolso), sin penalización.\n\n¿Confirmas?';
   if (!confirm(msg)) return;
 
@@ -2895,14 +2948,15 @@ async function forfeitSpot(user, reg, penaliza) {
         playerUid:  user.uid,
         playerName: reg.nombre || user.displayName || user.email,
         canceledAt: firebase.firestore.Timestamp.now(),
+        resolved:   false,
       }).catch(() => {});
     }
     // Quitar al jugador y promover al primero en lista de espera (+ aviso al admin)
-    await salirDeSesion(NUM, reg.categoria, user.uid, true);
+    await salirDeSesion(NUM, reg.categoria, user.uid, true, { motivo: 'cancel', penalizado: penaliza });
     // renderYaInscrito se re-disparará via onSnapshot
   } catch (err) {
     console.error(err);
-    btn.disabled = false; btn.textContent = penaliza ? 'Salir de la sesión (−1 posición)' : 'Liberar mi lugar (sin reembolso)';
+    btn.disabled = false; btn.textContent = penaliza ? 'Salir de la sesión (Cancha B forzada)' : 'Liberar mi lugar (sin reembolso)';
     alert('Error al procesar. Intenta de nuevo.');
   }
 }

@@ -2419,7 +2419,7 @@ function renderNotifications(notifs) {
         </div>
         <div style="display:flex;gap:8px">
           <button class="btn-action" style="background:#fee2e2;color:#991b1b;border-color:#fca5a5"
-            onclick="applyPenalty('${n.playerUid}', '${n.playerName}', ${n.sesionNum}, -1, '${n.id}')">−1 posición</button>
+            onclick="applyPenalty('${n.playerUid}', '${n.playerName}', ${n.sesionNum}, '${n.id}')">Forzar Cancha B (próx. sesión)</button>
           <button class="btn-action btn-accept" onclick="resolveNotif('${n.id}')">Sin penalización</button>
         </div>
       </div>`;
@@ -2432,16 +2432,22 @@ async function resolveNotif(id) {
   await db.collection(COL('ladder_notifications')).doc(id).update({ resolved: true }).catch(console.error);
 }
 
-async function applyPenalty(uid, nombre, sesionNum, delta, notifId) {
-  if (!confirm(`Aplicar ${delta} posición a ${nombre}. ¿Confirmar?`)) return;
+// Mismo efecto real que el tipo "no_show_lt24" del panel Penalizar (ver savePenalty()): fuerza
+// Cancha B en la PRÓXIMA sesión que se inscriba (vía activeSesion/resolved, leído por
+// sortByRanking()). No mueve nada de la sesión actual — el jugador ya salió de ahí solo.
+async function applyPenalty(uid, nombre, sesionNum, notifId) {
+  if (!confirm(`Forzar a ${nombre} a Cancha B en su próxima inscripción (Sesión ${sesionNum + 1}). ¿Confirmar?`)) return;
   try {
     await db.collection(COL('ladder_penalties')).add({
-      uid, nombre, sesionNum, delta,
-      reason: delta === -1 ? 'late_cancel' : 'no_show',
+      uid, nombre, sesionNum,
+      type: 'late_cancel',
+      forceCourtB: true, forceWaitlist: false, noRefund: true,
+      activeSesion: sesionNum + 1,
+      resolved: false,
       appliedAt: firebase.firestore.Timestamp.now(),
     });
     if (notifId) await resolveNotif(notifId);
-    toast(`Penalización registrada para ${nombre}`);
+    toast(`✓ ${nombre} queda forzado a Cancha B en su próxima inscripción`);
   } catch(err) { toast('Error', true); console.error(err); }
 }
 
