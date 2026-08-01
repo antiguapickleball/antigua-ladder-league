@@ -3909,7 +3909,7 @@ async function doGenerateFixture(sesionNum, categoria, btn) {
   if (n >= 8) {
     // 2 courts: top 5 by ladder ranking → Court A, rest → Court B
     // For session 1 or when no ranking: use registration order
-    const sorted = await sortByRanking(confirmed, sesionNum);
+    const sorted = await sortByRanking(confirmed, sesionNum, categoria);
     // Cancha A: tamaño fijo según n (8→4, 9→5, 10→5, 11→5, ...), Cancha B se lleva el resto
     // (mínimo 4). Los jugadores nuevos/penalizados igual se ordenan al fondo (sortByRanking),
     // así que solo entran a Cancha A si no hay suficientes veteranos elegibles para llenar el cupo.
@@ -3998,7 +3998,7 @@ function duprRatingBadge(duprId) {
 // Session 1 → sort by DUPR doubles rating desc (higher rating = Court A)
 // Session 2+ → sort by ladder ranking avg desc
 // Penalized → always Court B regardless
-async function sortByRanking(confirmed, sesionNum) {
+async function sortByRanking(confirmed, sesionNum, categoria) {
   if (sesionNum === 1) {
     // Session 1: use DUPR doubles rating from users collection
     await prefetchDuprRatings(confirmed.map(p => p.duprId));
@@ -4015,10 +4015,15 @@ async function sortByRanking(confirmed, sesionNum) {
 
     // Compute avg per DUPR ID from published sessions (ALL players, no minimum sessions)
     // Drop worst score only if 3+ sessions, drop 2 worst if 7+
+    // OJO: filtrar por `categoria` — el historial de un jugador es propio de cada categoría
+    // (un veterano de Intermedio que debuta en Open no debe heredar su score de Intermedio,
+    // debe tratarse como nuevo en Open y caer forzado a Cancha B).
     const scoreByDupr = {};
     snap.docs.forEach(d => {
       const data = d.data();
-      const allScores = Object.values(data.sessions || {}).map(s => s.score || 0);
+      const allScores = Object.values(data.sessions || {})
+        .filter(s => s.categoria === categoria)
+        .map(s => s.score || 0);
       const n = allScores.length;
       if (n === 0) return;
       const sorted = [...allScores].sort((a, b) => a - b);
