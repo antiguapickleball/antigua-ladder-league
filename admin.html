@@ -785,6 +785,66 @@
   </div>
 </div>
 
+<!-- MODAL: SUSTITUIR JUGADOR (Ronda 2) -->
+<div class="modal-overlay" id="modal-substitute" style="display:none" onclick="if(event.target===this)closeModal('modal-substitute')">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-header">
+      <span class="modal-title">🔁 Sustituir jugador (Ronda 2)</span>
+      <button class="modal-close" onclick="closeModal('modal-substitute')">×</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:.78rem;color:var(--muted);line-height:1.6">
+        Para cuando un jugador se retira a mitad de sesión (lesión, emergencia) y otra persona
+        completa sus partidos restantes. Ronda 1 queda intacta con el jugador original — desde
+        Ronda 2 en adelante, los partidos se atribuyen al sustituto.
+      </p>
+      <div class="field-group">
+        <label class="field-label">Jugador que sale (roster de Ronda 2) *</label>
+        <select class="field-select" id="sub-out-uid"></select>
+      </div>
+      <div class="field-group">
+        <label class="field-label">¿Quién entra? *</label>
+        <select class="field-select" id="sub-mode" onchange="toggleSubMode()">
+          <option value="existing">Ya inscrito en esta sesión/categoría</option>
+          <option value="new">Jugador nuevo (no registrado)</option>
+        </select>
+      </div>
+      <div class="field-group" id="sub-existing-wrap">
+        <label class="field-label">Sustituto</label>
+        <select class="field-select" id="sub-in-uid"></select>
+      </div>
+      <div id="sub-new-wrap" style="display:none">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+          <div class="field-group">
+            <label class="field-label">Nombre completo *</label>
+            <input class="field-input" id="sub-new-nombre" type="text" placeholder="Ej. Carlos Pérez"/>
+          </div>
+          <div class="field-group">
+            <label class="field-label">DUPR ID</label>
+            <input class="field-input" id="sub-new-dupr" type="text" maxlength="14" placeholder="Opcional"/>
+          </div>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Teléfono (WhatsApp)</label>
+          <input class="field-input" id="sub-new-phone" type="tel" placeholder="Opcional"/>
+        </div>
+      </div>
+      <div class="field-group">
+        <label class="field-label">Motivo (opcional)</label>
+        <input class="field-input" id="sub-motivo" type="text" placeholder="Ej. Lesión"/>
+      </div>
+      <p style="font-size:.78rem;color:var(--muted);line-height:1.6">
+        Después de guardar, usa "📊 Publicar Sesión" para que la tabla y el ranking general
+        reflejen el cambio.
+      </p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-modal btn-cancel-modal" onclick="closeModal('modal-substitute')">Cancelar</button>
+      <button class="btn-modal btn-save" id="btn-save-substitute" onclick="saveSubstitute()">Guardar sustitución</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL: EDITAR SESIONES -->
 <div class="modal-overlay" id="modal-sessions" style="display:none" onclick="if(event.target===this)closeModal('modal-sessions')">
   <div class="modal-box" style="max-width:560px;width:100%">
@@ -3402,6 +3462,154 @@ function deleteCurrentFixture() {
     .catch(e => toast('✕ Error: ' + e.message, true));
 }
 
+/* ══════════════════════════════════════════════════════
+   SUSTITUCIÓN DE JUGADOR (Ronda 2)
+   Para cuando alguien se retira a mitad de sesión (lesión, emergencia) y otra persona
+   completa sus partidos restantes. Ronda 1 queda intacta con el jugador original — solo
+   se reescriben los partidos de Ronda 2 de la cancha donde estaba, y courtA_r2/courtB_r2
+   (el mismo mecanismo que ya usa el sube/baja de cancha entre rondas). Al "Publicar
+   Sesión" después, cada uno queda con sus propias estadísticas parciales (pj/score) —
+   no hay que tocar ladder_scores a mano.
+══════════════════════════════════════════════════════ */
+let _subFixture = null; // { sesionNum, categoria }
+
+async function openSubstituteModal(sesionNum, categoria) {
+  const docId = `t1_sesion_${sesionNum}_${categoria}`;
+  const snap = await db.collection(COL('ladder_fixtures')).doc(docId).get();
+  if (!snap.exists) { toast('No se encontró el fixture', true); return; }
+  const fx = snap.data();
+  if (fx.format !== '2courts' || !fx.r2generated) {
+    toast('La sustitución solo aplica en fixtures de 2 canchas con Ronda 2 ya generada', true);
+    return;
+  }
+  _subFixture = { sesionNum, categoria };
+
+  const r2uids = [...(fx.courtA_r2||fx.courtA||[]), ...(fx.courtB_r2||fx.courtB||[])];
+  const pn = fx.playerNames || {};
+  document.getElementById('sub-out-uid').innerHTML =
+    r2uids.map(u => `<option value="${u}">${pn[u]||u}</option>`).join('');
+
+  // Sustitutos posibles: inscritos de esta sesión+categoría que aún no están en Ronda 2
+  const inscritos = (_allData[sesionNum]||[]).filter(p => p.categoria === categoria && !r2uids.includes(p.uid));
+  document.getElementById('sub-in-uid').innerHTML = inscritos.length
+    ? inscritos.map(p => `<option value="${p.uid}">${p.nombre} (${p.status})</option>`).join('')
+    : `<option value="">— nadie más inscrito en ${categoria} para esta sesión —</option>`;
+
+  document.getElementById('sub-mode').value = 'existing';
+  document.getElementById('sub-new-nombre').value = '';
+  document.getElementById('sub-new-dupr').value   = '';
+  document.getElementById('sub-new-phone').value  = '';
+  document.getElementById('sub-motivo').value     = '';
+  toggleSubMode();
+  openModal('modal-substitute');
+}
+
+function toggleSubMode() {
+  const mode = document.getElementById('sub-mode').value;
+  document.getElementById('sub-existing-wrap').style.display = mode === 'existing' ? 'block' : 'none';
+  document.getElementById('sub-new-wrap').style.display      = mode === 'new'      ? 'block' : 'none';
+}
+
+async function saveSubstitute() {
+  if (!_subFixture) return;
+  const { sesionNum, categoria } = _subFixture;
+  const outUid = document.getElementById('sub-out-uid').value;
+  const mode   = document.getElementById('sub-mode').value;
+  const motivo = document.getElementById('sub-motivo').value.trim();
+  if (!outUid) { toast('Selecciona quién sale', true); return; }
+
+  const btn = document.getElementById('btn-save-substitute');
+  btn.disabled = true; btn.textContent = 'Guardando…';
+  const reset = () => { btn.disabled = false; btn.textContent = 'Guardar sustitución'; };
+
+  try {
+    const docId  = `t1_sesion_${sesionNum}_${categoria}`;
+    const ref    = db.collection(COL('ladder_fixtures')).doc(docId);
+    const snap   = await ref.get();
+    if (!snap.exists) throw new Error('Fixture no encontrado');
+    const fx = snap.data();
+
+    let inUid, inNombre, inDuprId;
+
+    if (mode === 'existing') {
+      inUid = document.getElementById('sub-in-uid').value;
+      if (!inUid) { toast('Selecciona el sustituto', true); reset(); return; }
+      const p = (_allData[sesionNum]||[]).find(x => x.uid === inUid);
+      inNombre = p?.nombre || inUid;
+      inDuprId = p?.duprId || '';
+      if (p && p.status !== 'confirmed') {
+        const regRef  = db.collection(COLLECTION).doc(`t1_sesion_${sesionNum}`);
+        const regSnap = await regRef.get();
+        const inscritos = (regSnap.data().inscritos || []).map(x =>
+          x.uid === inUid ? { ...x, status: 'confirmed' } : x
+        );
+        await regRef.update({ inscritos });
+      }
+    } else {
+      const nombre = document.getElementById('sub-new-nombre').value.trim();
+      if (!nombre) { toast('El nombre del sustituto es obligatorio', true); reset(); return; }
+      const duprId = document.getElementById('sub-new-dupr').value.trim();
+      const phone  = document.getElementById('sub-new-phone').value.trim();
+      inUid = 'manual_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
+      inNombre = nombre;
+      inDuprId = duprId;
+      const regRef  = db.collection(COLLECTION).doc(`t1_sesion_${sesionNum}`);
+      const regSnap = await regRef.get();
+      const inscritos = regSnap.exists ? (regSnap.data().inscritos || []) : [];
+      inscritos.push({
+        uid: inUid, nombre, duprId: duprId||'', phone: phone||'', categoria, status: 'confirmed',
+        paymentMethod: 'manual', registeredAt: firebase.firestore.Timestamp.now(), addedByAdmin: true,
+        substituteFor: outUid,
+      });
+      await regRef.set({ inscritos }, { merge: true });
+    }
+
+    const outNombre  = (fx.playerNames||{})[outUid] || outUid;
+    const inCourtA    = (fx.courtA_r2||fx.courtA||[]).includes(outUid);
+    const court       = inCourtA ? 'A' : 'B';
+    const courtKey    = inCourtA ? 'courtA_r2' : 'courtB_r2';
+    const matchesKey  = inCourtA ? 'matchesA' : 'matchesB';
+
+    const newCourtList = (fx[courtKey] || (inCourtA ? fx.courtA : fx.courtB) || [])
+      .map(u => u === outUid ? inUid : u);
+
+    // Solo se toca Ronda 2 — Ronda 1 conserva intactos los resultados del jugador original.
+    const rounds = (fx.rounds || []).map(r => {
+      if (String(r.num) !== '2') return r;
+      const matches = (r[matchesKey] || []).map(m => ({
+        ...m,
+        pair1:  (m.pair1||[]).map(u => u === outUid ? inUid : u),
+        pair2:  (m.pair2||[]).map(u => u === outUid ? inUid : u),
+        sitout: (m.sitout||[]).map(u => u === outUid ? inUid : u),
+      }));
+      return { ...r, [matchesKey]: matches };
+    });
+
+    const playerNames = { ...(fx.playerNames||{}), [inUid]: inNombre };
+    const playerDupr  = { ...(fx.playerDupr||{}) };
+    if (inDuprId) playerDupr[inUid] = inDuprId;
+
+    const substitutions = [...(fx.substitutions||[]), {
+      fromUid: outUid, fromNombre: outNombre,
+      toUid: inUid, toNombre: inNombre,
+      fromRound: 2, court, motivo: motivo || '',
+      appliedAt: firebase.firestore.Timestamp.now(),
+    }];
+
+    await ref.update({ rounds, [courtKey]: newCourtList, playerNames, playerDupr, substitutions });
+
+    closeModal('modal-substitute');
+    toast(`✓ ${inNombre} sustituye a ${outNombre} desde Ronda 2 · usa "📊 Publicar Sesión" para actualizar el ranking`);
+    loadAndRenderFixture(sesionNum, categoria);
+  } catch (err) {
+    console.error(err);
+    toast('✕ Error al guardar la sustitución', true);
+    reset();
+    return;
+  }
+  reset();
+}
+
 async function deleteSessionFixtures(sesionNum) {
   if (!confirm(`¿Borrar TODOS los fixtures de la Sesión ${sesionNum} (Principiante, Intermedio, Open)?\n\nSe perderán todos los resultados.`)) return;
   const cats = ['principiante','intermedio','open'];
@@ -4404,6 +4612,7 @@ function renderFixtureHTML(fx, sesionNum, categoria) {
 
   html += `<div style="margin-top:8px;padding-top:14px;border-top:1px solid var(--border);display:flex;gap:8px;flex-wrap:wrap">
     <button class="btn-action btn-delete" onclick="if(confirm('¿Regenerar? Se borrarán los resultados guardados.'))doGenerateFixture(${sesionNum},'${categoria}',this)">↺ Regenerar</button>
+    ${fx.format==='2courts' && fx.r2generated ? `<button class="btn-action" onclick="openSubstituteModal(${sesionNum},'${categoria}')">🔁 Sustituir jugador (Ronda 2)</button>` : ''}
     <button class="btn-action btn-delete" onclick="deleteCurrentFixture()">🗑 Borrar fixture</button>
   </div>`;
   return html;
