@@ -395,6 +395,7 @@
         <button class="btn-action" style="padding:9px 16px;font-size:.82rem;background:#f0fdf4;color:#065f46;border-color:#6ee7b7" onclick="toggleLadderPanel()">📊 Tabla Ladder</button>
         <button class="btn-action" style="padding:9px 16px;font-size:.82rem;background:#eff6ff;color:#1d4ed8;border-color:#bfdbfe" onclick="openModal('modal-copiar')">📋 Copiar registro</button>
         <button class="btn-action" style="padding:9px 16px;font-size:.82rem;background:#f0fdf4;color:#065f46;border-color:#6ee7b7" onclick="openRecordatorioModal()">📣 Recordatorio WA</button>
+        <button class="btn-action" style="padding:9px 16px;font-size:.82rem;background:#faf5ff;color:#6b21a8;border-color:#e9d5ff" onclick="openBitacoraModal()">📜 Bitácora</button>
         <button class="btn-action" style="padding:9px 16px;font-size:.82rem;background:#fef2f2;color:#991b1b;border-color:#fca5a5" onclick="openModal('modal-danger')">⚙️ Peligro</button>
       </div>
     </div>
@@ -727,6 +728,50 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="modal-bitacora" style="display:none" onclick="if(event.target===this)closeModal('modal-bitacora')">
+  <div class="modal" style="max-width:960px">
+    <div class="modal-header">
+      <span class="modal-title">📜 Bitácora de actividad</span>
+      <button class="modal-close" onclick="closeModal('modal-bitacora')">×</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:.82rem;color:var(--muted);margin-top:-4px;line-height:1.5">Últimos 300 movimientos de inscripciones (inscripción, pago, movimiento, salida, congelamiento, edición del admin, etc.), con quién lo hizo.</p>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px">
+        <select class="field-select" id="bitacora-f-accion" style="max-width:200px">
+          <option value="">Todas las acciones</option>
+        </select>
+        <select class="field-select" id="bitacora-f-actor" style="max-width:160px">
+          <option value="">Todos (jugador/admin/sistema)</option>
+          <option value="jugador">Jugador</option>
+          <option value="admin">Admin</option>
+          <option value="sistema">Sistema</option>
+        </select>
+        <select class="field-select" id="bitacora-f-sesion" style="max-width:160px">
+          <option value="">Todas las sesiones</option>
+        </select>
+      </div>
+      <div id="bitacora-tabla-wrap" style="max-height:65vh;overflow-y:auto;border:1px solid var(--border)">
+        <table class="reg-table" style="width:100%">
+          <thead>
+            <tr>
+              <th>Fecha/hora</th>
+              <th>Acción</th>
+              <th>Quién</th>
+              <th>Jugador afectado</th>
+              <th>Sesión/Cat.</th>
+              <th>Detalle</th>
+            </tr>
+          </thead>
+          <tbody id="bitacora-tbody"><tr><td colspan="6"><div class="empty-state">Cargando…</div></td></tr></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-modal btn-cancel-modal" onclick="closeModal('modal-bitacora')">Cerrar</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modal-add" style="display:none" onclick="if(event.target===this)closeModal('modal-add')">
   <div class="modal" style="max-width:560px">
     <div class="modal-header">
@@ -1042,6 +1087,25 @@ let SEMANAS = [
 const COLLECTION = COL('ladder_registrations');
 const HOLD_HOURS = 3; // horas que tiene un invitado (slot_available) para pagar antes de que venza
 
+// Bitácora de actividad — un registro por cada cambio real a una inscripción, para poder
+// responder "¿qué pasó y quién lo hizo?" (jugador, admin, o el sistema automáticamente).
+// Fire-and-forget: si falla, nunca debe bloquear la acción real del admin.
+function logActividad(accion, { sesionNum, categoria, jugadorUid, jugadorNombre, detalle, actorTipo = 'admin' } = {}) {
+  const u = firebase.auth().currentUser;
+  db.collection(COL('ladder_actividad')).add({
+    ts:            firebase.firestore.Timestamp.now(),
+    sesionNum:     sesionNum ?? null,
+    categoria:     categoria || null,
+    accion,
+    actorTipo,
+    actorUid:      u?.uid || null,
+    actorNombre:   u?.displayName || u?.email || 'Admin',
+    jugadorUid:    jugadorUid || null,
+    jugadorNombre: jugadorNombre || '',
+    detalle:       detalle || '',
+  }).catch(() => {});
+}
+
 // ¿Invitación a pagar un cupo liberado (slot_available) vigente? Sin invitedAt = congelado,
 // aún no avisado (sigue bloqueando, no vence hasta que se avise).
 function isInviteLive(p) {
@@ -1127,6 +1191,10 @@ async function invitarAPagar(sesionNum, uid) {
     if (waLink) window.open(waLink, '_blank');
 
     toast(`✓ ${player.nombre} invitado a pagar${player.phone ? ' · avisando por WhatsApp' : ' — sin teléfono registrado, avísale tú directamente'}`);
+    logActividad('aviso_cupo', {
+      sesionNum, categoria: player.categoria, jugadorUid: uid, jugadorNombre: player.nombre,
+      detalle: 'Admin invitó individualmente a pagar el cupo liberado',
+    });
   } catch(err) { console.error(err); toast('✕ Error al invitar', true); }
 }
 
@@ -1187,6 +1255,10 @@ async function cancelarInvitacion(sesionNum, uid) {
     });
     await docRef.update({ inscritos: updated });
     toast(`${player.nombre} volvió a lista de espera`);
+    logActividad('edicion', {
+      sesionNum, categoria: player.categoria, jugadorUid: uid, jugadorNombre: player.nombre,
+      detalle: 'Admin canceló la invitación de pago — vuelve a lista de espera normal',
+    });
   } catch(err) { console.error(err); toast('✕ Error al cancelar', true); }
 }
 
@@ -1628,6 +1700,10 @@ async function acceptPending(sesionNum, uid) {
     avisarTransferAprobadaAdmin(sesionNum, player, lleno);
 
     toast(`✓ ${player.nombre} aprobado → ${lleno ? 'lista de espera' : 'titular'}`);
+    logActividad('aprobacion', {
+      sesionNum, categoria: player.categoria, jugadorUid: uid, jugadorNombre: player.nombre,
+      detalle: `Admin aprobó la transferencia → quedó ${lleno ? 'en lista de espera (pago vigente)' : 'confirmado'}`,
+    });
   } catch(err) { console.error(err); toast('✕ Error al aceptar', true); }
 }
 
@@ -1674,6 +1750,10 @@ async function denyPending(sesionNum, uid) {
     }
 
     toast(`Inscripción de ${player.nombre} denegada`);
+    logActividad('borrado', {
+      sesionNum, categoria: player.categoria, jugadorUid: uid, jugadorNombre: player.nombre,
+      detalle: 'Admin denegó la inscripción por transferencia (registro eliminado)',
+    });
   } catch(err) { console.error(err); toast('✕ Error', true); }
 }
 
@@ -1708,6 +1788,10 @@ async function manualPromote(sesionNum, uid) {
     if (waLink) window.open(waLink, '_blank');
 
     toast(`✓ ${player.nombre} promovido${player.phone ? ' · avisando por WhatsApp' : ''}`);
+    logActividad('promocion', {
+      sesionNum, categoria: cat, jugadorUid: uid, jugadorNombre: player.nombre,
+      detalle: confirmedCount >= 10 ? 'Admin promovió manualmente (override, categoría ya llena)' : 'Admin promovió manualmente de lista de espera a confirmado',
+    });
   } catch(err) { console.error(err); toast('✕ Error al promover', true); }
 }
 
@@ -1933,7 +2017,7 @@ async function saveEdit() {
   const btn = document.getElementById('btn-save-edit');
   btn.disabled = true; btn.textContent = 'Guardando…';
 
-  const { sesionNum, uid } = _editTarget;
+  const { sesionNum, uid, player: playerAntes } = _editTarget;
   const docId    = `t1_sesion_${sesionNum}`;
   const docRef   = db.collection(COLLECTION).doc(docId);
   const newCat   = document.getElementById('edit-categoria').value;
@@ -1973,6 +2057,12 @@ async function saveEdit() {
     if (newDupr) {
       db.collection('users').doc(uid).set({ duprId: newDupr }, { merge: true }).catch(() => {});
     }
+
+    const nombreFinal = document.getElementById('edit-nombre').value.trim() || playerAntes?.nombre;
+    logActividad('edicion', {
+      sesionNum, categoria: newCat, jugadorUid: uid, jugadorNombre: nombreFinal,
+      detalle: `Admin editó el registro · estado ${playerAntes?.status || '?'} → ${newStatus}${playerAntes?.categoria !== newCat ? `, categoría ${playerAntes?.categoria} → ${newCat}` : ''}`,
+    });
 
     closeModal('modal-edit');
     if (newStatus !== document.getElementById('edit-status').value) {
@@ -2059,6 +2149,10 @@ async function saveMove() {
 
     // Notificar al admin por correo
     avisarCambioSesionAdmin(sesionNum, targetNum, finalStatus, player);
+    logActividad('movimiento', {
+      sesionNum: targetNum, categoria: player.categoria, jugadorUid: uid, jugadorNombre: player.nombre,
+      detalle: `Admin lo movió de Semana ${sesionNum} a Semana ${targetNum} · quedó ${finalStatus === 'confirmed' ? 'confirmado' : finalStatus}`,
+    });
 
     closeModal('modal-move');
     const msg = finalStatus !== targetStatus
@@ -2151,6 +2245,10 @@ async function confirmDelete() {
 
     closeModal('modal-delete');
     toast(`✓ Inscripción de ${player.nombre} eliminada`);
+    logActividad('borrado', {
+      sesionNum, categoria, jugadorUid: uid, jugadorNombre: player.nombre,
+      detalle: `Admin borró el registro (estaba ${player.status})`,
+    });
 
     // Si era confirmado, intentar promover lista de espera
     if (wasConfirmed && categoria) {
@@ -2230,6 +2328,10 @@ async function promoteWaitlist(sesionNum, categoria) {
       }).catch(() => {});
 
       toast(`✓ ${pagado.nombre} promovido de lista de espera a confirmado (${categoria})`);
+      logActividad('promocion', {
+        sesionNum, categoria, actorTipo: 'sistema', jugadorUid: pagado.uid, jugadorNombre: pagado.nombre,
+        detalle: 'Confirmado automático al liberarse un cupo — ya tenía pago vigente y era el más antiguo en espera',
+      });
     } else {
       // Nadie ha pagado → congelar el cupo para TODA la lista de espera de esta categoría.
       // Sin invitedAt todavía: el reloj de HOLD_HOURS arranca cuando el admin de verdad avise.
@@ -2239,6 +2341,10 @@ async function promoteWaitlist(sesionNum, categoria) {
       await docRef.update({ inscritos: updated });
 
       toast(`🧊 Cupo congelado (${categoria}) — usa "🔔 Avisar cupo" para notificar a los ${waitlist.length} en espera`);
+      waitlist.forEach(p => logActividad('congelamiento', {
+        sesionNum, categoria, actorTipo: 'sistema', jugadorUid: p.uid, jugadorNombre: p.nombre,
+        detalle: 'Cupo congelado a su favor — pendiente que el admin avise',
+      }));
     }
   } catch (err) {
     console.error('promoteWaitlist error:', err);
@@ -2355,15 +2461,21 @@ async function abrirCupoModal(sesionNum, categoria) {
   const inscritos = snap.exists ? (snap.data().inscritos || []) : [];
 
   const now = firebase.firestore.Timestamp.now();
-  let changed = false;
+  const recienAvisados = [];
   const updated = inscritos.map(p => {
     if (p.categoria === categoria && p.status === 'slot_available' && !isInviteLive(p)) {
-      changed = true;
+      recienAvisados.push(p);
       return { ...p, invitedAt: now };
     }
     return p;
   });
-  if (changed) await docRef.update({ inscritos: updated });
+  if (recienAvisados.length) {
+    await docRef.update({ inscritos: updated });
+    recienAvisados.forEach(p => logActividad('aviso_cupo', {
+      sesionNum, categoria, jugadorUid: p.uid, jugadorNombre: p.nombre,
+      detalle: `Admin avisó cupo congelado a toda la lista de espera (ventana ${HOLD_HOURS}h)`,
+    }));
+  }
 
   _allData[sesionNum] = updated; // refrescar cache local para que el modal muestre la hora límite correcta
   renderCupoModal(sesionNum, categoria);
@@ -2413,6 +2525,110 @@ function marcarCupoEnviado(sesionNum, uid) {
   const btn = row.querySelector('a');
   if (btn) { btn.textContent = '✓ Enviado'; btn.classList.remove('btn-wa'); }
 }
+
+/* ══════════════════════════════════════════════════════
+   BITÁCORA DE ACTIVIDAD
+══════════════════════════════════════════════════════ */
+const ACCION_LABELS = {
+  inscripcion:   'Inscripción',
+  pago:          'Pago',
+  movimiento:    'Movimiento',
+  salida:        'Salida',
+  congelamiento: 'Congelamiento',
+  promocion:     'Promoción',
+  aviso_cupo:    'Aviso de cupo',
+  edicion:       'Edición admin',
+  borrado:       'Borrado',
+  aprobacion:    'Aprobación',
+  denegacion:    'Denegación',
+  penalizacion:  'Penalización',
+  copia:         'Copia',
+};
+
+let _bitacoraCache = [];
+
+async function openBitacoraModal() {
+  openModal('modal-bitacora');
+  document.getElementById('bitacora-tbody').innerHTML = `<tr><td colspan="6"><div class="empty-state">Cargando…</div></td></tr>`;
+
+  try {
+    const snap = await db.collection(COL('ladder_actividad')).orderBy('ts', 'desc').limit(300).get();
+    _bitacoraCache = snap.docs.map(d => d.data());
+  } catch (err) {
+    console.error('Error cargando bitácora:', err);
+    document.getElementById('bitacora-tbody').innerHTML = `<tr><td colspan="6"><div class="empty-state">Error al cargar la bitácora.</div></td></tr>`;
+    return;
+  }
+
+  poblarFiltrosBitacora();
+  renderBitacoraTabla();
+}
+
+function poblarFiltrosBitacora() {
+  const accionSel = document.getElementById('bitacora-f-accion');
+  const accionesPresentes = [...new Set(_bitacoraCache.map(e => e.accion))].sort();
+  const accionActual = accionSel.value;
+  accionSel.innerHTML = '<option value="">Todas las acciones</option>' +
+    accionesPresentes.map(a => `<option value="${a}">${ACCION_LABELS[a] || a}</option>`).join('');
+  accionSel.value = accionActual;
+
+  const sesionSel = document.getElementById('bitacora-f-sesion');
+  const sesionesPresentes = [...new Set(_bitacoraCache.map(e => e.sesionNum).filter(n => n != null))].sort((a,b) => a - b);
+  const sesionActual = sesionSel.value;
+  sesionSel.innerHTML = '<option value="">Todas las sesiones</option>' +
+    sesionesPresentes.map(n => `<option value="${n}">Sesión ${n}</option>`).join('');
+  sesionSel.value = sesionActual;
+}
+
+function renderBitacoraTabla() {
+  const fAccion = document.getElementById('bitacora-f-accion').value;
+  const fActor  = document.getElementById('bitacora-f-actor').value;
+  const fSesion = document.getElementById('bitacora-f-sesion').value;
+
+  const filtered = _bitacoraCache.filter(e => {
+    if (fAccion && e.accion !== fAccion) return false;
+    if (fActor && e.actorTipo !== fActor) return false;
+    if (fSesion && String(e.sesionNum) !== fSesion) return false;
+    return true;
+  });
+
+  const tbody = document.getElementById('bitacora-tbody');
+  if (!filtered.length) {
+    tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state">No hay movimientos con estos filtros.</div></td></tr>`;
+    return;
+  }
+
+  const catLabels   = { principiante:'Principiante', intermedio:'Intermedio', open:'Open' };
+  const actorColors = { jugador:'#1d4ed8', admin:'#991b1b', sistema:'#6b21a8' };
+  const actorLabels = { jugador:'Jugador', admin:'Admin', sistema:'Sistema' };
+
+  tbody.innerHTML = filtered.map(e => {
+    const fecha = e.ts?.toDate ? e.ts.toDate() : (e.ts?.seconds ? new Date(e.ts.seconds * 1000) : null);
+    const fechaTxt = fecha
+      ? fecha.toLocaleString('es-GT', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' })
+      : '—';
+    const sesionTxt = [
+      e.sesionNum != null ? `S${e.sesionNum}` : null,
+      e.categoria ? (catLabels[e.categoria] || e.categoria) : null,
+    ].filter(Boolean).join(' · ');
+
+    return `<tr>
+      <td style="white-space:nowrap;font-size:.78rem">${fechaTxt}</td>
+      <td><span class="status-badge" style="background:#f3f4f6;color:#374151">${ACCION_LABELS[e.accion] || e.accion}</span></td>
+      <td style="font-size:.8rem">
+        <strong style="color:${actorColors[e.actorTipo] || '#374151'}">${e.actorNombre || (actorLabels[e.actorTipo] || '—')}</strong><br>
+        <span style="color:var(--muted);font-size:.7rem">${actorLabels[e.actorTipo] || e.actorTipo || ''}</span>
+      </td>
+      <td style="font-size:.8rem">${e.jugadorNombre || '—'}</td>
+      <td style="font-size:.78rem;white-space:nowrap">${sesionTxt || '—'}</td>
+      <td style="font-size:.78rem;color:var(--muted)">${e.detalle || ''}</td>
+    </tr>`;
+  }).join('');
+}
+
+document.getElementById('bitacora-f-accion')?.addEventListener('change', renderBitacoraTabla);
+document.getElementById('bitacora-f-actor')?.addEventListener('change', renderBitacoraTabla);
+document.getElementById('bitacora-f-sesion')?.addEventListener('change', renderBitacoraTabla);
 
 var _toastTimer;
 function toast(msg, isErr = false) {
@@ -2508,6 +2724,10 @@ async function applyPenalty(uid, nombre, sesionNum, notifId) {
     });
     if (notifId) await resolveNotif(notifId);
     toast(`✓ ${nombre} queda forzado a Cancha B en su próxima inscripción`);
+    logActividad('penalizacion', {
+      sesionNum, jugadorUid: uid, jugadorNombre: nombre,
+      detalle: `Admin forzó Cancha B en la próxima inscripción (Semana ${sesionNum + 1}) por cancelación tardía`,
+    });
   } catch(err) { toast('Error', true); console.error(err); }
 }
 
@@ -2620,6 +2840,10 @@ async function ejecutarCopiarRegistro() {
     };
     await ref.set({ sesionNum: sesNum, inscritos: firebase.firestore.FieldValue.arrayUnion(entry) }, { merge: true });
     copiadas++;
+    logActividad('copia', {
+      sesionNum: sesNum, categoria: e.categoria, jugadorUid: e.uid, jugadorNombre: e.nombre,
+      detalle: `Admin copió su registro desde otra sesión (Semana ${_copiarJugador.sesionOrigen}) · ${status}`,
+    });
   }
 
   btn.disabled = false; btn.textContent = 'Copiar a sesiones seleccionadas';
@@ -2729,6 +2953,10 @@ async function saveAdd() {
     closeModal('modal-add');
     const addedAs = newPlayer.status === 'waitlist' ? 'en lista de espera' : 'como confirmado';
     toast(`✓ ${nombre} agregado a Sesión ${sesionNum} (${addedAs})`);
+    logActividad('inscripcion', {
+      sesionNum, categoria, jugadorUid: uid, jugadorNombre: nombre,
+      detalle: `Admin agregó manualmente al jugador · ${addedAs}`,
+    });
     // Switch to the session where the player was added
     if (sesionNum !== _currentSession) selectSession(sesionNum);
 
@@ -4812,7 +5040,16 @@ async function savePenalty() {
       moveMsg = finalStatus === 'waitlist'
         ? ` · movido a Sesión ${targetNum} (lista de espera, categoría llena)`
         : ` · movido a Sesión ${targetNum}`;
+      logActividad('movimiento', {
+        sesionNum: targetNum, categoria: player.categoria, jugadorUid: uid, jugadorNombre: nombre,
+        detalle: `Reubicado automático por penalización (${type}) de Semana ${sesionNum} a Semana ${targetNum}`,
+      });
     }
+
+    logActividad('penalizacion', {
+      sesionNum, categoria: player?.categoria, jugadorUid: uid, jugadorNombre: nombre,
+      detalle: `Admin registró penalización "${type}" — salió del roster de Semana ${sesionNum}${moveMsg}`,
+    });
 
     await db.collection(COL('ladder_penalties')).add({
       uid, nombre, sesionNum,

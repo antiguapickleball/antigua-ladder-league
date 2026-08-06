@@ -708,6 +708,26 @@ initSesion();
 
 const DOC_ID      = `t1_sesion_${NUM}`;
 const COLLECTION  = COL('ladder_registrations');
+
+// Bitácora de actividad — un registro por cada cambio real a una inscripción, para poder
+// responder "¿qué pasó y quién lo hizo?" (jugador, admin, o el sistema automáticamente).
+// Fire-and-forget: si falla, nunca debe bloquear la acción real del usuario.
+function logActividad(accion, { sesionNum, categoria, jugadorUid, jugadorNombre, detalle, actorTipo = 'jugador' } = {}) {
+  const u = firebase.auth().currentUser;
+  db.collection(COL('ladder_actividad')).add({
+    ts:            firebase.firestore.Timestamp.now(),
+    sesionNum:     sesionNum ?? NUM,
+    categoria:     categoria || null,
+    accion,
+    actorTipo,
+    actorUid:      u?.uid || null,
+    actorNombre:   u?.displayName || u?.email || 'Jugador',
+    jugadorUid:    jugadorUid || u?.uid || null,
+    jugadorNombre: jugadorNombre || '',
+    detalle:       detalle || '',
+  }).catch(() => {});
+}
+
 const estadoLabels = {
   proxima:'Próxima', pendiente:'Pendiente', jugada:'Jugada',
   cancelada:'Cancelada', 'gran-final':'Gran Final'
@@ -1053,6 +1073,11 @@ async function liberarCupoParaEspera(sesionNum, categoria) {
     );
     await ref.update({ inscritos: updated });
     avisarCupoLiberadoAdmin(sesionNum, categoria, pagado, espera.length, true);
+    logActividad('promocion', {
+      sesionNum, categoria, actorTipo: 'sistema',
+      jugadorUid: pagado.uid, jugadorNombre: pagado.nombre,
+      detalle: `Confirmado automático — ya tenía pago vigente y era el más antiguo en espera`,
+    });
     return;
   }
 
@@ -1061,6 +1086,11 @@ async function liberarCupoParaEspera(sesionNum, categoria) {
   );
   await ref.update({ inscritos: updated });
   avisarCupoLiberadoAdmin(sesionNum, categoria, espera[0], espera.length, false);
+  espera.forEach(p => logActividad('congelamiento', {
+    sesionNum, categoria, actorTipo: 'sistema',
+    jugadorUid: p.uid, jugadorNombre: p.nombre,
+    detalle: `Cupo congelado a su favor — pendiente que el admin avise (ventana ${typeof HOLD_HOURS !== 'undefined' ? HOLD_HOURS : 3}h)`,
+  }));
 }
 
 function horaTexto(categoria) {
@@ -2455,6 +2485,12 @@ function mountPayPalButtonsSlot(user, reg) {
         }).catch(() => {});
 
         avisarPagoCupoAdmin(NUM, reg.categoria, updatedEntry, lleno);
+        logActividad('pago', {
+          categoria: reg.categoria, jugadorNombre: reg.nombre,
+          detalle: lleno
+            ? `Pagó un cupo liberado con tarjeta pero alguien más lo tomó antes — pago vigente, sigue en espera`
+            : `Pagó con tarjeta un cupo liberado (${SESSION_PRICE} USD) — confirmado`,
+        });
 
         const catLabel = { principiante:'Principiante', intermedio:'Intermedio', open:'Open' }[reg.categoria] || reg.categoria;
         document.getElementById('reg-container').innerHTML = lleno ? `
@@ -2620,6 +2656,10 @@ async function submitTransferSlot(user, reg) {
     });
 
     avisarPagoCupoAdmin(NUM, reg.categoria, updatedEntry, false);
+    logActividad('pago', {
+      categoria: reg.categoria, jugadorNombre: reg.nombre,
+      detalle: `Envió boleta de transferencia por un cupo liberado — por validar`,
+    });
 
     document.getElementById('reg-container').innerHTML = `
       <div class="reg-box">
@@ -2723,6 +2763,11 @@ async function moveToSession(user, reg, forceWaitlist) {
     // Quitar de la sesión actual. Si dejaba un cupo CONFIRMADO libre, promover al primero en espera.
     await salirDeSesion(NUM, reg.categoria, user.uid, reg.status === 'confirmed', { motivo: 'move', destino: targetNum });
 
+    logActividad('movimiento', {
+      sesionNum: targetNum, categoria: reg.categoria, jugadorNombre: reg.nombre,
+      detalle: `Se movió de Semana ${NUM} a Semana ${targetNum} · quedó ${newStatus === 'confirmed' ? 'confirmado' : 'en lista de espera'}`,
+    });
+
     if (reg.status === 'confirmed' && newStatus === 'waitlist') {
       alert(forceWaitlist
         ? `Con menos de 48 h entraste a la lista de espera de la Semana ${targetNum} (pago vigente). Si se libera un cupo, el admin te confirma.`
@@ -2821,6 +2866,13 @@ function mountPayPalButtonsMove(user, reg, targetNum) {
         // Quitar del origen (estaba en lista de espera, no confirmado → no dispara congelamiento)
         await salirDeSesion(NUM, reg.categoria, user.uid, false, { motivo: 'move', destino: targetNum });
 
+        logActividad('movimiento', {
+          sesionNum: targetNum, categoria: reg.categoria, jugadorNombre: reg.nombre,
+          detalle: lleno
+            ? `Pagó para moverse de Semana ${NUM} a Semana ${targetNum} pero alguien más tomó el cupo — pago vigente, en espera`
+            : `Se movió de Semana ${NUM} a Semana ${targetNum} pagando con tarjeta ($${SESSION_PRICE}) — confirmado`,
+        });
+
         const catLabel = { principiante:'Principiante', intermedio:'Intermedio', open:'Open' }[reg.categoria] || reg.categoria;
         document.getElementById('reg-container').innerHTML = lleno ? `
           <div class="reg-box">
@@ -2908,6 +2960,11 @@ async function submitTransferMove(user, reg, targetNum) {
     // Quitar del origen (estaba en lista de espera, no confirmado → no dispara congelamiento)
     await salirDeSesion(NUM, reg.categoria, user.uid, false, { motivo: 'move', destino: targetNum });
 
+    logActividad('movimiento', {
+      sesionNum: targetNum, categoria: reg.categoria, jugadorNombre: reg.nombre,
+      detalle: `Se movió de Semana ${NUM} a Semana ${targetNum} con boleta de transferencia — por validar`,
+    });
+
     document.getElementById('reg-container').innerHTML = `
       <div class="reg-box">
         <div class="reg-msg pending">
@@ -2953,6 +3010,10 @@ async function forfeitSpot(user, reg, penaliza) {
     }
     // Quitar al jugador y promover al primero en lista de espera (+ aviso al admin)
     await salirDeSesion(NUM, reg.categoria, user.uid, true, { motivo: 'cancel', penalizado: penaliza });
+    logActividad('salida', {
+      categoria: reg.categoria, jugadorNombre: reg.nombre,
+      detalle: penaliza ? 'Liberó su cupo confirmado — después del viernes 7pm, Cancha B forzada' : 'Liberó su cupo confirmado — sin penalización',
+    });
     // renderYaInscrito se re-disparará via onSnapshot
   } catch (err) {
     console.error(err);
@@ -3002,6 +3063,7 @@ async function saveRegistration(user, duprId, categoria, paypalOrderId, status, 
         paidAt: firebase.firestore.Timestamp.now(), env: PAYPAL_ENV,
       }).catch(() => {});
       avisarNuevoRegistroAdmin(NUM, categoria, updatedEntry);
+      logActividad('pago', { categoria, jugadorNombre: nombre, detalle: `Completó pago con tarjeta de una inscripción existente (Semana ${NUM})` });
     }
     return;
   }
@@ -3047,6 +3109,12 @@ async function saveRegistration(user, duprId, categoria, paypalOrderId, status, 
 
   // Avisar al admin de la nueva inscripción
   avisarNuevoRegistroAdmin(NUM, categoria, entry);
+
+  const metodoTexto = { paypal:'tarjeta/PayPal', transfer:'transferencia', manual:'manual' }[entry.paymentMethod] || entry.paymentMethod;
+  logActividad('inscripcion', {
+    categoria, jugadorNombre: nombre,
+    detalle: `Nueva inscripción · ${status === 'waitlist' ? 'lista de espera' : status} · ${metodoTexto}`,
+  });
 }
 
 // Actualiza en el sitio el registro EXISTENTE del jugador (no agrega uno nuevo) — se usa cuando
@@ -3073,6 +3141,10 @@ async function autoConfirmSlotYaPagado(user, reg) {
       promotedAt: firebase.firestore.Timestamp.now(),
     });
     avisarPagoCupoAdmin(NUM, reg.categoria, updatedEntry, false);
+    logActividad('promocion', {
+      categoria: reg.categoria, actorTipo: 'sistema', jugadorUid: user.uid, jugadorNombre: reg.nombre,
+      detalle: 'Confirmado automático al abrir un cupo invitado — ya tenía pago vigente de antes',
+    });
   } catch (err) {
     console.error('autoConfirmSlotYaPagado error:', err);
   } finally {
@@ -3096,6 +3168,10 @@ async function cancelRegistration(user, reg, horas) {
     // Quitar al jugador de la lista de espera
     const updated = inscritos.filter(p => p.uid !== user.uid);
     await docRef.update({ inscritos: updated });
+    logActividad('salida', {
+      categoria: reg.categoria, jugadorNombre: reg.nombre,
+      detalle: 'Salió de la lista de espera por su cuenta (sin pago de por medio)',
+    });
 
   } catch (err) {
     btn.disabled = false; btn.textContent = 'Salir de lista de espera';
