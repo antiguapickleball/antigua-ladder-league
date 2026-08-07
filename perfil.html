@@ -53,7 +53,7 @@
     }
     .nav-inner {
       display: flex; align-items: center; justify-content: space-between;
-      max-width: 1160px; margin: 0 auto;
+      max-width: 1260px; margin: 0 auto;
       padding: 0 24px; height: 60px;
     }
     .nav-brand {
@@ -70,12 +70,13 @@
     .nav-links {
       display: none; align-items: center; gap: 0; list-style: none;
     }
-    @media (min-width: 860px) { .nav-links { display: flex; } }
+    @media (min-width: 1240px) { .nav-links { display: flex; } }
     .nav-links a {
       font-family: 'Barlow Condensed', sans-serif;
       font-size: .9rem; font-weight: 600; letter-spacing: .05em; text-transform: uppercase;
       color: var(--muted); text-decoration: none;
       padding: 6px 14px; transition: color .2s;
+    white-space: nowrap;
     }
     .nav-links a:hover { color: var(--dark); }
     .nav-actions { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
@@ -108,7 +109,7 @@
       padding: 9px 11px; cursor: pointer;
     }
     .hamburger span { display: block; width: 18px; height: 1.5px; background: var(--dark); }
-    @media (min-width: 860px) { .hamburger { display: none; } }
+    @media (min-width: 1240px) { .hamburger { display: none; } }
     .mobile-menu {
       display: none; flex-direction: column;
       background: #fff; border-top: 1px solid var(--border);
@@ -542,6 +543,15 @@
     }
 
     #nav-auth-slot { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+
+/* móvil: el link 'Ingresar' (sin login) usa padding inline generoso que no
+   estaba cubierto por la compactación de .nav-btn/.nav-user — se salía del
+   borde derecho en pantallas angostas junto al botón hamburguesa. */
+@media (max-width: 560px) {
+  #nav-auth-slot > a:not(.nav-user) { padding: 6px 9px !important; font-size: .74rem !important; }
+  .hamburger { padding: 9px 9px !important; }
+  .nav-inner { padding: 0 10px !important; }
+}
 </style>
 </head>
 <body>
