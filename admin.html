@@ -1564,11 +1564,11 @@ function renderPending() {
     const waLink = `https://wa.me/${(p.phone||'').replace(/\D/g,'')}?text=${waMsg}`;
 
     return `<tr class="pending-row">
-      <td class="nombre">${p.nombre}<br><span style="font-size:.72rem;color:var(--muted)">${p.email}</span></td>
+      <td class="nombre">${escHtml(p.nombre)}<br><span style="font-size:.72rem;color:var(--muted)">${escHtml(p.email)}</span></td>
       <td style="white-space:nowrap;font-size:.8rem">${sesLabels(p.sesionNum)}</td>
       <td>${p.categoria ? `<span class="cat-badge ${p.categoria}">${catLabels[p.categoria]||p.categoria}</span>` : '—'}</td>
-      <td class="dupr">${p.duprId||'—'}</td>
-      <td style="font-family:'Space Mono',monospace;font-size:.75rem">${p.phone||'—'}</td>
+      <td class="dupr">${escHtml(p.duprId)||'—'}</td>
+      <td style="font-family:'Space Mono',monospace;font-size:.75rem">${escHtml(p.phone)||'—'}</td>
       <td>${boletaCell}</td>
       <td class="fecha">${fecha}</td>
       <td class="actions" style="white-space:nowrap">
@@ -1642,10 +1642,10 @@ function renderWaitlist() {
           : `<span style="font-size:.72rem;font-weight:700;color:#92400e">✕ Sin pagar</span>`;
     return `<tr class="waitlist-row">
       <td class="num" style="font-weight:700;color:#92400e">${pos}°</td>
-      <td class="nombre">${p.nombre}<br><span style="font-size:.72rem;color:var(--muted)">${p.email||''}</span></td>
+      <td class="nombre">${escHtml(p.nombre)}<br><span style="font-size:.72rem;color:var(--muted)">${escHtml(p.email||'')}</span></td>
       <td style="white-space:nowrap;font-size:.8rem">${sesLabels(p.sesionNum)}</td>
       <td>${p.categoria ? `<span class="cat-badge ${p.categoria}">${catLabels[p.categoria]||p.categoria}</span>` : '—'}</td>
-      <td class="dupr">${p.duprId||'—'}</td>
+      <td class="dupr">${escHtml(p.duprId)||'—'}</td>
       <td style="white-space:nowrap">${pagoCell}</td>
       <td class="fecha">${fecha}</td>
       <td class="actions">
@@ -1953,8 +1953,8 @@ function renderTable(sesionNum) {
       : (statusLabels[p.status] || p.status);
     return `<tr class="${rowClass}">
       <td class="num">${i+1}</td>
-      <td class="nombre">${p.nombre || '—'}${duprRatingBadge(p.duprId)}</td>
-      <td class="dupr">${p.duprId || '—'}</td>
+      <td class="nombre">${escHtml(p.nombre) || '—'}${duprRatingBadge(p.duprId)}</td>
+      <td class="dupr">${escHtml(p.duprId) || '—'}</td>
       <td>${p.categoria ? `<span class="cat-badge ${p.categoria}">${catLabels[p.categoria]||p.categoria}</span>` : '—'}</td>
       <td>
         <span class="status-badge ${p.status}">${invitedLabel}</span>
@@ -1971,7 +1971,7 @@ function renderTable(sesionNum) {
               : `<span style="font-size:.72rem;color:var(--muted)">—</span>`
         }
       </td>
-      <td class="email">${p.email || '—'}</td>
+      <td class="email">${escHtml(p.email) || '—'}</td>
       <td class="fecha">${fecha}</td>
       <td class="actions">
         ${isPending ? `<button class="btn-action btn-accept" onclick="acceptPending(${sesionNum},'${p.uid}')">✓</button>
@@ -1984,7 +1984,7 @@ function renderTable(sesionNum) {
                        <button class="btn-action btn-deny" onclick="cancelarInvitacion(${sesionNum},'${p.uid}')">↩ Cancelar</button>` : ''}
         <button class="btn-action btn-edit"   onclick="openEdit(${sesionNum}, '${p.uid}')">Editar</button>
         <button class="btn-action btn-move"   onclick="openMove(${sesionNum}, '${p.uid}')">Mover</button>
-        ${p.status === 'confirmed' ? `<button class="btn-action btn-penalty" onclick="openPenalty(${sesionNum},'${p.uid}','${(p.nombre||'').replace(/'/g,'&#39;')}')">⚠️ Penalizar</button>` : ''}
+        ${p.status === 'confirmed' ? `<button class="btn-action btn-penalty" onclick="openPenalty(${sesionNum},'${p.uid}','${escJsAttr(p.nombre||'')}')">⚠️ Penalizar</button>` : ''}
         <button class="btn-action btn-delete" onclick="openDelete(${sesionNum}, '${p.uid}')">Borrar</button>
       </td>
     </tr>`;
@@ -2220,7 +2220,7 @@ function openDelete(sesionNum, uid) {
   _deleteTarget = { sesionNum, uid, player };
 
   document.getElementById('delete-confirm-text').innerHTML =
-    `¿Eliminar la inscripción de <strong>${player.nombre}</strong> en Sesión ${sesionNum}?`;
+    `¿Eliminar la inscripción de <strong>${escHtml(player.nombre)}</strong> en Sesión ${sesionNum}?`;
 
   openModal('modal-delete');
 }
@@ -2404,8 +2404,8 @@ function openRecordatorioModal() {
       const rowSent     = (!p.phone || waSent) && (!p.email || mailSent);
       return `<div id="rec-row-${p.uid}" data-has-phone="${p.phone?1:0}" data-has-email="${p.email?1:0}" style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;${rowSent ? 'background:#f0fdf4' : ''}">
         <div>
-          <div style="font-weight:700;font-size:.88rem">${p.nombre || '—'}</div>
-          <div style="font-size:.75rem;color:var(--muted);font-family:'Space Mono',monospace">${p.phone || 'sin teléfono'}${p.email ? ' · ' + p.email : ''}</div>
+          <div style="font-weight:700;font-size:.88rem">${escHtml(p.nombre) || '—'}</div>
+          <div style="font-size:.75rem;color:var(--muted);font-family:'Space Mono',monospace">${escHtml(p.phone) || 'sin teléfono'}${p.email ? ' · ' + escHtml(p.email) : ''}</div>
         </div>
         <div style="display:flex;gap:6px;white-space:nowrap">
           ${p.phone
@@ -2505,8 +2505,8 @@ function renderCupoModal(sesionNum, categoria) {
     const waLink = waOfertaCupoLink(p.nombre, sesionNum, categoria, p.phone, horaLimite);
     return `<div id="cupo-row-${p.uid}" style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;${sent ? 'background:#f0fdf4' : ''}">
       <div>
-        <div style="font-weight:700;font-size:.88rem">${p.nombre || '—'}</div>
-        <div style="font-size:.75rem;color:var(--muted);font-family:'Space Mono',monospace">${p.phone || 'sin teléfono'} · límite ${horaLimite}</div>
+        <div style="font-weight:700;font-size:.88rem">${escHtml(p.nombre) || '—'}</div>
+        <div style="font-size:.75rem;color:var(--muted);font-family:'Space Mono',monospace">${escHtml(p.phone) || 'sin teléfono'} · límite ${horaLimite}</div>
       </div>
       ${p.phone
         ? `<a href="${waLink}" target="_blank" class="btn-action ${sent ? '' : 'btn-wa'}" style="text-decoration:none;white-space:nowrap" onclick="marcarCupoEnviado('${sesionNum}','${p.uid}')">${sent ? '✓ Enviado' : '💬 Enviar'}</a>`
@@ -2616,10 +2616,10 @@ function renderBitacoraTabla() {
       <td style="white-space:nowrap;font-size:.78rem">${fechaTxt}</td>
       <td><span class="status-badge" style="background:#f3f4f6;color:#374151">${ACCION_LABELS[e.accion] || e.accion}</span></td>
       <td style="font-size:.8rem">
-        <strong style="color:${actorColors[e.actorTipo] || '#374151'}">${e.actorNombre || (actorLabels[e.actorTipo] || '—')}</strong><br>
+        <strong style="color:${actorColors[e.actorTipo] || '#374151'}">${escHtml(e.actorNombre) || (actorLabels[e.actorTipo] || '—')}</strong><br>
         <span style="color:var(--muted);font-size:.7rem">${actorLabels[e.actorTipo] || e.actorTipo || ''}</span>
       </td>
-      <td style="font-size:.8rem">${e.jugadorNombre || '—'}</td>
+      <td style="font-size:.8rem">${escHtml(e.jugadorNombre) || '—'}</td>
       <td style="font-size:.78rem;white-space:nowrap">${sesionTxt || '—'}</td>
       <td style="font-size:.78rem;color:var(--muted)">${e.detalle || ''}</td>
     </tr>`;
@@ -2677,7 +2677,7 @@ function renderNotifications(notifs) {
       return `<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid #e0e7ff;flex-wrap:wrap">
         <div>
           <span class="penalty-badge slot">Lugar disponible</span>
-          <strong style="margin-left:8px">${n.playerName}</strong>
+          <strong style="margin-left:8px">${escHtml(n.playerName)}</strong>
           <span style="font-size:.8rem;color:var(--muted);margin-left:6px">${sesLabel(n.sesionNum)} · ${catLabels[n.categoria]||n.categoria}</span>
         </div>
         <div style="display:flex;gap:8px">
@@ -2690,12 +2690,12 @@ function renderNotifications(notifs) {
       return `<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid #e0e7ff;flex-wrap:wrap">
         <div>
           <span class="penalty-badge p1">Cancelación tardía</span>
-          <strong style="margin-left:8px">${n.playerName}</strong>
+          <strong style="margin-left:8px">${escHtml(n.playerName)}</strong>
           <span style="font-size:.8rem;color:var(--muted);margin-left:6px">${sesLabel(n.sesionNum)} · ${catLabels[n.categoria]||n.categoria}</span>
         </div>
         <div style="display:flex;gap:8px">
           <button class="btn-action" style="background:#fee2e2;color:#991b1b;border-color:#fca5a5"
-            onclick="applyPenalty('${n.playerUid}', '${n.playerName}', ${n.sesionNum}, '${n.id}')">Forzar Cancha B (próx. sesión)</button>
+            onclick="applyPenalty('${n.playerUid}', '${escJsAttr(n.playerName)}', ${n.sesionNum}, '${n.id}')">Forzar Cancha B (próx. sesión)</button>
           <button class="btn-action btn-accept" onclick="resolveNotif('${n.id}')">Sin penalización</button>
         </div>
       </div>`;
@@ -2777,8 +2777,8 @@ async function buscarJugadorCopiar() {
     <div onclick="seleccionarJugadorCopiar(${i})" data-idx="${i}"
          style="padding:10px 16px;cursor:pointer;border-bottom:1px solid var(--border);font-size:.84rem;transition:background .15s"
          onmouseover="this.style.background='#f0fdf4'" onmouseout="this.style.background=''">
-      <strong>${r.entry.nombre}</strong>
-      <span style="color:var(--muted);margin-left:8px">${r.entry.categoria||''} · Sesión ${r.sesionOrigen}${r.entry.duprId?' · DUPR '+r.entry.duprId:''}</span>
+      <strong>${escHtml(r.entry.nombre)}</strong>
+      <span style="color:var(--muted);margin-left:8px">${r.entry.categoria||''} · Sesión ${r.sesionOrigen}${r.entry.duprId?' · DUPR '+escHtml(r.entry.duprId):''}</span>
     </div>`).join('');
   res.style.display = 'block';
   res._lista = lista;
@@ -3114,8 +3114,8 @@ async function loadPublishedLadder() {
 
       html += `<tr style="border-bottom:1px solid var(--border)">
         <td style="padding:8px 12px;font-family:'Space Mono',monospace;font-size:.7rem;color:var(--muted)">${lastPos}</td>
-        <td style="padding:8px 12px;font-weight:700">${r.nombre||r.uid||r.docId}</td>
-        <td style="padding:8px 10px;text-align:center;font-family:'Space Mono',monospace;font-size:.72rem;color:var(--muted)">${r.duprId||'—'}</td>
+        <td style="padding:8px 12px;font-weight:700">${escHtml(r.nombre)||r.uid||r.docId}</td>
+        <td style="padding:8px 10px;text-align:center;font-family:'Space Mono',monospace;font-size:.72rem;color:var(--muted)">${escHtml(r.duprId)||'—'}</td>
         ${sortedKeys.map(k => {
           const s = scoresByKey[k];
           if (!s) return `<td style="padding:8px 10px;text-align:center;color:#d1d5db">—</td>`;
@@ -3635,7 +3635,7 @@ function renderLadderHTML(rows) {
             const textColor = !isComp ? 'color:#9ca3af;' : '';
             return `<tr style="border-bottom:1px solid var(--border);${rowBg}${textColor}">
               <td style="padding:8px 12px;font-family:'Space Mono',monospace;font-size:.7rem;${isComp?'color:#065f46;font-weight:700':'color:#9ca3af'}">${displayPos}</td>
-              <td style="padding:8px 12px;font-weight:${isComp?'700':'400'}">${r.nombre}</td>
+              <td style="padding:8px 12px;font-weight:${isComp?'700':'400'}">${escHtml(r.nombre)}</td>
               ${allSessions.map(sn => {
                 const s = scoresBySn[sn];
                 if (!s) return `<td style="padding:8px 10px;text-align:center;color:#d1d5db">—</td>`;
@@ -3654,9 +3654,9 @@ function renderLadderHTML(rows) {
                 : `<span style="color:#9ca3af;font-size:.75rem">${r.status}</span>`
               }</td>
               <td style="padding:4px 8px;text-align:center">
-                <button onclick="promptSetDuprId('${r.uid}','${(r.duprId||'').replace(/'/g,"&#39;")}','${r.nombre.replace(/'/g,"&#39;")}')"
+                <button onclick="promptSetDuprId('${r.uid}','${escJsAttr(r.duprId||'')}','${escJsAttr(r.nombre)}')"
                   style="font-size:.65rem;padding:2px 6px;background:#f3f4f6;border:1px solid #d1d5db;cursor:pointer;border-radius:3px;color:#374151"
-                  title="Asignar / corregir DUPR ID">${r.duprId ? `<span style="font-family:monospace">${r.duprId}</span>` : '＋ DUPR'}</button>
+                  title="Asignar / corregir DUPR ID">${r.duprId ? `<span style="font-family:monospace">${escHtml(r.duprId)}</span>` : '＋ DUPR'}</button>
               </td>
             </tr>`;
           }).join('');
@@ -3715,12 +3715,12 @@ async function openSubstituteModal(sesionNum, categoria) {
   const r2uids = [...(fx.courtA_r2||fx.courtA||[]), ...(fx.courtB_r2||fx.courtB||[])];
   const pn = fx.playerNames || {};
   document.getElementById('sub-out-uid').innerHTML =
-    r2uids.map(u => `<option value="${u}">${pn[u]||u}</option>`).join('');
+    r2uids.map(u => `<option value="${u}">${escHtml(pn[u]||u)}</option>`).join('');
 
   // Sustitutos posibles: inscritos de esta sesión+categoría que aún no están en Ronda 2
   const inscritos = (_allData[sesionNum]||[]).filter(p => p.categoria === categoria && !r2uids.includes(p.uid));
   document.getElementById('sub-in-uid').innerHTML = inscritos.length
-    ? inscritos.map(p => `<option value="${p.uid}">${p.nombre} (${p.status})</option>`).join('')
+    ? inscritos.map(p => `<option value="${p.uid}">${escHtml(p.nombre)} (${p.status})</option>`).join('')
     : `<option value="">— nadie más inscrito en ${categoria} para esta sesión —</option>`;
 
   document.getElementById('sub-mode').value = 'existing';
@@ -4737,18 +4737,18 @@ function renderFixtureHTML(fx, sesionNum, categoria) {
     html += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px">
       <div class="court-block court-a">
         <div class="court-label">🏆 Cancha A</div>
-        ${(fx.courtA||[]).map((u,i)=>`<div class="court-player"><span style="color:var(--muted);font-size:.7rem;margin-right:6px">${i+1}.</span>${pn[u]||u}${ratingBadge(u)}</div>`).join('')}
+        ${(fx.courtA||[]).map((u,i)=>`<div class="court-player"><span style="color:var(--muted);font-size:.7rem;margin-right:6px">${i+1}.</span>${escHtml(pn[u]||u)}${ratingBadge(u)}</div>`).join('')}
       </div>
       <div class="court-block court-b">
         <div class="court-label">Cancha B</div>
-        ${(fx.courtB||[]).map((u,i)=>`<div class="court-player"><span style="color:var(--muted);font-size:.7rem;margin-right:6px">${i+1}.</span>${pn[u]||u}${ratingBadge(u)}</div>`).join('')}
+        ${(fx.courtB||[]).map((u,i)=>`<div class="court-player"><span style="color:var(--muted);font-size:.7rem;margin-right:6px">${i+1}.</span>${escHtml(pn[u]||u)}${ratingBadge(u)}</div>`).join('')}
       </div>
     </div>`;
   } else {
     const uids = fx.courtA || [];
     html += `<div style="margin-bottom:16px;font-size:.82rem;color:var(--muted)">
       📋 <strong>${uids.length}</strong> jugadores · <strong>${fx.totalRounds}</strong> ronda${fx.totalRounds>1?'s':''} · 1 cancha
-      <span style="margin-left:12px">${uids.map(u=>`<span style="background:#f0f0ee;padding:2px 7px;margin-right:4px;font-size:.78rem">${pn[u]||u}${ratingBadge(u)}</span>`).join('')}</span>
+      <span style="margin-left:12px">${uids.map(u=>`<span style="background:#f0f0ee;padding:2px 7px;margin-right:4px;font-size:.78rem">${escHtml(pn[u]||u)}${ratingBadge(u)}</span>`).join('')}</span>
     </div>`;
   }
 
@@ -4789,13 +4789,13 @@ function renderFixtureHTML(fx, sesionNum, categoria) {
       html += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
         <div>
           <div style="font-family:'Barlow Condensed',sans-serif;font-size:.75rem;font-weight:900;text-transform:uppercase;letter-spacing:.1em;color:#065f46;margin-bottom:8px;background:#dcfce7;padding:4px 10px">Cancha A · ${isS1?'V:2/D:0':'V:3/D:1'}${progA}</div>
-          ${round.num === 2 ? `<div style="font-size:.75rem;color:var(--muted);margin-bottom:8px;padding:4px 0">${courtAuids.map(u=>`<span style="display:inline-block;background:${(fx.promotedToA||[]).includes(u)?'#dcfce7':'#f0f0ee'};padding:1px 6px;margin:1px;font-size:.72rem">${(fx.promotedToA||[]).includes(u)?'⬆ ':''} ${pn[u]||u}</span>`).join('')}</div>` : ''}
+          ${round.num === 2 ? `<div style="font-size:.75rem;color:var(--muted);margin-bottom:8px;padding:4px 0">${courtAuids.map(u=>`<span style="display:inline-block;background:${(fx.promotedToA||[]).includes(u)?'#dcfce7':'#f0f0ee'};padding:1px 6px;margin:1px;font-size:.72rem">${(fx.promotedToA||[]).includes(u)?'⬆ ':''} ${escHtml(pn[u]||u)}</span>`).join('')}</div>` : ''}
           ${(round.matchesA||[]).map(m=>renderMatchRow(m,pn,'A',isS1,sesionNum,categoria,round.num)).join('')}
           ${allScoredA ? renderStandingsTable(computeStandings(round.matchesA,courtAuids,'A',isS1),pn, round.num===1?movement?.A:null) : ''}
         </div>
         <div>
           <div style="font-family:'Barlow Condensed',sans-serif;font-size:.75rem;font-weight:900;text-transform:uppercase;letter-spacing:.1em;color:#1d4ed8;margin-bottom:8px;background:#dbeafe;padding:4px 10px">Cancha B · V:2/D:0${progB}</div>
-          ${round.num === 2 ? `<div style="font-size:.75rem;color:var(--muted);margin-bottom:8px;padding:4px 0">${courtBuids.map(u=>`<span style="display:inline-block;background:${(fx.relegatedToB||[]).includes(u)?'#fef2f2':'#f0f0ee'};padding:1px 6px;margin:1px;font-size:.72rem">${(fx.relegatedToB||[]).includes(u)?'⬇ ':''} ${pn[u]||u}</span>`).join('')}</div>` : ''}
+          ${round.num === 2 ? `<div style="font-size:.75rem;color:var(--muted);margin-bottom:8px;padding:4px 0">${courtBuids.map(u=>`<span style="display:inline-block;background:${(fx.relegatedToB||[]).includes(u)?'#fef2f2':'#f0f0ee'};padding:1px 6px;margin:1px;font-size:.72rem">${(fx.relegatedToB||[]).includes(u)?'⬇ ':''} ${escHtml(pn[u]||u)}</span>`).join('')}</div>` : ''}
           ${(round.matchesB||[]).map(m=>renderMatchRow(m,pn,'B',isS1,sesionNum,categoria,round.num)).join('')}
           ${allScoredB ? renderStandingsTable(computeStandings(round.matchesB,courtBuids,'B',isS1),pn, round.num===1?movement?.B:null) : ''}
         </div>
@@ -4847,9 +4847,9 @@ function renderFixtureHTML(fx, sesionNum, categoria) {
 }
 
 function renderMatchRow(m, pn, court, isS1, sesionNum, categoria, roundNum) {
-  const p1 = (m.pair1||[]).map(u=>pn[u]||u).join(' + ');
-  const p2 = (m.pair2||[]).map(u=>pn[u]||u).join(' + ');
-  const so = (m.sitout||[]).map(u=>pn[u]||u).join(', ');
+  const p1 = (m.pair1||[]).map(u=>escHtml(pn[u]||u)).join(' + ');
+  const p2 = (m.pair2||[]).map(u=>escHtml(pn[u]||u)).join(' + ');
+  const so = (m.sitout||[]).map(u=>escHtml(pn[u]||u)).join(', ');
   const s  = m.score;
   // Pass individual params to avoid JSON/quote escaping issues in onclick
   const crt = court||'X';
@@ -4958,7 +4958,7 @@ function renderStandingsTable(stats, pn, movement) {
         const goesDown = downSet.has(u);
         const rowBg = goesUp ? 'background:#f0fdf4;' : goesDown ? 'background:#fef2f2;' : i===0 ? 'background:#fafaf8;' : '';
         return `<tr style="border-bottom:1px solid var(--border);${rowBg}">
-          <td style="padding:6px 10px;font-weight:${goesUp||goesDown?'700':'400'}">${pn[u]||u}</td>
+          <td style="padding:6px 10px;font-weight:${goesUp||goesDown?'700':'400'}">${escHtml(pn[u]||u)}</td>
           <td style="padding:6px 8px;text-align:center;font-family:'Space Mono',monospace">${r.pj}</td>
           <td style="padding:6px 8px;text-align:center;font-family:'Space Mono',monospace">${r.pg}</td>
           <td style="padding:6px 8px;text-align:center;font-family:'Space Mono',monospace">${r.pp}</td>

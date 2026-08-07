@@ -1206,7 +1206,7 @@ function buildStandingsHTML(fx, uid, pn) {
     const filas = Object.entries(stats)
       .sort(([,a],[,b2]) => b2.score - a.score)
       .map(([u, r]) => `<tr class="${u===uid?'me':''}">
-        <td>${u===uid ? '▶ Tú' : (pn[u]||u)}</td>
+        <td>${u===uid ? '▶ Tú' : escHtml(pn[u]||u)}</td>
         <td>${r.pj}</td>
         <td>${r.pg}</td>
         <td>${r.pp}</td>
@@ -1258,8 +1258,8 @@ function renderMatchDetail(sesionNum, categoria) {
   </div>`;
 
   const filas = partidos.map(p => {
-    const parejaTxt  = p.pareja ? ` + ${p.pareja}` : '';
-    const rivalesTxt = p.rivales.join(' + ');
+    const parejaTxt  = p.pareja ? ` + ${escHtml(p.pareja)}` : '';
+    const rivalesTxt = p.rivales.map(escHtml).join(' + ');
     const resultado  = !p.jugado
       ? `<span class="match-result pending">Pendiente</span>`
       : p.gano
@@ -1300,7 +1300,7 @@ function renderRankingTab(rows, catLabel) {
     const isMe   = p.duprId && p.duprId === _duprId;
     return `<div class="peer-row">
       <span class="peer-pos">${absPos}</span>
-      <span class="peer-name ${isMe?'me':''}">${isMe ? '▶ ' : ''}${p.nombre}</span>
+      <span class="peer-name ${isMe?'me':''}">${isMe ? '▶ ' : ''}${escHtml(p.nombre)}</span>
       <span class="peer-pct">${p.compitiendo ? p.avg.toFixed(2) : '—'}</span>
     </div>`;
   }).join('');
@@ -1315,7 +1315,7 @@ function renderNavChip(user) {
   const initials = name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
   slot.innerHTML = `
     <a class="nav-user" href="perfil.html">
-      <span class="nav-user-avatar">${initials}</span>${first}
+      <span class="nav-user-avatar">${escHtml(initials)}</span>${escHtml(first)}
     </a><button onclick="APAuth.signOut();location.href='https://antigua-pickleball.com/login.html?redirect='+encodeURIComponent(location.href)" title="Salir / cambiar de cuenta" style="font-family:'Barlow Condensed',sans-serif;font-size:.78rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#6b6b74;background:none;border:1px solid #e2e2de;padding:6px 11px;cursor:pointer;margin-left:6px">Salir</button>`;
   if (mobMenu && !document.getElementById('mob-auth-btn')) {
     const a = document.createElement('a');

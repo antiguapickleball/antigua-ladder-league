@@ -15,3 +15,21 @@
 
 /
   Cache-Control: public, max-age=0, must-revalidate
+
+# Content-Security-Policy — aplica a todas las respuestas.
+# Dominios externos usados por el sitio (confirmados por grep en *.html/*.js):
+#   - www.gstatic.com          → Firebase SDKs (script)
+#   - fonts.googleapis.com     → Google Fonts (stylesheet)
+#   - fonts.gstatic.com        → Google Fonts (archivos de fuente)
+#   - www.paypal.com           → PayPal SDK (script) + botones/checkout (iframe)
+#   - www.paypalobjects.com    → logo de PayPal (imagen)
+#   - api.emailjs.com          → envío de notificaciones por correo (fetch)
+#   - ap-dupr-api.netlify.app  → consulta de rating DUPR (fetch)
+#   - firestore/identitytoolkit/securetoken.googleapis.com, antigua-pickleball.firebaseapp.com
+#                               → backend de Firebase Auth/Firestore
+# 'unsafe-inline' es necesario en script-src y style-src: el sitio usa <script>
+# inline, atributos onclick/onchange/oninput y estilos inline/inyectados por JS
+# en decenas de puntos — quitarlo requeriría una refactorización grande fuera
+# del alcance de este cambio (ver reporte).
+/*
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com https://www.paypal.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://www.paypalobjects.com; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://www.googleapis.com https://api.emailjs.com https://ap-dupr-api.netlify.app https://www.paypal.com https://www.paypalobjects.com https://antigua-pickleball.firebaseapp.com; frame-src https://www.paypal.com data:; object-src 'none'; base-uri 'self'; form-action 'self'

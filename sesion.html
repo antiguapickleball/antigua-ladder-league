@@ -1386,9 +1386,9 @@ function renderRows(inscritos, currentUser, filter) {
     const slotLabel = isSlotP ? (isInviteVencida(p) ? '⏰ Invitado (vencida)' : 'Invitado a pagar') : '';
     return `<div class="inscrito-row${(isWait||isSlotP)?' waitlist-row':''}">
       <span class="inscrito-num">${i+1}</span>
-      <div class="inscrito-avatar" style="${isMe?'':'background:#aaa'}">${initials}</div>
-      <span class="inscrito-name ${isMe?'me':''}">${isMe?'▶ ':''}${p.nombre}</span>
-      ${p.duprId ? `<span class="inscrito-dupr">${p.duprId}</span>` : ''}
+      <div class="inscrito-avatar" style="${isMe?'':'background:#aaa'}">${escHtml(initials)}</div>
+      <span class="inscrito-name ${isMe?'me':''}">${isMe?'▶ ':''}${escHtml(p.nombre)}</span>
+      ${p.duprId ? `<span class="inscrito-dupr">${escHtml(p.duprId)}</span>` : ''}
       ${p.categoria ? `<span class="inscrito-cat-badge ${p.categoria}">${catLabels[p.categoria]||p.categoria}</span>` : ''}
       ${isWait ? `<span style="font-family:'Space Mono',monospace;font-size:.58rem;color:#b45309;border:1px solid #fbbf24;padding:2px 6px;background:#fffbeb">Espera</span>` : ''}
       ${isSlotP ? `<span style="font-family:'Space Mono',monospace;font-size:.58rem;color:#1e40af;border:1px solid #93c5fd;padding:2px 6px;background:#eff6ff">${slotLabel}</span>` : ''}
@@ -1802,7 +1802,7 @@ function appendSegundaCategoria(container, user, myRegs, inscritos) {
         </div>
         <div class="field-group-reg" id="phone-field-wrap-2" style="display:none">
           <div class="dupr-label" style="margin-bottom:6px">Tu número de teléfono <span style="color:var(--red)">*</span></div>
-          <input class="phone-input" id="phone-input-2" type="tel" placeholder="Ej: +502 5555-0000" autocomplete="tel" value="${myRegs[0]?.phone || ''}"/>
+          <input class="phone-input" id="phone-input-2" type="tel" placeholder="Ej: +502 5555-0000" autocomplete="tel" value="${escHtml(myRegs[0]?.phone || '')}"/>
           <p style="font-size:.72rem;color:var(--muted);margin-top:4px;line-height:1.4">Medio de contacto principal.</p>
         </div>
         <div id="pay-method-label-2" class="cat-select-label" style="display:none">Método de pago</div>
@@ -2595,12 +2595,12 @@ async function submitTransfer(user) {
           ⏳ ¡Inscripción recibida — estás en lista de espera!<br>
           <span style="font-size:.8rem;font-family:'Barlow',sans-serif;font-weight:400">
             Quedas en lista de espera mientras validamos tu pago. ${boletaDocId
-              ? `El admin revisará tu boleta y te confirmará por WhatsApp al <strong>${phone}</strong>.`
+              ? `El admin revisará tu boleta y te confirmará por WhatsApp al <strong>${escHtml(phone)}</strong>.`
               : `No pudimos recibir tu boleta — envíala por <a href="https://wa.me/50230912707?text=Boleta+Ladder+Semana+${NUM}" style="color:var(--red);font-weight:700">WhatsApp</a> para validar tu pago.`}
           </span>
         </div>
         <div style="font-size:.8rem;color:var(--muted);display:flex;flex-direction:column;gap:5px">
-          <span>DUPR ID: <strong style="color:var(--dark)">${duprId}</strong></span>
+          <span>DUPR ID: <strong style="color:var(--dark)">${escHtml(duprId)}</strong></span>
           <span>Categoría: <strong style="color:var(--dark)">${{ principiante:'Principiante', intermedio:'Intermedio', open:'Open' }[cat]}</strong></span>
           <span>Monto: <strong style="color:var(--dark)">${TRANSFER_PRICE}</strong></span>
         </div>
@@ -2667,7 +2667,7 @@ async function submitTransferSlot(user, reg) {
           ⏳ ¡Boleta recibida! Tu cupo queda reservado mientras el admin valida la transferencia.<br>
           <span style="font-size:.8rem;font-family:'Barlow',sans-serif;font-weight:400">
             ${boletaDocId
-              ? `Te confirmamos por WhatsApp al <strong>${phone}</strong> apenas se valide.`
+              ? `Te confirmamos por WhatsApp al <strong>${escHtml(phone)}</strong> apenas se valide.`
               : `No pudimos recibir tu boleta — envíala por <a href="https://wa.me/50230912707?text=Boleta+Ladder+Semana+${NUM}" style="color:var(--red);font-weight:700">WhatsApp</a> para validar tu pago.`}
           </span>
         </div>
@@ -2971,7 +2971,7 @@ async function submitTransferMove(user, reg, targetNum) {
           ⏳ ¡Boleta recibida! Tu cupo en la Semana ${targetNum} queda reservado mientras el admin valida la transferencia.<br>
           <span style="font-size:.8rem;font-family:'Barlow',sans-serif;font-weight:400">
             ${boletaDocId
-              ? `Te confirmamos por WhatsApp al <strong>${phone}</strong> apenas se valide.`
+              ? `Te confirmamos por WhatsApp al <strong>${escHtml(phone)}</strong> apenas se valide.`
               : `No pudimos recibir tu boleta — envíala por <a href="https://wa.me/50230912707?text=Boleta+Ladder+Semana+${targetNum}" style="color:var(--red);font-weight:700">WhatsApp</a> para validar tu pago.`}
           </span>
         </div>
@@ -3193,7 +3193,7 @@ function renderNavChip(user) {
     const profileURL = 'perfil.html';
     slot.innerHTML = `
       ${isAdmin ? `<a href="admin.html" style="font-family:'Barlow Condensed',sans-serif;font-size:.75rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);text-decoration:none;padding:5px 10px;border:1px solid var(--border);margin-right:4px">⚙ Admin</a>` : ''}
-      <a class="nav-user" href="${profileURL}"><span class="nav-user-avatar">${initials}</span>${first}</a><button onclick="APAuth.signOut();location.href='https://antigua-pickleball.com/login.html?redirect='+encodeURIComponent(location.href)" title="Salir / cambiar de cuenta" style="font-family:'Barlow Condensed',sans-serif;font-size:.78rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#6b6b74;background:none;border:1px solid #e2e2de;padding:6px 11px;cursor:pointer;margin-left:6px">Salir</button>`;
+      <a class="nav-user" href="${profileURL}"><span class="nav-user-avatar">${escHtml(initials)}</span>${escHtml(first)}</a><button onclick="APAuth.signOut();location.href='https://antigua-pickleball.com/login.html?redirect='+encodeURIComponent(location.href)" title="Salir / cambiar de cuenta" style="font-family:'Barlow Condensed',sans-serif;font-size:.78rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#6b6b74;background:none;border:1px solid #e2e2de;padding:6px 11px;cursor:pointer;margin-left:6px">Salir</button>`;
 
     if (mobMenu && !mobMenu.querySelector('.mob-auth-link')) {
       const a = document.createElement('a');

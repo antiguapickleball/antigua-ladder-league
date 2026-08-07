@@ -89,3 +89,35 @@
   };
 
 })();
+
+// ─── Utilidad compartida: escapar texto antes de insertarlo vía innerHTML ────
+// Se usa en todas las páginas (admin.html, sesion.html, index.html, perfil.html,
+// etc.) para evitar XSS al mostrar campos de usuario (nombre, DUPR ID, teléfono,
+// etc.) que llegan de Firestore o inputs libres. Este script se carga antes que
+// los <script> de cada página, así que window.escHtml siempre está listo.
+window.escHtml = function(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+};
+
+// ─── Escapar para insertar dentro de un onclick="fn('...')" (string JS con
+// comillas simples, anidado en un atributo HTML) ─────────────────────────────
+// escHtml() solo no basta aquí: el navegador decodifica entidades HTML del
+// atributo ANTES de compilarlo como JS, así que un `'` codificado como &#39;
+// vuelve a ser una comilla literal y puede cerrar el string JS igual. Por eso
+// primero se escapa para JS (barra invertida + comilla simple) y luego se
+// aplica escHtml() para proteger el atributo HTML que lo envuelve.
+window.escJsAttr = function(str) {
+  if (str === null || str === undefined) return '';
+  const jsEscaped = String(str)
+    .replace(/\\/g, '\\\\')
+    .replace(/'/g, "\\'")
+    .replace(/\n/g, '\\n')
+    .replace(/\r/g, '\\r');
+  return window.escHtml(jsEscaped);
+};
