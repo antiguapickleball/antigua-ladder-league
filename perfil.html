@@ -329,8 +329,21 @@
     }
     .session-row:last-child { border: none; }
     @media (max-width: 640px) {
-      .session-row { grid-template-columns: 70px 1fr 60px; }
-      .session-pts-gan, .session-pts-pos { display: none; }
+      .session-header-row { display: none !important; }
+      .session-row {
+        grid-template-columns: auto 1fr auto;
+        grid-template-areas:
+          "num   fecha  badge"
+          "pts   pts    pos";
+        row-gap: 6px;
+      }
+      .session-num   { grid-area: num; }
+      .session-fecha { grid-area: fecha; }
+      .session-badge { grid-area: badge; }
+      .session-pts-gan { grid-area: pts; text-align: left; }
+      .session-pts-pos { grid-area: pos; text-align: right; }
+      .session-pts-gan::before { content: 'Score '; color: var(--muted); font-weight: 400; }
+      .session-pts-pos::before { content: 'Cat. '; color: var(--muted); font-weight: 400; }
     }
     .session-num {
       font-family: 'Space Mono', monospace;
@@ -736,7 +749,7 @@
             <div class="sessions-card-header">
               <span class="sessions-card-title">Historial de Sesiones</span>
             </div>
-            <div style="display:grid;grid-template-columns:90px 1fr 80px 80px 100px;padding:10px 22px 10px;border-bottom:2px solid var(--border);gap:12px;">
+            <div class="session-header-row" style="display:grid;grid-template-columns:90px 1fr 80px 80px 100px;padding:10px 22px 10px;border-bottom:2px solid var(--border);gap:12px;">
               <span style="font-family:'Space Mono',monospace;font-size:.6rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)">Semana</span>
               <span style="font-family:'Space Mono',monospace;font-size:.6rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)">Fecha</span>
               <span style="font-family:'Space Mono',monospace;font-size:.6rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);text-align:center">Score</span>
