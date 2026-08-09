@@ -3,8 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Noticias · Antigua Ladder League</title>
-<meta name="description" content="Noticias, resúmenes de jornada y actualizaciones de la Antigua Ladder League."/>
+<title>Videos · Antigua Ladder League</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,400;0,600;0,700;0,800;0,900;1,700;1,900&family=Barlow:wght@300;400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"/>
@@ -108,36 +107,6 @@
     display: flex; align-items: center; justify-content: center;
     font-size: .72rem; font-weight: 900; flex-shrink: 0;
   }
-    /* móvil: el nav no debe desbordar — ocultar logo Quattro y compactar marca */
-  @media (max-width: 560px) {
-    .nav-brand img[src*="quattro"] { display: none !important; }
-    .nav-brand .nav-brand-divider + img[src*="quattro"] { display: none !important; }
-    .nav-brand { gap: 8px; min-width: 0; }
-    .nav-brand-name { font-size: .92rem; white-space: nowrap; }
-  }
-
-  /* móvil: compactar acciones del nav para que nada se corte */
-  @media (max-width: 560px) {
-    .nav-btn { padding: 7px 12px !important; font-size: .78rem !important; }
-    .nav-user { padding: 4px !important; gap: 0 !important; }
-    .nav-user > :not(.nav-user-avatar) { display: none; }
-    .nav-user { font-size: 0 !important; }
-    .nav-user .nav-user-avatar { font-size: .72rem !important; }
-    button[title="Salir / cambiar de cuenta"] { padding: 5px 8px !important; font-size: .68rem !important; margin-left: 4px !important; }
-    .nav-chip-admin { font-size: .6rem !important; padding: 4px 6px !important; }
-    .nav-actions, #nav-auth-slot { gap: 6px !important; }
-  }
-
-#nav-auth-slot { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
-  @media (max-width: 560px) {
-    .nav-btn { padding: 7px 12px !important; font-size: .78rem !important; }
-    .nav-user { padding: 4px !important; gap: 0 !important; }
-    .nav-user > :not(.nav-user-avatar) { display: none; }
-    .nav-user { font-size: 0 !important; }
-    .nav-user .nav-user-avatar { font-size: .72rem !important; }
-    button[title="Salir / cambiar de cuenta"] { padding: 5px 8px !important; font-size: .68rem !important; margin-left: 4px !important; }
-    .nav-actions, #nav-auth-slot { gap: 6px !important; }
-  }
   .hamburger {
     display: flex; flex-direction: column; gap: 5px;
     background: none; border: 1px solid var(--border);
@@ -159,58 +128,147 @@
     transition: color .2s;
   }
 
+  /* móvil: el nav no debe desbordar — ocultar logo Quattro y compactar marca */
+  @media (max-width: 560px) {
+    .nav-brand img[src*="quattro"] { display: none !important; }
+    .nav-brand .nav-brand-divider + img[src*="quattro"] { display: none !important; }
+    .nav-brand { gap: 8px; min-width: 0; }
+    .nav-brand-name { font-size: .92rem; white-space: nowrap; }
+    .nav-inner { padding: 0 14px; gap: 8px; }
+  }
+
+  /* móvil: compactar acciones del nav para que nada se corte */
+  @media (max-width: 560px) {
+    .nav-btn { padding: 7px 12px !important; font-size: .78rem !important; }
+    .nav-user { padding: 4px !important; gap: 0 !important; }
+    .nav-user > :not(.nav-user-avatar) { display: none; }
+    .nav-user { font-size: 0 !important; }
+    .nav-user .nav-user-avatar { font-size: .72rem !important; }
+    button[title="Salir / cambiar de cuenta"] { padding: 5px 8px !important; font-size: .68rem !important; margin-left: 4px !important; }
+    .nav-chip-admin { font-size: .6rem !important; padding: 4px 6px !important; }
+    .nav-actions, #nav-auth-slot { gap: 6px !important; }
+  }
+
+  #nav-auth-slot { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+
+  /* móvil: el link 'Ingresar' (sin login) usa padding inline generoso que no
+     estaba cubierto por la compactación de .nav-btn/.nav-user — se salía del
+     borde derecho en pantallas angostas junto al botón hamburguesa. */
+  @media (max-width: 560px) {
+    #nav-auth-slot > a:not(.nav-user) { padding: 6px 9px !important; font-size: .74rem !important; }
+    .hamburger { padding: 9px 9px !important; }
+    .nav-inner { padding: 0 10px !important; }
+  }
+
   /* ════════════════════════════════════════════
-     HEADER
+     HEADER DE VIDEOS
   ════════════════════════════════════════════ */
-  .news-header {
+  .vid-header {
     padding: 140px 0 40px;
     background: var(--light);
     border-bottom: 1px solid var(--border);
   }
-  .news-header p { color: var(--muted); margin-top: 14px; max-width: 560px; font-size: .98rem; }
+  .vid-header p { color: var(--muted); margin-top: 14px; max-width: 560px; font-size: .98rem; }
 
   /* ════════════════════════════════════════════
-     GRID DE NOTICIAS
+     TABS DE JORNADAS
   ════════════════════════════════════════════ */
-  .news-grid-wrap { padding: 40px 0 80px; }
-  .news-grid {
-    display: grid; gap: 24px;
-    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  .gal-tabs {
+    position: sticky; top: 60px; z-index: 50;
+    background: #fff; border-bottom: 1px solid var(--border);
   }
-  .news-card {
-    background: #fff;
-    border: 1px solid var(--border);
-    overflow: hidden;
-    text-decoration: none; color: inherit;
-    transition: transform .22s, box-shadow .22s;
-    display: flex; flex-direction: column;
+  .gal-tabs-inner {
+    max-width: 1160px; margin: 0 auto; padding: 0 24px;
+    display: flex; gap: 4px; overflow-x: auto;
   }
-  .news-card:hover { transform: translateY(-4px); box-shadow: 0 12px 40px rgba(0,0,0,.1); }
-  .news-card-img {
-    overflow: hidden; background: var(--light2); position: relative;
-    display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px;
-  }
-  .news-card-img img { width: 100%; aspect-ratio: 4/5; object-fit: cover; display: block; transition: transform .4s; }
-  .news-card:hover .news-card-img img { transform: scale(1.04); }
-  .news-card-body { padding: 24px 26px 26px; flex: 1; display: flex; flex-direction: column; gap: 10px; }
-  .news-card-tag {
-    font-family: 'Space Mono', monospace;
-    font-size: .6rem; letter-spacing: .16em; text-transform: uppercase;
-    color: var(--red); font-weight: 700;
-  }
-  .news-card h3 {
+  .gal-tab {
     font-family: 'Barlow Condensed', sans-serif;
-    font-size: 1.55rem; font-weight: 800; letter-spacing: .02em; text-transform: uppercase;
-    color: var(--dark); line-height: 1.05;
+    font-size: .95rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
+    color: var(--muted); background: none; border: none;
+    padding: 16px 18px 13px; cursor: pointer; white-space: nowrap;
+    border-bottom: 3px solid transparent;
+    transition: color .2s, border-color .2s;
   }
-  .news-card p { font-size: .9rem; font-weight: 300; color: var(--muted); line-height: 1.6; flex: 1; }
-  .news-card-cta {
-    margin-top: 4px;
+  .gal-tab.active { color: var(--red); border-bottom-color: var(--red); }
+  .gal-tab .count { font-family: 'Space Mono', monospace; font-size: .68rem; color: var(--muted); margin-left: 6px; }
+
+  /* ════════════════════════════════════════════
+     SECCIONES POR CATEGORÍA + GRID DE VIDEOS
+  ════════════════════════════════════════════ */
+  .vid-body { padding: 28px 0 80px; }
+  .cat-section { margin-bottom: 40px; }
+  .cat-section:last-child { margin-bottom: 0; }
+  .cat-section-title {
+    display: flex; align-items: center; gap: 10px;
     font-family: 'Barlow Condensed', sans-serif;
-    font-size: .85rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase;
-    color: var(--red);
+    font-size: 1.3rem; font-weight: 800; letter-spacing: .03em; text-transform: uppercase;
+    color: var(--dark); margin-bottom: 16px;
   }
-  .news-empty { color: var(--muted); padding: 40px 0; text-align: center; font-size: .95rem; }
+  .cat-badge {
+    font-family: 'Space Mono', monospace; font-size: .68rem; font-weight: 700;
+    padding: 3px 9px; border-radius: 99px;
+  }
+  .cat-badge.principiante { background: #d1fae5; color: #065f46; }
+  .cat-badge.intermedio   { background: #dbeafe; color: #1e40af; }
+  .cat-badge.open         { background: #ede9fe; color: #5b21b6; }
+
+  .vid-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+    gap: 18px;
+  }
+  .vid-card { display: flex; flex-direction: column; gap: 8px; }
+  .vid-thumb {
+    position: relative; aspect-ratio: 16 / 9; overflow: hidden;
+    cursor: pointer; background: var(--light2); border: none; padding: 0; width: 100%;
+  }
+  .vid-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .35s; }
+  .vid-thumb:hover img { transform: scale(1.06); }
+  .vid-play {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    font-size: 2.1rem; color: #fff; text-shadow: 0 2px 10px rgba(0,0,0,.55); pointer-events: none;
+  }
+  .vid-label {
+    font-family: 'Barlow Condensed', sans-serif; font-size: .92rem; font-weight: 700;
+    letter-spacing: .02em; color: var(--dark);
+  }
+  .vid-players { display: flex; flex-wrap: wrap; gap: 5px; }
+  .vid-chip {
+    font-family: 'Barlow', sans-serif; font-size: .74rem; color: var(--muted);
+    background: var(--light2); padding: 3px 9px;
+  }
+  .gal-empty { color: var(--muted); padding: 40px 0; text-align: center; font-size: .95rem; }
+  .vid-loading { color: var(--muted); padding: 60px 0; text-align: center; font-size: .95rem; }
+
+  /* ════════════════════════════════════════════
+     LIGHTBOX DE VIDEO
+  ════════════════════════════════════════════ */
+  #lightbox {
+    display: none; position: fixed; inset: 0; z-index: 200;
+    background: rgba(10,10,10,.96);
+    align-items: center; justify-content: center;
+    padding: 24px;
+  }
+  #lightbox.open { display: flex; }
+  #lb-video-wrap {
+    width: min(92vw, 1000px);
+    aspect-ratio: 16 / 9;
+    background: #000;
+  }
+  #lb-video-wrap iframe { width: 100%; height: 100%; border: 0; display: block; }
+  .lb-btn {
+    position: absolute; background: rgba(255,255,255,.08);
+    border: 1px solid rgba(255,255,255,.2); color: #fff;
+    width: 46px; height: 46px; border-radius: 50%;
+    font-size: 1.3rem; line-height: 1; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: background .2s;
+  }
+  .lb-btn:hover { background: rgba(255,255,255,.2); }
+  .lb-close { top: 18px; right: 18px; }
+  @media (max-width: 600px) {
+    .vid-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
+  }
 
   /* ════════════════════════════════════════════
      FOOTER — copiado de index.html
@@ -253,15 +311,6 @@
   }
   @media (max-width: 860px) { .footer-inner { grid-template-columns: 1fr 1fr; } }
   @media (max-width: 560px) { .footer-inner { grid-template-columns: 1fr; } }
-
-/* móvil: el link 'Ingresar' (sin login) usa padding inline generoso que no
-   estaba cubierto por la compactación de .nav-btn/.nav-user — se salía del
-   borde derecho en pantallas angostas junto al botón hamburguesa. */
-@media (max-width: 560px) {
-  #nav-auth-slot > a:not(.nav-user) { padding: 6px 9px !important; font-size: .74rem !important; }
-  .hamburger { padding: 9px 9px !important; }
-  .nav-inner { padding: 0 10px !important; }
-}
 </style>
 </head>
 <body>
@@ -284,9 +333,9 @@
       <li><a href="index.html#standings">Ranking</a></li>
       <li><a href="index.html#calendario">Calendario</a></li>
       <li><a href="index.html#reglamento">Reglamento</a></li>
-      <li><a href="noticias.html" class="active">Noticias</a></li>
+      <li><a href="noticias.html">Noticias</a></li>
       <li><a href="galeria.html">Galería</a></li>
-      <li><a href="videos.html">Videos</a></li>
+      <li><a href="videos.html" class="active">Videos</a></li>
       <li><a href="https://antigua-pickleball.com">← Antigua PB</a></li>
     </ul>
     <div class="nav-actions">
@@ -313,21 +362,36 @@
 <!-- ══════════════════════════════════════
      HEADER
 ══════════════════════════════════════ -->
-<section class="news-header">
+<section class="vid-header">
   <div class="container">
     <div class="label">Temporada 1</div>
-    <h1 class="section-title">Noticias</h1>
-    <p>Resúmenes de cada jornada, tablas de posiciones y todo lo que se vive en las canchas de Club Quattro — para jugadores y para quien quiera seguirle la pista a la Antigua Ladder League.</p>
+    <h1 class="section-title">Videos de las Jornadas</h1>
+    <p>Partidos grabados de Cancha A, organizados por jornada y categoría. Haz clic en cualquier video para verlo aquí mismo.</p>
   </div>
 </section>
 
 <!-- ══════════════════════════════════════
-     GRID
+     TABS
 ══════════════════════════════════════ -->
-<div class="news-grid-wrap">
-  <div class="container">
-    <div class="news-grid" id="news-grid"></div>
+<div class="gal-tabs">
+  <div class="gal-tabs-inner" id="gal-tabs-inner"></div>
+</div>
+
+<!-- ══════════════════════════════════════
+     CUERPO
+══════════════════════════════════════ -->
+<div class="vid-body">
+  <div class="container" id="vid-container">
+    <div class="vid-loading" id="vid-loading">Cargando videos…</div>
   </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     LIGHTBOX
+══════════════════════════════════════ -->
+<div id="lightbox">
+  <button class="lb-btn lb-close" id="lb-close" aria-label="Cerrar">✕</button>
+  <div id="lb-video-wrap"></div>
 </div>
 
 <!-- ══════════════════════════════════════
@@ -348,6 +412,7 @@
       <h4>Ladder</h4>
       <ul>
         <li><a href="index.html#formato">Formato</a></li>
+        <li><a href="index.html#horarios">Horarios</a></li>
         <li><a href="index.html#standings">Ranking</a></li>
         <li><a href="index.html#calendario">Calendario</a></li>
         <li><a href="noticias.html">Noticias</a></li>
@@ -379,139 +444,155 @@
   </div>
 </footer>
 
+<!-- ══ FIREBASE ══ -->
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
 <script>
-/* ════════════════════════════════════════════════════════════
-   NOTICIAS — agregar una entrada nueva arriba cada vez que se
-   publique una noticia nueva (más reciente primero).
-════════════════════════════════════════════════════════════ */
-const NOTICIAS = [
-  {
-    href: 'noticia-jornada4-recap.html',
-    tag: 'Jornada 4 · 8 Ago 2026',
-    title: 'Dos líderes que no sueltan el primer lugar',
-    excerpt: 'Nery Gámez y Roberto Carlos Arango repiten al frente de Principiante e Intermedio, y Luis Buenahora se lleva Open. Tablas de posiciones completas de las tres categorías.',
-    imgs: [
-      'fotos/jornada4/web/1d814cd9-f3bf-4ec5-84c2-e81ad54d933b.jpg',
-      'fotos/jornada4/web/e3193528-4462-4c25-aec8-80ea28be8761.jpg',
-      'fotos/jornada4/web/ca5461c8-0371-4292-9e94-919537dd2975.jpg',
-    ],
-  },
-  {
-    href: 'noticia-como-funciona-el-ranking.html',
-    tag: 'Guía · 1 Ago 2026',
-    title: '¿Cómo se arma el ranking, en realidad?',
-    excerpt: 'Las 3 reglas que mueven la tabla: las 3 sesiones mínimas para entrar al ranking oficial, el descarte a partir de la 4ta jornada, y el bono de Cancha A — con ejemplos reales de ahora mismo.',
-    imgs: [
-      'fotos/jornada1/web/29f038cb-0a44-41b5-b630-b5e4bffcfb72.jpg',
-      'fotos/jornada1/web/3d0b3003-3886-4456-9a70-9fba7a9f724a.jpg',
-      'fotos/jornada1/web/60d25c71-45b9-4786-96a7-b1c76b51043d.jpg',
-    ],
-  },
-  {
-    href: 'noticia-jornada3-recap.html',
-    tag: 'Jornada 3 · 1 Ago 2026',
-    title: 'Caras nuevas, líderes nuevos',
-    excerpt: '60 partidos y una tabla que se movió de arriba a abajo en las tres categorías. En Open, el debut más esperado de la liga llegó a imponer condiciones desde el primer partido.',
-    imgs: [
-      'fotos/jornada2/web/nery-gamez.jpg',
-      'fotos/jornada1/web/94806e74-e6a2-4885-8886-217ce2548967.jpg',
-      'fotos/jornada3/web/Foto-8.jpg',
-    ],
-  },
-  {
-    href: 'noticia-jornada3-regreso.html',
-    tag: 'Aviso · 27 Jul 2026',
-    title: '¡La Antigua Ladder League vuelve este sábado!',
-    excerpt: 'Retomamos con la Jornada 3 el 1 de agosto y seguimos cada sábado hasta el 5 de septiembre. Intermedio ya está lleno — Principiante y Open todavía tienen cupo.',
-    imgs: [
-      'fotos/jornada1/web/d4705d68-e5e7-493f-aace-6667a64b86a8.jpg',
-      'fotos/jornada1/web/f51ae9ec-8e9a-4774-b14b-83a8679c4e45.jpg',
-      'fotos/jornada1/web/a9614bdb-6679-42ed-a42c-98f6ed67d6df.jpg',
-    ],
-  },
-  {
-    href: 'noticia-karen-lopez-remontada.html',
-    tag: 'Jugadora destacada · 20 Jul 2026',
-    title: 'Karen López firma la remontada más grande de la liga',
-    excerpt: 'De estar casi al fondo de la tabla en la Jornada 1 a compartir el primer lugar de Principiante en la Jornada 2 — el salto de nivel más grande que se ha visto en la liga hasta ahora.',
-    imgs: [
-      'fotos/jornada1/web/6d43d5c5-aaca-4e01-9c17-fe0904504b75.jpg',
-      'fotos/jornada2/web/karen-lopez.jpg',
-      'fotos/jornada1/web/82c6a227-04a9-4d4e-8464-7a3bf26613e9.jpg',
-    ],
-  },
-  {
-    href: 'noticia-jornada2-recap.html',
-    tag: 'Jornada 2 · 18 Jul 2026',
-    title: 'La Antigua Ladder League sigue creciendo',
-    excerpt: '30 jugadores, 15 de ellos debutando en la liga, y dos recién llegados que terminaron liderando su categoría el mismo día que se estrenaron.',
-    imgs: [
-      'fotos/jornada2/web/nery-gamez.jpg',
-      'fotos/jornada2/web/travis-ning.jpg',
-      'fotos/jornada2/web/luis-rodriguez.jpg',
-    ],
-  },
-  {
-    href: 'noticia-cambio-fecha-semana3.html',
-    tag: 'Aviso · 15 Jul 2026',
-    title: 'La Semana 3 se corre para dejarle la cancha a las mujeres',
-    excerpt: 'Movemos la Jornada 3 una semana para que nadie tenga que elegir entre jugar con nosotros o ir a apoyar el OneShot Femenino. El cierre de Temporada 1 pasa del 29 de agosto al 5 de septiembre.',
-    imgs: [
-      'fotos/jornada1/web/4ce3aeff-0f77-4391-b78d-4ede4b714997.jpg',
-      'fotos/jornada1/web/26a2fb5e-897a-4a9c-8509-c9ecbf2eb5e7.jpg',
-      'fotos/jornada1/web/04e1371f-dc9a-4239-9a26-5965dee61168.jpg',
-    ],
-  },
-  {
-    href: 'noticia-don-gus-regresa.html',
-    tag: 'Comunidad · 7 Jul 2026',
-    title: '¡Don Gus está de vuelta en la cancha!',
-    excerpt: 'Después de una pausa por lesiones y quebrantos de salud, uno de los jugadores más queridos de la comunidad volvió a Club Quattro con toda la alegría de siempre.',
-    imgs: [
-      'fotos/jornada1/web/1f53d22e-1c39-40d2-998e-24accede4541.jpg',
-      'fotos/jornada1/web/701e2b23-8f30-4933-97ff-02e11a4029d7.jpg',
-      'fotos/jornada1/web/31707d0f-9c73-4bb1-9ed9-32804ba05a58.jpg',
-    ],
-  },
-  {
-    href: 'noticia-jornada1-arranque.html',
-    tag: 'Jornada 1 · 4 Jul 2026',
-    title: '¡Arrancó la Antigua Ladder League!',
-    excerpt: 'Partidos apretados, buena porra y tres nuevos líderes de categoría: así se vivió el debut de la Temporada 1 en Club Quattro.',
-    imgs: [
-      'fotos/jornada1/web/9988bdd4-f01c-4d8e-a28e-f9095abc863f.jpg',
-      'fotos/jornada1/web/0fc1f3c9-8f36-4aa0-94f6-4a35d299090b.jpg',
-      'fotos/jornada1/web/ebced658-78b8-4fa8-b075-ac6ad1e782a9.jpg',
-    ],
-  },
-  // Agrega la próxima noticia aquí arriba de esta línea:
-  // { href:'noticia-....html', tag:'Jornada 3 · ...', title:'...', excerpt:'...', imgs:['fotos/jornada3/web/a.jpg','fotos/jornada3/web/b.jpg','fotos/jornada3/web/c.jpg'] },
-];
+  firebase.initializeApp({
+    apiKey: "AIzaSyBBmUQR8AGdosXSGNK3galyBmFjkn6jOuM",
+    authDomain: "antigua-pickleball.firebaseapp.com",
+    projectId: "antigua-pickleball",
+    storageBucket: "antigua-pickleball.firebasestorage.app",
+    messagingSenderId: "270487643715",
+    appId: "1:270487643715:web:701b74a71253ac599056f6"
+  });
+  const db = firebase.firestore();
+  const IS_TEST_ENV = /^nueva/.test(location.hostname);
+  const COL = (name) => IS_TEST_ENV ? `${name}_test` : name;
+  if (IS_TEST_ENV) {
+    const _testBanner = () => {
+      const b = document.createElement('div');
+      b.textContent = '🧪 AMBIENTE DE PRUEBAS — datos de prueba, no afectan producción';
+      b.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:999999;background:#f59e0b;color:#111;text-align:center;font:700 12px/1.6 sans-serif;padding:4px 8px;letter-spacing:.03em;';
+      document.body.prepend(b);
+    };
+    document.body ? _testBanner() : document.addEventListener('DOMContentLoaded', _testBanner);
+  }
+  firebase.auth().signInAnonymously().catch(e => console.warn('anon auth:', e));
+</script>
 
-function renderNews() {
-  const grid = document.getElementById('news-grid');
-  if (!NOTICIAS.length) {
-    grid.innerHTML = `<div class="news-empty">Todavía no hay noticias publicadas.</div>`;
+<script>
+const CAT_LABELS = { principiante: 'Principiante', intermedio: 'Intermedio', open: 'Open' };
+const CAT_ORDER = ['principiante', 'intermedio', 'open'];
+
+let JORNADAS = [];       // [{num, total, principiante:[], intermedio:[], open:[]}]
+let currentJornada = null;
+
+function groupVideos(docs) {
+  const byJornada = {};
+  docs.forEach(v => {
+    if (!byJornada[v.jornada]) byJornada[v.jornada] = { num: v.jornada, total: 0, principiante: [], intermedio: [], open: [] };
+    const j = byJornada[v.jornada];
+    if (!j[v.categoria]) return; // categoría desconocida, se ignora
+    j[v.categoria].push(v);
+    j.total++;
+  });
+  Object.values(byJornada).forEach(j => {
+    CAT_ORDER.forEach(c => j[c].sort((a, b) => (a.numero || 0) - (b.numero || 0)));
+  });
+  return Object.values(byJornada).sort((a, b) => a.num - b.num);
+}
+
+function renderTabs() {
+  const wrap = document.getElementById('gal-tabs-inner');
+  wrap.innerHTML = JORNADAS.map(j => `
+    <button class="gal-tab${j.num === currentJornada.num ? ' active' : ''}" data-num="${j.num}">
+      Jornada ${j.num} <span class="count">${j.total}</span>
+    </button>
+  `).join('');
+  wrap.querySelectorAll('.gal-tab').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const j = JORNADAS.find(x => x.num === parseInt(btn.dataset.num));
+      if (!j) return;
+      currentJornada = j;
+      renderTabs();
+      renderBody();
+    });
+  });
+}
+
+function videoCardHTML(v) {
+  const jugadoresHTML = (v.jugadores && v.jugadores.length)
+    ? `<div class="vid-players">${v.jugadores.map(j => `<span class="vid-chip">${escHtml(j.nombre)}</span>`).join('')}</div>`
+    : '';
+  const label = escHtml(v.numeroLabel || '');
+  return `
+    <div class="vid-card">
+      <button class="vid-thumb" data-yt="${escHtml(v.youtubeId)}" data-label="${escJsAttr(v.numeroLabel || '')}" aria-label="Ver ${label}">
+        <img src="https://i.ytimg.com/vi/${encodeURIComponent(v.youtubeId)}/hqdefault.jpg" loading="lazy" decoding="async" alt="${label}"/>
+        <span class="vid-play">▶</span>
+      </button>
+      <div class="vid-label">${label}</div>
+      ${jugadoresHTML}
+    </div>
+  `;
+}
+
+function catSectionHTML(cat, videos) {
+  if (!videos.length) return '';
+  return `
+    <div class="cat-section">
+      <div class="cat-section-title">${CAT_LABELS[cat]} <span class="cat-badge ${cat}">${videos.length}</span></div>
+      <div class="vid-grid">${videos.map(videoCardHTML).join('')}</div>
+    </div>
+  `;
+}
+
+function renderBody() {
+  const container = document.getElementById('vid-container');
+  if (!currentJornada || !currentJornada.total) {
+    container.innerHTML = '<div class="gal-empty">Aún no hay videos para esta jornada.</div>';
     return;
   }
-  grid.innerHTML = NOTICIAS.map(n => `
-    <a class="news-card" href="${n.href}">
-      <div class="news-card-img" style="grid-template-columns:repeat(${n.imgs.length},1fr)">${n.imgs.map(src => `<img src="${src}" loading="lazy" decoding="async" alt="${n.title}"/>`).join('')}</div>
-      <div class="news-card-body">
-        <div class="news-card-tag">${n.tag}</div>
-        <h3>${n.title}</h3>
-        <p>${n.excerpt}</p>
-        <div class="news-card-cta">Leer noticia →</div>
-      </div>
-    </a>
-  `).join('');
+  container.innerHTML = CAT_ORDER.map(c => catSectionHTML(c, currentJornada[c])).join('');
+  container.querySelectorAll('.vid-thumb').forEach(btn => {
+    btn.addEventListener('click', () => openLightbox(btn.dataset.yt, btn.dataset.label));
+  });
 }
-renderNews();
+
+function openLightbox(youtubeId, label) {
+  const wrap = document.getElementById('lb-video-wrap');
+  wrap.innerHTML = `<iframe src="https://www.youtube-nocookie.com/embed/${encodeURIComponent(youtubeId)}?autoplay=1&rel=0" title="${escHtml(label || 'Video')}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
+  document.getElementById('lightbox').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeLightbox() {
+  document.getElementById('lightbox').classList.remove('open');
+  document.getElementById('lb-video-wrap').innerHTML = '';
+  document.body.style.overflow = '';
+}
+document.getElementById('lb-close').addEventListener('click', closeLightbox);
+document.getElementById('lightbox').addEventListener('click', e => { if (e.target.id === 'lightbox') closeLightbox(); });
+document.addEventListener('keydown', e => {
+  if (!document.getElementById('lightbox').classList.contains('open')) return;
+  if (e.key === 'Escape') closeLightbox();
+});
 
 // Menú móvil
 document.getElementById('hamburger').addEventListener('click', () => {
   document.getElementById('mobile-menu').classList.toggle('open');
 });
+
+async function loadVideos() {
+  try {
+    const snap = await db.collection(COL('ladder_videos')).get();
+    const docs = snap.docs.map(d => d.data());
+    JORNADAS = groupVideos(docs);
+    if (!JORNADAS.length) {
+      document.getElementById('gal-tabs-inner').innerHTML = '';
+      document.getElementById('vid-container').innerHTML = '<div class="gal-empty">Todavía no hay videos publicados.</div>';
+      return;
+    }
+    currentJornada = JORNADAS[JORNADAS.length - 1]; // la más reciente por defecto
+    renderTabs();
+    renderBody();
+  } catch (e) {
+    console.error('loadVideos:', e);
+    document.getElementById('vid-container').innerHTML = '<div class="gal-empty">No se pudieron cargar los videos. Intenta de nuevo más tarde.</div>';
+  }
+}
+loadVideos();
 </script>
 
 <!-- ══ AUTH BRIDGE — sesión compartida con antigua-pickleball.com ══ -->

@@ -396,6 +396,7 @@
         <button class="btn-action" style="padding:9px 16px;font-size:.82rem;background:#eff6ff;color:#1d4ed8;border-color:#bfdbfe" onclick="openModal('modal-copiar')">📋 Copiar registro</button>
         <button class="btn-action" style="padding:9px 16px;font-size:.82rem;background:#f0fdf4;color:#065f46;border-color:#6ee7b7" onclick="openRecordatorioModal()">📣 Recordatorio WA</button>
         <button class="btn-action" style="padding:9px 16px;font-size:.82rem;background:#faf5ff;color:#6b21a8;border-color:#e9d5ff" onclick="openBitacoraModal()">📜 Bitácora</button>
+        <button class="btn-action" style="padding:9px 16px;font-size:.82rem;background:#fdf2f8;color:#9d174d;border-color:#fbcfe8" onclick="toggleVideosPanel()">🎥 Videos</button>
         <button class="btn-action" style="padding:9px 16px;font-size:.82rem;background:#fef2f2;color:#991b1b;border-color:#fca5a5" onclick="openModal('modal-danger')">⚙️ Peligro</button>
       </div>
     </div>
@@ -444,6 +445,65 @@
         </div>
         <div id="publish-status" style="margin-top:8px;font-size:.78rem;color:var(--muted)"></div>
         <div style="margin-top:2px;font-size:.72rem;color:var(--muted)">El CSV usa la jornada elegida arriba (— jornada —) · exporta las 3 categorías que tengan partidos con resultado, listo para subir a DUPR.</div>
+      </div>
+    </div>
+
+    <!-- VIDEOS PANEL -->
+    <div id="videos-panel" style="display:none;margin-bottom:28px;border:1.5px solid #f9a8d4;background:#fff">
+      <div style="background:#831843;padding:14px 20px;display:flex;align-items:center;justify-content:space-between">
+        <span style="font-family:'Barlow Condensed',sans-serif;font-size:1rem;font-weight:900;text-transform:uppercase;letter-spacing:.06em;color:#fff">🎥 Videos de partidos · Cancha A</span>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button onclick="loadVideosAdmin()" style="font-family:'Barlow Condensed',sans-serif;font-size:.75rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;padding:5px 12px;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:#fff;cursor:pointer">↺ Actualizar</button>
+          <button onclick="document.getElementById('videos-panel').style.display='none'" style="background:none;border:none;color:rgba(255,255,255,.5);cursor:pointer;font-size:1.4rem;line-height:1">×</button>
+        </div>
+      </div>
+
+      <!-- Agregar video individual -->
+      <div style="padding:16px 20px;border-bottom:1.5px solid #fbcfe8;background:#fdf2f8">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:.85rem;font-weight:900;text-transform:uppercase;letter-spacing:.06em;color:#831843;margin-bottom:10px">➕ Agregar video</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">
+          <div class="field-group" style="width:90px">
+            <label class="field-label">Jornada</label>
+            <input class="field-input" id="vid-add-jornada" type="number" min="1" value="1"/>
+          </div>
+          <div class="field-group" style="width:160px">
+            <label class="field-label">Categoría</label>
+            <select class="field-select" id="vid-add-categoria">
+              <option value="principiante">Principiante</option>
+              <option value="intermedio">Intermedio</option>
+              <option value="open">Open</option>
+            </select>
+          </div>
+          <div class="field-group" style="width:90px">
+            <label class="field-label">Número</label>
+            <input class="field-input" id="vid-add-numero" type="number" min="1" value="1"/>
+          </div>
+          <div class="field-group" style="width:150px">
+            <label class="field-label">Etiqueta</label>
+            <input class="field-input" id="vid-add-label" type="text" placeholder="Ej. Juego 1"/>
+          </div>
+          <div class="field-group" style="flex:1;min-width:220px">
+            <label class="field-label">Link o ID de YouTube</label>
+            <input class="field-input" id="vid-add-url" type="text" placeholder="https://youtube.com/watch?v=..."/>
+          </div>
+          <button class="btn-modal btn-save" style="background:#831843" onclick="addVideoSingle()">Agregar</button>
+        </div>
+      </div>
+
+      <!-- Importar por lote -->
+      <div style="padding:16px 20px;border-bottom:1.5px solid #fbcfe8;background:#fff">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:.85rem;font-weight:900;text-transform:uppercase;letter-spacing:.06em;color:#831843;margin-bottom:8px">📦 Importar por lote</div>
+        <p style="font-size:.78rem;color:var(--muted);line-height:1.5;margin-bottom:8px">Una línea por video: <code>jornada|categoria|numero|etiqueta|idDeYouTube|tituloOriginal(opcional)</code>. Ejemplo: <code>3|open|1|Juego 1|lPOPmJ-7Qog</code></p>
+        <textarea id="vid-import-text" rows="6" style="width:100%;font-family:'Space Mono',monospace;font-size:.78rem;padding:10px;border:1.5px solid var(--border)" placeholder="3|open|1|Juego 1|lPOPmJ-7Qog"></textarea>
+        <div style="margin-top:8px;display:flex;gap:8px;align-items:center">
+          <button class="btn-modal btn-save" style="background:#831843" onclick="importVideosBatch()">Importar lote</button>
+          <span id="vid-import-status" style="font-size:.78rem;color:var(--muted)"></span>
+        </div>
+      </div>
+
+      <!-- Lista de videos cargados -->
+      <div id="videos-inner" style="padding:16px 20px">
+        <div style="color:var(--muted);font-size:.85rem">Haz clic en "↺ Actualizar" para cargar los videos.</div>
       </div>
     </div>
 
@@ -826,6 +886,25 @@
     <div class="modal-footer">
       <button class="btn-modal btn-cancel-modal" onclick="closeModal('modal-add')">Cancelar</button>
       <button class="btn-modal btn-save" id="btn-save-add" onclick="saveAdd()">Agregar jugador</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: ETIQUETAR JUGADORES EN UN VIDEO -->
+<div class="modal-overlay" id="modal-tag-video" style="display:none" onclick="if(event.target===this)closeModal('modal-tag-video')">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-header">
+      <span class="modal-title" id="tag-video-title">🏷 Etiquetar jugadores</span>
+      <button class="modal-close" onclick="closeModal('modal-tag-video')">×</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:.78rem;color:var(--muted);line-height:1.5;margin-top:-4px">Marca quiénes aparecen en este video. La lista sale de los jugadores confirmados en esa jornada y categoría.</p>
+      <div id="tag-video-hint" style="font-size:.78rem;color:#831843;background:#fdf2f8;padding:8px 10px;display:none"></div>
+      <div id="tag-video-list" style="display:flex;flex-direction:column;gap:4px;max-height:50vh;overflow-y:auto"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-modal btn-cancel-modal" onclick="closeModal('modal-tag-video')">Cancelar</button>
+      <button class="btn-modal btn-save" id="btn-save-tag-video" style="background:#831843" onclick="saveTagVideo()">Guardar</button>
     </div>
   </div>
 </div>
@@ -2857,6 +2936,250 @@ function mostrarMsgCopiar(txt, bg, color) {
   const el = document.getElementById('copiar-msg');
   el.textContent = txt; el.style.background = bg; el.style.color = color;
   el.style.display = 'block';
+}
+// ─────────────────────────────────────────────────────────────
+
+/* ══════════════════════════════════════════════════════
+   VIDEOS DE PARTIDOS (Cancha A) — ladder_videos
+══════════════════════════════════════════════════════ */
+const CAT_LABELS_VID = { principiante: 'Principiante', intermedio: 'Intermedio', open: 'Open' };
+let _videosData = [];
+let _videosLoaded = false;
+let _tagVideoDocId = null;
+
+function toggleVideosPanel() {
+  const el = document.getElementById('videos-panel');
+  const show = el.style.display === 'none';
+  el.style.display = show ? 'block' : 'none';
+  if (show && !_videosLoaded) loadVideosAdmin();
+}
+
+function extractYoutubeId(input) {
+  input = (input || '').trim();
+  if (!input) return '';
+  const m = input.match(/(?:youtube\.com\/watch\?v=|youtube\.com\/embed\/|youtu\.be\/)([A-Za-z0-9_-]{11})/);
+  if (m) return m[1];
+  if (/^[A-Za-z0-9_-]{11}$/.test(input)) return input;
+  return '';
+}
+
+function videoDocId(jornada, categoria, numero) {
+  return `j${jornada}_${categoria}_${numero}`;
+}
+
+async function loadVideosAdmin() {
+  const inner = document.getElementById('videos-inner');
+  inner.innerHTML = '<div style="color:var(--muted);font-size:.85rem">Cargando…</div>';
+  try {
+    const snap = await db.collection(COL('ladder_videos')).get();
+    _videosData = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    _videosLoaded = true;
+    renderVideosAdmin();
+  } catch (e) {
+    console.error('loadVideosAdmin:', e);
+    inner.innerHTML = '<div style="color:#991b1b;font-size:.85rem">No se pudieron cargar los videos.</div>';
+  }
+}
+
+function renderVideosAdmin() {
+  const inner = document.getElementById('videos-inner');
+  if (!_videosData.length) {
+    inner.innerHTML = '<div style="color:var(--muted);font-size:.85rem">Todavía no hay videos cargados.</div>';
+    return;
+  }
+  const byJornada = {};
+  _videosData.forEach(v => {
+    if (!byJornada[v.jornada]) byJornada[v.jornada] = {};
+    if (!byJornada[v.jornada][v.categoria]) byJornada[v.jornada][v.categoria] = [];
+    byJornada[v.jornada][v.categoria].push(v);
+  });
+  const jornadas = Object.keys(byJornada).map(Number).sort((a, b) => b - a);
+
+  inner.innerHTML = jornadas.map(jn => {
+    const cats = byJornada[jn];
+    const catsHTML = Object.keys(cats).sort((a, b) => a.localeCompare(b)).map(cat => {
+      const videos = cats[cat].sort((a, b) => (a.numero || 0) - (b.numero || 0));
+      const rowsHTML = videos.map(v => {
+        const nJug = (v.jugadores || []).length;
+        const chip = nJug
+          ? `<span style="font-size:.72rem;color:#065f46;background:#d1fae5;padding:2px 8px;border-radius:99px">${nJug} etiquetado(s)</span>`
+          : `<span style="font-size:.72rem;color:#92400e;background:#fef3c7;padding:2px 8px;border-radius:99px">sin etiquetar</span>`;
+        const hint = v.tituloOriginal ? `<div style="font-size:.72rem;color:var(--muted);margin-top:2px">${escHtml(v.tituloOriginal)}</div>` : '';
+        return `
+          <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
+            <img src="https://i.ytimg.com/vi/${encodeURIComponent(v.youtubeId)}/default.jpg" style="width:64px;height:36px;object-fit:cover;background:var(--light2);flex-shrink:0" loading="lazy"/>
+            <div style="flex:1;min-width:0">
+              <div style="font-weight:700;font-size:.85rem">${escHtml(v.numeroLabel || ('#' + v.numero))}</div>
+              ${hint}
+            </div>
+            ${chip}
+            <a href="https://youtube.com/watch?v=${encodeURIComponent(v.youtubeId)}" target="_blank" class="btn-action" style="padding:5px 10px;font-size:.72rem">▶ Ver</a>
+            <button class="btn-action" style="padding:5px 10px;font-size:.72rem;background:#fdf2f8;color:#9d174d;border-color:#fbcfe8" onclick="openTagVideo('${v.id}')">🏷 Jugadores</button>
+            <button class="btn-action" style="padding:5px 10px;font-size:.72rem;background:#fef2f2;color:#991b1b;border-color:#fca5a5" onclick="deleteVideo('${v.id}')">🗑</button>
+          </div>`;
+      }).join('');
+      return `
+        <div style="margin-bottom:10px">
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:.8rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:10px 0 4px">${CAT_LABELS_VID[cat] || cat} · ${videos.length}</div>
+          ${rowsHTML}
+        </div>`;
+    }).join('');
+    return `
+      <div style="margin-bottom:18px">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:1rem;font-weight:900;text-transform:uppercase;letter-spacing:.04em;color:#831843;border-bottom:2px solid #f9a8d4;padding-bottom:4px">Jornada ${jn}</div>
+        ${catsHTML}
+      </div>`;
+  }).join('');
+}
+
+async function addVideoSingle() {
+  const jornada   = parseInt(document.getElementById('vid-add-jornada').value);
+  const categoria = document.getElementById('vid-add-categoria').value;
+  const numero    = parseInt(document.getElementById('vid-add-numero').value);
+  const label     = document.getElementById('vid-add-label').value.trim();
+  const url       = document.getElementById('vid-add-url').value.trim();
+  const youtubeId = extractYoutubeId(url);
+
+  if (!jornada || !numero) { toast('✕ Jornada y número son obligatorios', true); return; }
+  if (!youtubeId) { toast('✕ No se pudo leer el link/ID de YouTube', true); return; }
+
+  try {
+    if (!auth.currentUser) await auth.signInAnonymously();
+    const id = videoDocId(jornada, categoria, numero);
+    await db.collection(COL('ladder_videos')).doc(id).set({
+      jornada, categoria, numero,
+      numeroLabel: label || `#${numero}`,
+      youtubeId, cancha: 'A',
+      jugadores: [],
+      updatedAt: firebase.firestore.Timestamp.now(),
+    }, { merge: true });
+    logActividad('edicion', { sesionNum: jornada, categoria, detalle: `Video agregado: ${label || youtubeId} (${youtubeId})` });
+    toast('✅ Video agregado');
+    document.getElementById('vid-add-url').value = '';
+    document.getElementById('vid-add-label').value = '';
+    loadVideosAdmin();
+  } catch (e) {
+    console.error('addVideoSingle:', e);
+    toast('✕ Error al guardar el video', true);
+  }
+}
+
+async function importVideosBatch() {
+  const raw = document.getElementById('vid-import-text').value;
+  const lines = raw.split('\n').map(l => l.trim()).filter(Boolean);
+  const status = document.getElementById('vid-import-status');
+  if (!lines.length) { toast('✕ No hay líneas para importar', true); return; }
+
+  if (!auth.currentUser) await auth.signInAnonymously();
+
+  let ok = 0, fail = 0;
+  for (const line of lines) {
+    const parts = line.split('|').map(p => p.trim());
+    const [jornadaStr, categoria, numeroStr, label, youtubeIdRaw, tituloOriginal] = parts;
+    const jornada = parseInt(jornadaStr);
+    const numero  = parseInt(numeroStr);
+    const youtubeId = extractYoutubeId(youtubeIdRaw);
+    if (!jornada || !numero || !categoria || !youtubeId) { fail++; continue; }
+    try {
+      const id = videoDocId(jornada, categoria, numero);
+      const payload = {
+        jornada, categoria, numero,
+        numeroLabel: label || `#${numero}`,
+        youtubeId, cancha: 'A',
+        jugadores: [],
+        updatedAt: firebase.firestore.Timestamp.now(),
+      };
+      if (tituloOriginal) payload.tituloOriginal = tituloOriginal;
+      await db.collection(COL('ladder_videos')).doc(id).set(payload, { merge: true });
+      ok++;
+    } catch (e) {
+      console.error('importVideosBatch line failed:', line, e);
+      fail++;
+    }
+    status.textContent = `Importando… ${ok + fail}/${lines.length}`;
+  }
+  status.textContent = `✅ ${ok} importados${fail ? ` · ✕ ${fail} con error` : ''}`;
+  logActividad('edicion', { detalle: `Importación por lote de videos: ${ok} ok, ${fail} con error` });
+  loadVideosAdmin();
+}
+
+function openTagVideo(docId) {
+  const video = _videosData.find(v => v.id === docId);
+  if (!video) return;
+  _tagVideoDocId = docId;
+
+  const roster = (_allData[video.jornada] || []).filter(p => p.categoria === video.categoria && p.status === 'confirmed');
+  const taggedUids = new Set((video.jugadores || []).map(j => j.uid));
+  // Incluir etiquetados que ya no aparezcan en el roster actual (por si cambió su estado después)
+  const extra = (video.jugadores || []).filter(j => !roster.some(p => p.uid === j.uid)).map(j => ({ uid: j.uid, nombre: j.nombre }));
+  const candidatos = [...roster, ...extra];
+
+  document.getElementById('tag-video-title').textContent = `🏷 ${video.numeroLabel || ''} · Jornada ${video.jornada} · ${CAT_LABELS_VID[video.categoria] || video.categoria}`;
+  const hint = document.getElementById('tag-video-hint');
+  if (video.tituloOriginal) {
+    hint.style.display = 'block';
+    hint.textContent = `Título original en YouTube: ${video.tituloOriginal}`;
+  } else {
+    hint.style.display = 'none';
+  }
+
+  const list = document.getElementById('tag-video-list');
+  if (!candidatos.length) {
+    list.innerHTML = '<div style="color:var(--muted);font-size:.85rem">No hay jugadores confirmados en esa jornada/categoría todavía.</div>';
+  } else {
+    list.innerHTML = candidatos.map(p => `
+      <label style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:.85rem;cursor:pointer">
+        <input type="checkbox" value="${escHtml(p.uid)}" data-nombre="${escHtml(p.nombre || '')}" ${taggedUids.has(p.uid) ? 'checked' : ''}/>
+        ${escHtml(p.nombre || p.uid)}
+      </label>
+    `).join('');
+  }
+  openModal('modal-tag-video');
+}
+
+async function saveTagVideo() {
+  if (!_tagVideoDocId) return;
+  const video = _videosData.find(v => v.id === _tagVideoDocId);
+  const checks = Array.from(document.querySelectorAll('#tag-video-list input[type="checkbox"]:checked'));
+  const jugadores = checks.map(c => ({ uid: c.value, nombre: c.dataset.nombre || '' }));
+
+  const btn = document.getElementById('btn-save-tag-video');
+  btn.disabled = true; btn.textContent = 'Guardando…';
+  try {
+    if (!auth.currentUser) await auth.signInAnonymously();
+    await db.collection(COL('ladder_videos')).doc(_tagVideoDocId).update({
+      jugadores, updatedAt: firebase.firestore.Timestamp.now(),
+    });
+    if (video) {
+      logActividad('edicion', {
+        sesionNum: video.jornada, categoria: video.categoria,
+        detalle: `Jugadores etiquetados en video ${video.numeroLabel || video.id}: ${jugadores.map(j => j.nombre).join(', ') || '(ninguno)'}`,
+      });
+    }
+    toast('✅ Jugadores guardados');
+    closeModal('modal-tag-video');
+    loadVideosAdmin();
+  } catch (e) {
+    console.error('saveTagVideo:', e);
+    toast('✕ Error al guardar', true);
+  } finally {
+    btn.disabled = false; btn.textContent = 'Guardar';
+  }
+}
+
+async function deleteVideo(docId) {
+  const video = _videosData.find(v => v.id === docId);
+  if (!confirm(`¿Borrar el video "${video ? video.numeroLabel : docId}"? Esta acción no se puede deshacer.`)) return;
+  try {
+    if (!auth.currentUser) await auth.signInAnonymously();
+    await db.collection(COL('ladder_videos')).doc(docId).delete();
+    if (video) logActividad('borrado', { sesionNum: video.jornada, categoria: video.categoria, detalle: `Video borrado: ${video.numeroLabel || docId}` });
+    toast('✅ Video borrado');
+    loadVideosAdmin();
+  } catch (e) {
+    console.error('deleteVideo:', e);
+    toast('✕ Error al borrar', true);
+  }
 }
 // ─────────────────────────────────────────────────────────────
 
