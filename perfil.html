@@ -1382,18 +1382,36 @@ function renderRankingTab(rows, catLabel) {
 }
 
 // ── TAB: MIS VIDEOS ──
+function withTimeout(promise, ms) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), ms)),
+  ]);
+}
+
 async function loadMyVideos(uid) {
   const body = document.getElementById('myvideos-body');
   try {
-    const snap = await db.collection(COL('ladder_videos')).get();
+    // array-contains sobre jugadoresUids (lista plana de uids) — evita traer
+    // los 100+ videos completos para filtrar en el navegador; solo trae los
+    // que ya tienen a este jugador etiquetado. No requiere índice compuesto
+    // (single-field array-contains sin más filtros).
+    const snap = await withTimeout(
+      db.collection(COL('ladder_videos')).where('jugadoresUids', 'array-contains', uid).get(),
+      12000
+    );
     const mine = snap.docs
       .map(d => d.data())
-      .filter(v => (v.jugadores || []).some(j => j.uid === uid))
       .sort((a, b) => (a.jornada - b.jornada) || ((a.numero || 0) - (b.numero || 0)));
     renderMyVideos(mine);
   } catch (e) {
     console.error('loadMyVideos:', e);
-    body.innerHTML = '<div style="color:var(--muted);font-size:.9rem">No se pudieron cargar tus videos.</div>';
+    const isTimeout = e && e.message === 'timeout';
+    body.innerHTML = `
+      <div style="text-align:center;padding:30px 10px;color:var(--muted)">
+        <div style="font-size:.9rem">${isTimeout ? 'Esto está tardando más de lo normal — revisa tu conexión.' : 'No se pudieron cargar tus videos.'}</div>
+        <button onclick="loadMyVideos('${escJsAttr(uid)}')" style="margin-top:10px;font-family:'Barlow Condensed',sans-serif;font-size:.8rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;padding:8px 16px;background:none;border:1.5px solid var(--border);cursor:pointer">Reintentar</button>
+      </div>`;
   }
 }
 

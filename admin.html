@@ -3051,6 +3051,7 @@ async function addVideoSingle() {
       numeroLabel: label || `#${numero}`,
       youtubeId, cancha: 'A',
       jugadores: [],
+      jugadoresUids: [],
       updatedAt: firebase.firestore.Timestamp.now(),
     }, { merge: true });
     logActividad('edicion', { sesionNum: jornada, categoria, detalle: `Video agregado: ${label || youtubeId} (${youtubeId})` });
@@ -3087,6 +3088,7 @@ async function importVideosBatch() {
         numeroLabel: label || `#${numero}`,
         youtubeId, cancha: 'A',
         jugadores: [],
+        jugadoresUids: [],
         updatedAt: firebase.firestore.Timestamp.now(),
       };
       if (tituloOriginal) payload.tituloOriginal = tituloOriginal;
@@ -3142,13 +3144,14 @@ async function saveTagVideo() {
   const video = _videosData.find(v => v.id === _tagVideoDocId);
   const checks = Array.from(document.querySelectorAll('#tag-video-list input[type="checkbox"]:checked'));
   const jugadores = checks.map(c => ({ uid: c.value, nombre: c.dataset.nombre || '' }));
+  const jugadoresUids = jugadores.map(j => j.uid);
 
   const btn = document.getElementById('btn-save-tag-video');
   btn.disabled = true; btn.textContent = 'Guardando…';
   try {
     if (!auth.currentUser) await auth.signInAnonymously();
     await db.collection(COL('ladder_videos')).doc(_tagVideoDocId).update({
-      jugadores, updatedAt: firebase.firestore.Timestamp.now(),
+      jugadores, jugadoresUids, updatedAt: firebase.firestore.Timestamp.now(),
     });
     if (video) {
       logActividad('edicion', {
