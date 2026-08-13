@@ -1028,19 +1028,17 @@ function avisarSalidaAdmin(sesionNum, categoria, jugador, eraConfirmado, catLlen
     ? `Se movió a la Semana ${contexto.destino}`
     : (contexto.penalizado ? 'Canceló su cupo (cancelación TARDÍA)' : 'Canceló su cupo (a tiempo, sin penalización)');
 
+  if (!eraConfirmado) return;
+
   let encabezado, accion, asunto;
-  if (eraConfirmado && catLlenaAntes) {
+  if (catLlenaAntes) {
     encabezado = '🟢 Cupo LIBRE — la categoría estaba llena';
     accion     = `La categoría ${catLabel} estaba llena (${CAP_POR_CAT}/${CAP_POR_CAT}) y ahora quedó 1 cupo abierto para nuevas inscripciones.`;
     asunto     = `🟢 Cupo libre (categoría llena) · Semana ${sesionNum} ${catLabel}`;
-  } else if (eraConfirmado) {
+  } else {
     encabezado = 'Cupo liberado';
     accion     = `Quedó cupo disponible en ${catLabel} (la categoría no estaba llena).`;
     asunto     = `Cupo liberado · Semana ${sesionNum} ${catLabel}`;
-  } else {
-    encabezado = 'Salida de lista de espera';
-    accion     = `Estaba en lista de espera, no ocupaba un cupo confirmado.`;
-    asunto     = `Salida de lista de espera · Semana ${sesionNum} ${catLabel}`;
   }
   if (!esMove && contexto.penalizado) {
     accion += ` ⚠️ Cancelación tardía — pendiente forzar Cancha B para su próxima inscripción desde "Notificaciones" en el panel.`;
@@ -1171,7 +1169,7 @@ function avisarNuevoRegistroAdmin(sesionNum, categoria, entry) {
     waLink:     waLink || '',
     panelLink:  'https://ladder.antigua-pickleball.com/admin.html',
   };
-  try { enviarCorreoAdmin(payload); } catch (_) {}
+  if (!esTarjeta) { try { enviarCorreoAdmin(payload); } catch (_) {} }
 }
 
 function avisarCupoLiberadoAdmin(sesionNum, categoria, primero, enEspera, yaConfirmado) {
@@ -1206,19 +1204,17 @@ function avisarPagoCupoAdmin(sesionNum, categoria, entry, quedoEnEspera) {
   const fecha = sem ? sem.fecha : `Semana ${sesionNum}`;
   const esTransfer = entry.paymentMethod === 'transfer' && entry.status === 'pending_review';
 
+  if (!esTransfer && !quedoEnEspera) return;
+
   let encabezado, accion, asunto;
   if (esTransfer) {
     encabezado = '🏦 Cupo liberado — revisar boleta de transferencia';
     accion     = '⚠️ ACCIÓN REQUERIDA: Revisar la boleta y aprobar en el panel de admin para confirmar el cupo.';
     asunto     = `🏦 Revisar boleta (cupo liberado) · ${entry.nombre} · Semana ${sesionNum} ${catLabel}`;
-  } else if (quedoEnEspera) {
+  } else {
     encabezado = '⏳ Cupo liberado — pagó pero alguien más ya tomó el cupo';
     accion     = 'No requiere acción. El jugador quedó en lista de espera con su pago vigente.';
     asunto     = `⏳ Pago vigente en espera · ${entry.nombre} · Semana ${sesionNum} ${catLabel}`;
-  } else {
-    encabezado = '✅ Cupo liberado — pago con tarjeta confirmado';
-    accion     = 'No requiere acción. El jugador quedó confirmado automáticamente.';
-    asunto     = `✅ Cupo confirmado · ${entry.nombre} · Semana ${sesionNum} ${catLabel}`;
   }
 
   const payload = {
@@ -1278,8 +1274,15 @@ async function loadUserPhone(uid) {
 // ── Comprimir imagen y convertir a base64 (para guardar en Firestore) ──
 // PDFs se guardan como base64 directo sin compresión de canvas
 async function compressBoleta(file) {
-  // Si es PDF, leer como base64 directamente (máx ~750 KB útil)
+  // Si es PDF, leer como base64 directamente — SIN compresión posible. Un PDF no cabe en
+  // un documento de Firestore (límite ~1 MiB) una vez codificado en base64 (~1.37x más
+  // grande), así que se rechaza ANTES de intentar subirlo — si no, la subida fallaba en
+  // silencio (se veía en consola, nunca en la app) y la inscripción quedaba sin boleta y
+  // sin ninguna pista de por qué (caso real: Adriana King, Semana 5, 2026-08-06).
   if (file.type === 'application/pdf') {
+    if (file.size > 700 * 1024) {
+      throw new Error('PDF demasiado grande para subir (máx ~700 KB) — usa una foto de la boleta en vez de un PDF.');
+    }
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload  = e => resolve(e.target.result); // data:application/pdf;base64,...
@@ -3100,6 +3103,7 @@ async function saveRegistration(user, duprId, categoria, paypalOrderId, status, 
       paid:          true,
     } : {}),
     ...(extra.boletaDocId   ? { boletaDocId:    extra.boletaDocId }   : {}),
+    ...(extra.boletaPendiente ? { boletaPendiente: true }             : {}),
     ...(extra.phone         ? { phone:          extra.phone }         : {}),
     ...(extra.transferAmount? { transferAmount: extra.transferAmount } : {}),
   };

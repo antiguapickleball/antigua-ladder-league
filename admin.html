@@ -1637,7 +1637,9 @@ function renderPending() {
 
     const boletaCell = p.boletaDocId
       ? `<button class="btn-action btn-edit" onclick="viewBoleta('${p.boletaDocId}')">📎 Ver boleta</button>`
-      : '<span style="color:var(--muted);font-size:.75rem">Sin boleta</span>';
+      : p.boletaPendiente
+        ? '<span style="color:#991b1b;font-size:.75rem;font-weight:700">⚠️ Falló la subida — contactar</span>'
+        : '<span style="color:var(--muted);font-size:.75rem">Sin boleta</span>';
 
     const waMsg  = encodeURIComponent(`Hola ${p.nombre}, tu inscripción en Ladder League ${sesLabels(p.sesionNum)} fue confirmada. ¡Nos vemos en cancha!`);
     const waLink = `https://wa.me/${(p.phone||'').replace(/\D/g,'')}?text=${waMsg}`;
@@ -1716,11 +1718,13 @@ function renderWaitlist() {
       : p.boletaDocId
         ? `<span style="font-size:.72rem;font-weight:700;color:#166534">🏦 Transferencia</span><br>
            <button onclick="viewBoleta('${p.boletaDocId}')" style="font-size:.68rem;color:var(--red);background:none;border:none;cursor:pointer;padding:0;font-weight:700">📎 Ver boleta</button>`
-        : p.paymentMethod === 'manual'
-          ? `<span style="font-size:.72rem;color:var(--muted)">📋 Manual</span>`
-          : `<span style="font-size:.72rem;font-weight:700;color:#92400e">✕ Sin pagar</span>`;
+        : p.boletaPendiente
+          ? `<span style="font-size:.72rem;font-weight:700;color:#991b1b">🏦 Transferencia · ⚠️ Sin boleta (falló la subida)</span>`
+          : p.paymentMethod === 'manual'
+            ? `<span style="font-size:.72rem;color:var(--muted)">📋 Manual</span>`
+            : `<span style="font-size:.72rem;font-weight:700;color:#92400e">✕ Sin pagar</span>`;
     return `<tr class="waitlist-row">
-      <td class="num" style="font-weight:700;color:#92400e">${pos}°</td>
+  <td class="num" style="font-weight:700;color:#92400e">${pos}°</td>
       <td class="nombre">${escHtml(p.nombre)}<br><span style="font-size:.72rem;color:var(--muted)">${escHtml(p.email||'')}</span></td>
       <td style="white-space:nowrap;font-size:.8rem">${sesLabels(p.sesionNum)}</td>
       <td>${p.categoria ? `<span class="cat-badge ${p.categoria}">${catLabels[p.categoria]||p.categoria}</span>` : '—'}</td>
@@ -2045,9 +2049,11 @@ function renderTable(sesionNum) {
           : p.boletaDocId
             ? `<span style="font-size:.72rem;font-weight:700;color:#166534">🏦 Transferencia</span><br>
                <button onclick="viewBoleta('${p.boletaDocId}')" style="font-size:.68rem;color:var(--red);background:none;border:none;cursor:pointer;padding:0;font-weight:700">📎 Ver boleta</button>`
-            : p.paymentMethod === 'manual'
-              ? `<span style="font-size:.72rem;color:var(--muted)">📋 Manual</span>`
-              : `<span style="font-size:.72rem;color:var(--muted)">—</span>`
+            : p.boletaPendiente
+              ? `<span style="font-size:.72rem;font-weight:700;color:#991b1b">🏦 Transferencia · ⚠️ Falló la subida de la boleta — contactar al jugador</span>`
+              : p.paymentMethod === 'manual'
+                ? `<span style="font-size:.72rem;color:var(--muted)">📋 Manual</span>`
+                : `<span style="font-size:.72rem;color:var(--muted)">—</span>`
         }
       </td>
       <td class="email">${escHtml(p.email) || '—'}</td>
@@ -2246,6 +2252,7 @@ async function saveMove() {
 }
 
 function avisarCambioSesionAdmin(sesionOrigen, sesionDestino, finalStatus, player) {
+  return;
   const catLabels = { principiante:'Principiante', intermedio:'Intermedio', open:'Open' };
   const catLabel  = catLabels[player.categoria] || player.categoria;
   const statusLabel = finalStatus === 'confirmed' ? '✅ Titular' : '⏳ Lista de espera (categoría llena)';
