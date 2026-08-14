@@ -779,6 +779,9 @@ function startPage(s) {
   if (sesion.nota) {
     document.getElementById('hero-label').textContent += ` · ${sesion.nota}`;
   }
+  // Si el listener de inscritos ya disparó antes de que la config cargara, renderRegContainer()
+  // se abstuvo de dibujar el formulario (sesion era null) — reintentar ahora que ya está listo.
+  if (typeof _pendingRegUser !== 'undefined') renderRegContainer(_pendingRegUser, _inscritos);
 }
 
 // ── Cargar inscritos en tiempo real ──
@@ -1415,12 +1418,20 @@ function renderRows(inscritos, currentUser, filter) {
 // ══════════════════════════════════════════════════════
 //  RENDER FORMULARIO DE REGISTRO
 // ══════════════════════════════════════════════════════
+let _pendingRegUser; // guarda el user de la última llamada, para reintentar cuando `sesion` esté listo
 function updateRegState(inscritos, user) {
   _inscritos = inscritos;
-  if (_firebaseAuthReady) renderRegContainer(user, inscritos);
+  if (_firebaseAuthReady) {
+    _pendingRegUser = user;
+    renderRegContainer(user, inscritos);
+  }
 }
 
 function renderRegContainer(user, inscritos) {
+  // Puede llamarse antes de que initSesion() termine de cargar la config (carrera con el
+  // listener de inscritos, que no espera a `sesion`) — no truena, startPage() reintenta
+  // el render apenas `sesion` esté listo (ver _pendingRegUser más abajo).
+  if (!sesion) return;
   const container = document.getElementById('reg-container');
   if (sesion.estado === 'cancelada') {
     container.innerHTML = `<div class="reg-msg info">Esta sesión fue cancelada.</div>`; return;
