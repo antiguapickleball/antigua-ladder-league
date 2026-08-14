@@ -2772,6 +2772,19 @@ function renderNotifications(notifs) {
         </div>
       </div>`;
     }
+    if (n.type === 'promoted_from_waitlist') {
+      return `<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid #e0e7ff;flex-wrap:wrap">
+        <div>
+          <span class="penalty-badge slot">Promovido automático</span>
+          <strong style="margin-left:8px">${escHtml(n.nombre)}</strong>
+          <span style="font-size:.8rem;color:var(--muted);margin-left:6px">${sesLabel(n.sesionNum)} · ${catLabels[n.categoria]||n.categoria}</span>
+          <div style="font-size:.75rem;color:var(--muted);margin-top:2px">${escHtml(n.message||'')}</div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn-action btn-accept" onclick="resolveNotif('${n.id}')">✓ Resuelto</button>
+        </div>
+      </div>`;
+    }
     if (n.type === 'orphaned_payment') {
       return `<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid #e0e7ff;flex-wrap:wrap">
         <div>
