@@ -2601,12 +2601,14 @@ async function submitTransfer(user) {
     // 1. Intentar subir la boleta — si falla, NO bloquea la inscripción:
     //    el jugador queda en lista de espera y puede mandar la boleta por WhatsApp.
     let boletaDocId = null;
+    let boletaError = null;
     try {
       btn.textContent = 'Procesando boleta…';
       const base64 = await compressBoleta(file);
       boletaDocId  = await saveBoleta(user.uid, NUM, base64);
     } catch (e) {
       console.warn('Boleta no se pudo subir; la inscripción continúa:', e);
+      boletaError = String(e?.message || e).slice(0, 300);
     }
 
     // 2. Guardar inscripción — entra en lista de espera hasta validar el pago
@@ -2614,7 +2616,7 @@ async function submitTransfer(user) {
     await saveRegistration(user, duprId, cat, null, 'pending_review', {
       paymentMethod:  'transfer',
       transferAmount: TRANSFER_PRICE,
-      ...(boletaDocId ? { boletaDocId } : { boletaPendiente: true }),
+      ...(boletaDocId ? { boletaDocId } : { boletaPendiente: true, boletaError }),
       phone,
     });
 
@@ -2669,12 +2671,14 @@ async function submitTransferSlot(user, reg) {
 
   try {
     let boletaDocId = null;
+    let boletaError = null;
     try {
       btn.textContent = 'Procesando boleta…';
       const base64 = await compressBoleta(file);
       boletaDocId  = await saveBoleta(user.uid, NUM, base64);
     } catch (e) {
       console.warn('Boleta no se pudo subir; la inscripción continúa:', e);
+      boletaError = String(e?.message || e).slice(0, 300);
     }
 
     btn.textContent = 'Guardando…';
@@ -2685,7 +2689,7 @@ async function submitTransferSlot(user, reg) {
       paymentMethod:  'transfer',
       transferAmount: TRANSFER_PRICE,
       phone,
-      ...(boletaDocId ? { boletaDocId } : { boletaPendiente: true }),
+      ...(boletaDocId ? { boletaDocId } : { boletaPendiente: true, boletaError }),
     });
 
     avisarPagoCupoAdmin(NUM, reg.categoria, updatedEntry, false);
@@ -2960,12 +2964,14 @@ async function submitTransferMove(user, reg, targetNum) {
 
   try {
     let boletaDocId = null;
+    let boletaError = null;
     try {
       btn.textContent = 'Procesando boleta…';
       const base64 = await compressBoleta(file);
       boletaDocId  = await saveBoleta(user.uid, targetNum, base64);
     } catch (e) {
       console.warn('Boleta no se pudo subir; la inscripción continúa:', e);
+      boletaError = String(e?.message || e).slice(0, 300);
     }
 
     btn.textContent = 'Guardando…';
@@ -2980,7 +2986,7 @@ async function submitTransferMove(user, reg, targetNum) {
       phone,
       movedFrom:      NUM,
       movedAt:        firebase.firestore.Timestamp.now(),
-      ...(boletaDocId ? { boletaDocId } : { boletaPendiente: true }),
+      ...(boletaDocId ? { boletaDocId } : { boletaPendiente: true, boletaError }),
     };
     const dstRef = db.collection(COLLECTION).doc(`t1_sesion_${targetNum}`);
     await dstRef.set({
@@ -3122,6 +3128,7 @@ async function saveRegistration(user, duprId, categoria, paypalOrderId, status, 
     } : {}),
     ...(extra.boletaDocId   ? { boletaDocId:    extra.boletaDocId }   : {}),
     ...(extra.boletaPendiente ? { boletaPendiente: true }             : {}),
+    ...(extra.boletaError    ? { boletaError:    extra.boletaError }  : {}),
     ...(extra.phone         ? { phone:          extra.phone }         : {}),
     ...(extra.transferAmount? { transferAmount: extra.transferAmount } : {}),
   };
