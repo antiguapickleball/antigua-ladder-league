@@ -1990,8 +1990,40 @@ function mountPayPalButtons2(user, cat2, duprId, nombre) {
     },
     onApprove: async (data, actions) => {
       const phone2 = (document.getElementById('phone-input-2')?.value || '').trim();
-      const order  = await actions.order.capture();
-      await saveRegistration(user, duprId, cat2, order.id, 'confirmed', { nombre, phone: phone2 });
+      let order;
+      try {
+        order = await actions.order.capture();
+      } catch (err) {
+        console.error('PayPal capture error:', err);
+        const errEl2 = document.getElementById('reg-form-error-2');
+        if (errEl2) { errEl2.textContent = '✕ Error al procesar el pago. Intenta de nuevo.'; errEl2.style.display = 'block'; }
+        return;
+      }
+      try {
+        await saveRegistration(user, duprId, cat2, order.id, 'confirmed', { nombre, phone: phone2 });
+      } catch (err) {
+        console.error('Firestore save error:', err);
+        db.collection(COL('ladder_notifications')).add({
+          type:          'orphaned_payment',
+          sesionNum:     NUM,
+          categoria:     cat2,
+          uid:           user.uid,
+          nombre:        nombre || user.displayName || user.email || 'Jugador',
+          email:         user.email || '',
+          phone:         phone2 || '',
+          paypalOrderId: order.id,
+          amount:        SESSION_PRICE,
+          errorMsg:      String(err?.message || err).slice(0, 300),
+          resolved:      false,
+          createdAt:     firebase.firestore.Timestamp.now(),
+        }).catch(e2 => console.error('No se pudo guardar el aviso de pago huérfano:', e2));
+
+        const errEl2 = document.getElementById('reg-form-error-2');
+        if (errEl2) {
+          errEl2.innerHTML = `✕ Pago recibido (${order.id.slice(0,14)}…) pero error al guardar. Envía el ID por <a href="https://wa.me/50230912707?text=Ladder+pago+${order.id}" style="color:var(--red)">WhatsApp</a>.`;
+          errEl2.style.display = 'block';
+        }
+      }
     },
     onError: err => {
       if (err.message?.includes('requerido')) return;
@@ -2433,6 +2465,23 @@ function mountPayPalButtons(user) {
           </div>`;
       } catch (err) {
         console.error('Firestore save error:', err);
+        // Pago ya capturado pero la inscripción no se guardó — dejar un aviso accionable
+        // en el panel de admin (no depender de que el jugador reenvíe el ID por WhatsApp).
+        db.collection(COL('ladder_notifications')).add({
+          type:          'orphaned_payment',
+          sesionNum:     NUM,
+          categoria:     _pendingCategoria,
+          uid:           user.uid,
+          nombre:        user.displayName || user.email || 'Jugador',
+          email:         user.email || '',
+          phone:         _pendingPhone || '',
+          paypalOrderId: order.id,
+          amount:        SESSION_PRICE,
+          errorMsg:      String(err?.message || err).slice(0, 300),
+          resolved:      false,
+          createdAt:     firebase.firestore.Timestamp.now(),
+        }).catch(e2 => console.error('No se pudo guardar el aviso de pago huérfano:', e2));
+
         document.getElementById('paypal-button-container').innerHTML =
           `<div class="reg-msg error">
             ✕ Pago recibido (${order.id.slice(0,14)}…) pero error al guardar.
@@ -2541,6 +2590,21 @@ function mountPayPalButtonsSlot(user, reg) {
           </div>`;
       } catch (err) {
         console.error('Firestore save error:', err);
+        db.collection(COL('ladder_notifications')).add({
+          type:          'orphaned_payment',
+          sesionNum:     NUM,
+          categoria:     reg.categoria,
+          uid:           user.uid,
+          nombre:        reg.nombre || user.displayName || user.email || 'Jugador',
+          email:         user.email || '',
+          phone:         reg.phone || '',
+          paypalOrderId: order.id,
+          amount:        SESSION_PRICE,
+          errorMsg:      String(err?.message || err).slice(0, 300),
+          resolved:      false,
+          createdAt:     firebase.firestore.Timestamp.now(),
+        }).catch(e2 => console.error('No se pudo guardar el aviso de pago huérfano:', e2));
+
         document.getElementById('paypal-button-container-slot').innerHTML =
           `<div class="reg-msg error">
             ✕ Pago recibido (${order.id.slice(0,14)}…) pero error al guardar.
@@ -2926,6 +2990,21 @@ function mountPayPalButtonsMove(user, reg, targetNum) {
           </div>`;
       } catch (err) {
         console.error('Firestore save error:', err);
+        db.collection(COL('ladder_notifications')).add({
+          type:          'orphaned_payment',
+          sesionNum:     targetNum,
+          categoria:     reg.categoria,
+          uid:           user.uid,
+          nombre:        reg.nombre || user.displayName || user.email || 'Jugador',
+          email:         user.email || '',
+          phone:         reg.phone || '',
+          paypalOrderId: order.id,
+          amount:        SESSION_PRICE,
+          errorMsg:      String(err?.message || err).slice(0, 300),
+          resolved:      false,
+          createdAt:     firebase.firestore.Timestamp.now(),
+        }).catch(e2 => console.error('No se pudo guardar el aviso de pago huérfano:', e2));
+
         document.getElementById('paypal-button-container-move').innerHTML =
           `<div class="reg-msg error">
             ✕ Pago recibido (${order.id.slice(0,14)}…) pero error al guardar.

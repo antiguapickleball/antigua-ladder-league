@@ -2772,6 +2772,19 @@ function renderNotifications(notifs) {
         </div>
       </div>`;
     }
+    if (n.type === 'orphaned_payment') {
+      return `<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid #e0e7ff;flex-wrap:wrap">
+        <div>
+          <span class="penalty-badge" style="background:#fef3c7;color:#92400e">⚠️ Pago sin guardar</span>
+          <strong style="margin-left:8px">${escHtml(n.nombre)}</strong>
+          <span style="font-size:.8rem;color:var(--muted);margin-left:6px">${sesLabel(n.sesionNum)} · ${catLabels[n.categoria]||n.categoria} · $${n.amount} USD · PayPal ${escHtml(n.paypalOrderId||'')}</span>
+          <div style="font-size:.72rem;color:#991b1b;margin-top:3px">${escHtml(n.errorMsg||'motivo desconocido')}${n.phone ? ' · Tel: ' + escHtml(n.phone) : ''}</div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn-action btn-accept" onclick="resolveNotif('${n.id}')">✓ Ya lo agregué manualmente</button>
+        </div>
+      </div>`;
+    }
     if (n.type === 'late_cancel') {
       return `<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid #e0e7ff;flex-wrap:wrap">
         <div>
