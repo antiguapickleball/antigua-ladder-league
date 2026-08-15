@@ -4628,6 +4628,18 @@ function _uniquePairsCovered(matches) {
   matches.forEach(m => { s.add(_pk(m.pair1[0], m.pair1[1])); s.add(_pk(m.pair2[0], m.pair2[1])); });
   return s.size;
 }
+// Con n jugadores y cobertura maxima ya alcanzada, hay como mucho 1 pareja que nunca
+// combina (ver genMatchesBalanced7). Retorna esa clave (_pk) o null si la cobertura es total.
+function _missingPair(matches, uids) {
+  const covered = new Set();
+  matches.forEach(m => { covered.add(_pk(m.pair1[0], m.pair1[1])); covered.add(_pk(m.pair2[0], m.pair2[1])); });
+  for (let i = 0; i < uids.length; i++) {
+    for (let j = i + 1; j < uids.length; j++) {
+      if (!covered.has(_pk(uids[i], uids[j]))) return _pk(uids[i], uids[j]);
+    }
+  }
+  return null;
+}
 function _worstDuprDiff(matches, duprEff) {
   let worst = 0;
   matches.forEach(m => {
@@ -4648,16 +4660,44 @@ function _effectiveDuprMap(uids, duprRating) {
   return map;
 }
 
+// Con exactamente 7 jugadores hay 21 parejas posibles pero solo 20 espacios de pareja en
+// 10 partidos (2 por partido) -- SIEMPRE queda exactamente 1 pareja sin combinar, y esos son
+// los mismos 2 jugadores que terminan jugando 5 partidos en vez de 6 (quien juega los 6 ya
+// combino con los otros 6, asi que solo alguien con 5 partidos puede tener una pareja
+// pendiente). Dejar que el balance por DUPR eligiera esa pareja llevaba a que SIEMPRE fueran
+// los 2 de DUPR mas alto (asi se evita el partido mas desparejo posible), sesion tras sesion
+// -- decision del dueño (14 ago 2026): sortear al azar cuales 2 de los 7 cargan con esto en
+// cada sesion, para toda categoria, y recien despues balancear por DUPR entre las opciones
+// que respetan ese sorteo. Probado con las 5040 permutaciones posibles: las 21 parejas son
+// igual de alcanzables (240 cada una), asi que el sorteo siempre tiene de donde elegir.
+function genMatchesBalanced7(uids, total, duprRating) {
+  const sorteo = _shuffle(uids).slice(0, 2).sort();
+  const sorteoKey = _pk(sorteo[0], sorteo[1]);
+  const duprEff = _effectiveDuprMap(uids, duprRating);
+
+  let best = null, bestWorst = Infinity;
+  for (const order of _permute(uids)) {
+    const candidate = genMatches(order, total);
+    if (_missingPair(candidate, uids) !== sorteoKey) continue;
+    const w = duprEff ? _worstDuprDiff(candidate, duprEff) : 0;
+    if (w < bestWorst) { bestWorst = w; best = candidate; }
+  }
+  return best;
+}
+
 // Genera partidos priorizando SIEMPRE la cobertura de parejas y el reparto de descansos
 // (genMatches original, sin tocarlo) -- entre los repartos que logran esa misma mejor
 // cobertura, elige el de menor "peor partido" (mayor diferencia de DUPR en un mismo partido).
 // 4-5 jugadores: prueba las n! formas posibles (max. 120, instantaneo) -> optimo garantizado.
-// 6-7 jugadores: no existe una unica estructura optima para esos tamanos (matematicamente no
-// se puede cubrir cada pareja exactamente una vez), asi que prueba 300 ordenes al azar sobre
-// el mismo algoritmo de hoy -> mejora fuerte, sin garantia de optimo absoluto.
+// 6 jugadores: no existe una unica estructura optima para ese tamano (matematicamente no se
+// puede cubrir cada pareja exactamente una vez), asi que prueba 300 ordenes al azar sobre el
+// mismo algoritmo de hoy -> mejora fuerte, sin garantia de optimo absoluto.
+// 7 jugadores: ver genMatchesBalanced7 (sorteo de la pareja que no combina esta sesion).
 function genMatchesBalanced(uids, total, duprRating) {
   const baseline = genMatches(uids, total);
   if (uids.length < 4 || uids.length > 7 || total <= 0) return baseline;
+
+  if (uids.length === 7) return genMatchesBalanced7(uids, total, duprRating);
 
   const duprEff = _effectiveDuprMap(uids, duprRating);
   if (!duprEff) return baseline; // nadie del grupo tiene DUPR -- sin cambios de comportamiento
