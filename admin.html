@@ -5084,6 +5084,15 @@ async function generateRound2(sesionNum, categoria) {
   const snap = await db.collection(COL('ladder_fixtures')).doc(docId).get().catch(e=>{toast('✕ '+e.message,true);return null;});
   if (!snap || !snap.exists) return;
   const fx = snap.data();
+  // Resguardo contra doble-clic: sin esto, un segundo clic mientras el primero
+  // seguia esperando la respuesta de Firestore agregaba una Ronda 2 duplicada
+  // en el arreglo "rounds" (mismos partidos, misma Ronda 2 dos veces) -- causaba
+  // que el panel mostrara la ronda repetida en pantalla (caso real, Jornada 5
+  // Principiante, 2026-08-15).
+  if (fx.r2generated || (fx.rounds||[]).some(r => r.num === 2)) {
+    toast('La Ronda 2 ya estaba generada — no se volvió a crear', true);
+    return;
+  }
   const r1 = (fx.rounds||[])[0];
 
   // Rank each court by R1 performance
@@ -5220,7 +5229,7 @@ function renderFixtureHTML(fx, sesionNum, categoria) {
           <div style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:1rem;text-transform:uppercase;color:#065f46">✓ Ronda 1 completa</div>
           <div style="font-size:.82rem;color:#065f46;margin-top:2px">Los grupos se mantienen igual para Ronda 2. Puedes ajustar manualmente desde "Editar" si necesitas mover un jugador.</div>
         </div>
-        <button class="btn-modal btn-save" onclick="generateRound2('${sesionNum}','${categoria}')" style="background:#065f46;white-space:nowrap">▶ Generar Ronda 2</button>
+        <button class="btn-modal btn-save" onclick="this.disabled=true;generateRound2('${sesionNum}','${categoria}')" style="background:#065f46;white-space:nowrap">▶ Generar Ronda 2</button>
       </div>`;
     } else {
       const r1p = (fx.rounds||[])[0];
