@@ -190,8 +190,9 @@
     overflow: hidden; background: var(--light2); position: relative;
     display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px;
   }
-  .news-card-img img { width: 100%; aspect-ratio: 4/5; object-fit: cover; display: block; transition: transform .4s; }
-  .news-card:hover .news-card-img img { transform: scale(1.04); }
+  .news-thumb-cell { position: relative; overflow: hidden; aspect-ratio: 4/5; }
+  .news-thumb-cell img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .4s; }
+  .news-card:hover .news-thumb-cell img { transform: scale(1.04); }
   .news-card-body { padding: 24px 26px 26px; flex: 1; display: flex; flex-direction: column; gap: 10px; }
   .news-card-tag {
     font-family: 'Space Mono', monospace;
@@ -391,9 +392,9 @@ const NOTICIAS = [
     title: '56 partidos, un invicto perfecto y la tabla general se reordena',
     excerpt: 'Andrés Alvarado dispara en Principiante, Travis Ning le arrebata el liderato a Roberto Carlos Arango en Intermedio, y Luis Buenahora firma la única marca perfecta de la jornada en Open.',
     imgs: [
-      'fotos/jornada4/web/1d814cd9-f3bf-4ec5-84c2-e81ad54d933b.jpg',
-      'fotos/jornada4/web/5530b384-b0df-4fea-93f9-27509dcfa4fc.jpg',
-      'fotos/jornada4/web/9887adac-ad33-49c0-9709-8ecc3809e993.jpg',
+      { src: 'fotos/jornada4/web/1d814cd9-f3bf-4ec5-84c2-e81ad54d933b.jpg', style: 'object-position:center 32%;transform:scale(1.9)' },
+      { src: 'fotos/jornada4/web/5530b384-b0df-4fea-93f9-27509dcfa4fc.jpg', style: 'object-position:center 12%;transform:scale(1.84)' },
+      { src: 'fotos/jornada4/web/9887adac-ad33-49c0-9709-8ecc3809e993.jpg', style: 'object-position:center 5%;transform:scale(1.57)' },
     ],
   },
   {
@@ -529,7 +530,11 @@ function renderNews() {
   }
   grid.innerHTML = NOTICIAS.map(n => `
     <a class="news-card" href="${n.href}">
-      <div class="news-card-img" style="grid-template-columns:repeat(${n.imgs.length},1fr)">${n.imgs.map(src => `<img src="${src}" loading="lazy" decoding="async" alt="${n.title}"/>`).join('')}</div>
+      <div class="news-card-img" style="grid-template-columns:repeat(${n.imgs.length},1fr)">${n.imgs.map(img => {
+        const src = typeof img === 'string' ? img : img.src;
+        const style = typeof img === 'string' ? '' : ` style="${img.style}"`;
+        return `<div class="news-thumb-cell"><img src="${src}" loading="lazy" decoding="async" alt="${n.title}"${style}/></div>`;
+      }).join('')}</div>
       <div class="news-card-body">
         <div class="news-card-tag">${n.tag}</div>
         <h3>${n.title}</h3>
