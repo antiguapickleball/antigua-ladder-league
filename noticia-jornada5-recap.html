@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Jornada 5: 56 partidos, un invicto perfecto y la tabla general se reordena · Antigua Ladder League</title>
+<meta name="description" content="Resumen de la Jornada 5 de la Antigua Ladder League: Andrés Alvarado lidera Principiante, Travis Ning le arrebata el liderato de Intermedio a Roberto Carlos Arango, y Luis Buenahora firma la única marca perfecta de la jornada en Open."/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,400;0,600;0,700;0,800;0,900;1,700;1,900&family=Barlow:wght@300;400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"/>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'Barlow', sans-serif;
+    background: #fff;
+    color: #111113;
+    -webkit-font-smoothing: antialiased;
+  }
+  :root {
+    --red:        #e4252e;
+    --red-dark:   #b81d24;
+    --red-light:  #fdecea;
+    --dark:       #111113;
+    --dark2:      #1c1c1e;
+    --text:       #1c1c1e;
+    --muted:      #6b6b74;
+    --light:      #f7f7f5;
+    --light2:     #eeeeeb;
+    --border:     #e2e2de;
+  }
+  .container { max-width: 1160px; margin: 0 auto; padding: 0 24px; }
+  .narrow { max-width: 780px; margin: 0 auto; padding: 0 24px; }
+  .label {
+    font-family: 'Space Mono', monospace;
+    font-size: .65rem; font-weight: 700;
+    letter-spacing: .18em; text-transform: uppercase;
+    color: var(--red);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .label::before { content: ''; display: block; width: 24px; height: 3px; background: var(--red); flex-shrink: 0; }
+
+  /* ════════════════════════════════════════════
+     NAV — copiado de noticia-jornada4-recap.html para consistencia
+  ════════════════════════════════════════════ */
+  #nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    background: rgba(255,255,255,.96);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    box-shadow: 0 1px 12px rgba(0,0,0,.07);
+  }
+  .nav-inner {
+    display: flex; align-items: center; justify-content: space-between;
+    max-width: 1260px; margin: 0 auto;
+    padding: 0 24px; height: 60px;
+  }
+  .nav-brand {
+    display: flex; align-items: center; gap: 12px;
+    text-decoration: none; flex-shrink: 0;
+  }
+  .nav-brand img { height: 28px; width: auto; }
+  .nav-brand-divider { width: 1px; height: 18px; background: var(--border); }
+  .nav-brand-name {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 1.05rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase;
+    color: var(--red);
+  }
+  .nav-links { display: none; align-items: center; gap: 0; list-style: none; }
+  @media (min-width: 1240px) { .nav-links { display: flex; } }
+  .nav-links a {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: .9rem; font-weight: 600; letter-spacing: .05em; text-transform: uppercase;
+    color: var(--muted); text-decoration: none;
+    padding: 6px 14px; transition: color .2s;
+    white-space: nowrap;
+  }
+  .nav-links a:hover, .nav-links a.active { color: var(--red); }
+  .nav-actions { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+  .nav-btn {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: .88rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+    background: var(--red); color: #fff;
+    padding: 9px 22px; text-decoration: none;
+    transition: background .2s; white-space: nowrap;
+  }
+  .nav-btn:hover { background: var(--red-dark); }
+  /* Auth user chip */
+  .nav-user {
+    display: flex; align-items: center; gap: 8px;
+    background: #fff4f4; color: var(--red);
+    border: 1.5px solid #fac5c7;
+    padding: 5px 13px 5px 5px;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: .88rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
+    text-decoration: none; white-space: nowrap;
+    transition: background .2s;
+  }
+  .nav-user:hover { background: #ffe8e8; }
+  .nav-user-avatar {
+    width: 26px; height: 26px;
+    background: var(--red); color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: .72rem; font-weight: 900; flex-shrink: 0;
+  }
+  /* móvil: el nav no debe desbordar — ocultar logo Quattro y compactar marca */
+  @media (max-width: 560px) {
+    .nav-brand img[src*="quattro"] { display: none !important; }
+    .nav-brand .nav-brand-divider + img[src*="quattro"] { display: none !important; }
+    .nav-brand { gap: 8px; min-width: 0; }
+    .nav-brand-name { font-size: .92rem; white-space: nowrap; }
+  }
+  #nav-auth-slot { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+  @media (max-width: 560px) {
+    .nav-btn { padding: 7px 12px !important; font-size: .78rem !important; }
+    .nav-user { padding: 4px !important; gap: 0 !important; }
+    .nav-user > :not(.nav-user-avatar) { display: none; }
+    .nav-user { font-size: 0 !important; }
+    .nav-user .nav-user-avatar { font-size: .72rem !important; }
+    button[title="Salir / cambiar de cuenta"] { padding: 5px 8px !important; font-size: .68rem !important; margin-left: 4px !important; }
+    .nav-chip-admin { font-size: .6rem !important; padding: 4px 6px !important; }
+    .nav-actions, #nav-auth-slot { gap: 6px !important; }
+  }
+  .hamburger {
+    display: flex; flex-direction: column; gap: 5px;
+    background: none; border: 1px solid var(--border);
+    padding: 9px 11px; cursor: pointer;
+  }
+  .hamburger span { display: block; width: 18px; height: 1.5px; background: var(--dark); }
+  @media (min-width: 1240px) { .hamburger { display: none; } }
+  .mobile-menu {
+    display: none; flex-direction: column;
+    background: #fff; border-top: 1px solid var(--border);
+    padding: 8px 24px 16px;
+  }
+  .mobile-menu.open { display: flex; }
+  .mobile-menu a {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 1.05rem; font-weight: 600; letter-spacing: .05em; text-transform: uppercase;
+    color: var(--muted); text-decoration: none;
+    padding: 11px 0; border-bottom: 1px solid var(--border);
+    transition: color .2s;
+  }
+
+  /* ════════════════════════════════════════════
+     ARTICLE HEADER
+  ════════════════════════════════════════════ */
+  .art-header { padding: 130px 0 0; background: var(--light); }
+  .art-meta {
+    font-family: 'Space Mono', monospace;
+    font-size: .72rem; letter-spacing: .08em; text-transform: uppercase;
+    color: var(--muted); margin-top: 16px;
+  }
+  .art-title {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: clamp(2.2rem, 5.4vw, 4rem);
+    font-weight: 900; letter-spacing: .005em; text-transform: uppercase;
+    color: var(--dark); line-height: .98; margin-top: 10px;
+  }
+  .art-title .accent { color: var(--red); }
+  .art-sub {
+    font-size: 1.1rem; font-weight: 300; color: var(--muted);
+    max-width: 640px; line-height: 1.6; margin-top: 18px;
+  }
+
+  /* Trío de fotos de líderes */
+  .winners-strip { padding: 36px 0 0; }
+  .winners-grid {
+    display: grid; gap: 4px;
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .winner-card { position: relative; aspect-ratio: 4/5; overflow: hidden; background: var(--light2); }
+  .winner-card img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .winner-card::after {
+    content: ''; position: absolute; inset: 0;
+    background: linear-gradient(to top, rgba(0,0,0,.72) 0%, rgba(0,0,0,0) 42%);
+  }
+  .winner-caption {
+    position: absolute; left: 0; right: 0; bottom: 0; z-index: 2;
+    padding: 16px 16px 14px; color: #fff;
+  }
+  .winner-cat {
+    font-family: 'Space Mono', monospace;
+    font-size: .6rem; letter-spacing: .14em; text-transform: uppercase;
+    color: var(--yellow, #f5c800); font-weight: 700;
+  }
+  .winner-name {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 1.25rem; font-weight: 800; letter-spacing: .01em; text-transform: uppercase;
+    line-height: 1.05; margin-top: 2px;
+  }
+  @media (max-width: 700px) {
+    .winners-grid { grid-template-columns: 1fr; }
+    .winner-card { aspect-ratio: 16/10; }
+  }
+  .photo-credit {
+    font-family: 'Space Mono', monospace;
+    font-size: .68rem; letter-spacing: .06em; color: var(--muted);
+    text-align: right; padding: 8px 0 0;
+  }
+
+  /* ════════════════════════════════════════════
+     ARTICLE BODY
+  ════════════════════════════════════════════ */
+  .art-body { padding: 56px 0 20px; }
+  .art-body p {
+    font-size: 1.05rem; line-height: 1.75; color: var(--text); font-weight: 300;
+    margin-bottom: 20px;
+  }
+  .art-body p.lead {
+    font-size: 1.2rem; font-weight: 400; color: var(--dark);
+  }
+  .cat-block { padding: 46px 0 8px; border-top: 1px solid var(--border); }
+  .cat-block:first-of-type { border-top: none; }
+  .cat-tag {
+    font-family: 'Space Mono', monospace;
+    font-size: .65rem; letter-spacing: .16em; text-transform: uppercase;
+    color: var(--red); font-weight: 700; margin-bottom: 6px;
+  }
+  .cat-block h2 {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: clamp(1.6rem, 3.3vw, 2.3rem);
+    font-weight: 900; letter-spacing: .01em; text-transform: uppercase;
+    color: var(--dark); line-height: 1.05; margin-bottom: 18px;
+  }
+  .cat-block h2 .accent { color: var(--red); }
+
+  /* Tabla de posiciones */
+  .standings-table-wrap { overflow-x: auto; border: 1px solid var(--border); margin: 22px 0 8px; }
+  .standings-table { width: 100%; border-collapse: collapse; }
+  .standings-table thead tr { background: var(--light); border-bottom: 1px solid var(--border); }
+  .standings-table th {
+    font-family: 'Space Mono', monospace;
+    font-size: .6rem; letter-spacing: .16em; text-transform: uppercase;
+    color: var(--muted); padding: 12px 18px;
+    text-align: left; font-weight: 400; white-space: nowrap;
+  }
+  .standings-table th:not(:nth-child(2)) { text-align: center; }
+  .standings-table td {
+    padding: 13px 18px; font-size: .9rem; color: var(--text);
+    border-bottom: 1px solid var(--border);
+  }
+  .standings-table td:not(:nth-child(2)) { text-align: center; }
+  .standings-table tr:last-child td { border-bottom: none; }
+  .standings-table tr:hover td { background: var(--light); }
+  .td-rank { font-family: 'Barlow Condensed', sans-serif; font-size: 1.05rem; font-weight: 800; color: var(--muted); width: 40px; }
+  .td-name { font-family: 'Barlow Condensed', sans-serif; font-size: 1.05rem; font-weight: 700; letter-spacing: .01em; text-transform: uppercase; }
+  .td-pct { font-family: 'Barlow Condensed', sans-serif; font-size: 1rem; font-weight: 800; color: var(--red); }
+  .td-mono { font-family: 'Space Mono', monospace; font-size: .74rem; color: var(--muted); }
+  .row-top1 td { background: var(--red-light); }
+  .standings-note { font-size: .74rem; color: var(--muted); margin-top: 8px; }
+
+  /* Bloque "así va la tabla general" */
+  .general-block { padding: 46px 0 8px; border-top: 1px solid var(--border); }
+  .general-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--border); border: 1px solid var(--border); margin: 22px 0 8px; }
+  @media (max-width: 700px) { .general-grid { grid-template-columns: 1fr; } }
+  .general-card { background: #fff; padding: 20px; }
+  .general-cat { font-family: 'Space Mono', monospace; font-size: .6rem; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+  .general-name { font-family: 'Barlow Condensed', sans-serif; font-size: 1.3rem; font-weight: 900; text-transform: uppercase; color: var(--dark); line-height: 1.05; }
+  .general-avg { font-family: 'Barlow Condensed', sans-serif; font-size: 1.6rem; font-weight: 900; color: var(--red); margin-top: 4px; }
+  .general-note { font-size: .82rem; color: var(--muted); margin-top: 8px; line-height: 1.5; }
+
+  /* ════════════════════════════════════════════
+     CTA DE CIERRE
+  ════════════════════════════════════════════ */
+  .art-cta {
+    margin: 56px 0 0; padding: 44px 0 72px;
+    background: var(--dark2); color: #fff;
+  }
+  .art-cta .label::before { background: var(--red); }
+  .art-cta h2 {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: clamp(1.8rem, 4vw, 2.6rem);
+    font-weight: 900; letter-spacing: .01em; text-transform: uppercase;
+    color: #fff; margin-top: 8px; line-height: 1.05;
+  }
+  .art-cta p { color: rgba(255,255,255,.65); font-size: 1rem; font-weight: 300; line-height: 1.65; max-width: 600px; margin-top: 14px; }
+  .btn-primary {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: .95rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+    background: var(--red); color: #fff;
+    padding: 15px 38px; text-decoration: none;
+    transition: background .2s, transform .15s;
+    display: inline-block; margin-top: 24px;
+  }
+  .btn-primary:hover { background: var(--red-dark); transform: translateY(-1px); }
+
+  /* ════════════════════════════════════════════
+     FOOTER — copiado de noticia-jornada4-recap.html
+  ════════════════════════════════════════════ */
+  footer {
+    background: var(--dark2);
+    border-top: 4px solid var(--red);
+    padding: 60px 24px 36px;
+    color: rgba(255,255,255,.5);
+  }
+  .footer-inner {
+    max-width: 1160px; margin: 0 auto;
+    display: grid; gap: 48px;
+    grid-template-columns: 2fr 1fr 1fr 1fr;
+  }
+  .footer-brand h3 {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 1.3rem; font-weight: 900; letter-spacing: .05em; text-transform: uppercase;
+    color: #fff; margin-bottom: 12px;
+  }
+  .footer-brand p { font-size: .86rem; line-height: 1.65; font-weight: 300; }
+  .footer-col h4 {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: .9rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase;
+    color: #fff; margin-bottom: 16px;
+  }
+  .footer-col ul { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+  .footer-col ul li a { font-size: .86rem; color: rgba(255,255,255,.4); text-decoration: none; font-weight: 300; transition: color .2s; }
+  .footer-col ul li a:hover { color: #fff; }
+  .social-row { display: flex; gap: 8px; margin-top: 20px; }
+  .social-icon { width: 36px; height: 36px; border: 1px solid rgba(255,255,255,.15); display: flex; align-items: center; justify-content: center; text-decoration: none; font-size: .9rem; transition: background .2s, border-color .2s; }
+  .social-icon:hover { background: var(--red); border-color: var(--red); }
+  .footer-bottom {
+    max-width: 1160px; margin: 36px auto 0;
+    padding-top: 20px; border-top: 1px solid rgba(255,255,255,.08);
+    display: flex; align-items: center; justify-content: space-between;
+    flex-wrap: wrap; gap: 10px;
+    font-family: 'Space Mono', monospace;
+    font-size: .62rem; letter-spacing: .08em; text-transform: uppercase;
+  }
+  @media (max-width: 860px) { .footer-inner { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 560px) { .footer-inner { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════
+     NAV
+══════════════════════════════════════ -->
+<header id="nav">
+  <div class="nav-inner">
+    <div class="nav-brand" style="cursor:default">
+      <a href="https://antigua-pickleball.com" title="Ir a Antigua Pickleball"><img src="logo.png" alt="Antigua Pickleball" height="28" style="display:block"/></a>
+      <div class="nav-brand-divider"></div>
+      <a href="index.html" class="nav-brand-name" style="text-decoration:none">Ladder League</a>
+      <div class="nav-brand-divider"></div>
+      <img src="img/quattro.png" alt="Quattro Club" style="height:28px;width:auto;background:#111113;padding:4px 9px;border-radius:4px;box-sizing:content-box" onerror="this.style.display='none'"/>
+    </div>
+    <ul class="nav-links">
+      <li><a href="index.html#formato">Formato</a></li>
+      <li><a href="index.html#horarios">Horarios</a></li>
+      <li><a href="index.html#standings">Ranking</a></li>
+      <li><a href="index.html#calendario">Calendario</a></li>
+      <li><a href="index.html#reglamento">Reglamento</a></li>
+      <li><a href="noticias.html" class="active">Noticias</a></li>
+      <li><a href="galeria.html">Galería</a></li>
+      <li><a href="videos.html">Videos</a></li>
+      <li><a href="https://antigua-pickleball.com">← Antigua PB</a></li>
+    </ul>
+    <div class="nav-actions">
+      <div id="nav-auth-slot"></div>
+      <a class="nav-btn" href="inscribirse.html">Inscríbete</a>
+      <button class="hamburger" id="hamburger" aria-label="Menú">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </div>
+  <div class="mobile-menu" id="mobile-menu">
+    <a href="index.html#formato">Formato</a>
+    <a href="index.html#horarios">Horarios</a>
+    <a href="index.html#standings">Ranking</a>
+    <a href="index.html#calendario">Calendario</a>
+    <a href="index.html#reglamento">Reglamento</a>
+    <a href="noticias.html">Noticias</a>
+    <a href="galeria.html">Galería</a>
+    <a href="videos.html">Videos</a>
+    <a href="https://antigua-pickleball.com">← Antigua Pickleball</a>
+  </div>
+</header>
+
+<!-- ══════════════════════════════════════
+     HEADER DEL ARTÍCULO
+══════════════════════════════════════ -->
+<section class="art-header">
+  <div class="container">
+    <div class="label">Noticias · Jornada 5</div>
+    <div class="art-meta">Domingo 16 de agosto, 2026 · Club Quattro, La Antigua Guatemala</div>
+    <h1 class="art-title">56 partidos, un invicto perfecto y la tabla general se <span class="accent">reordena</span></h1>
+    <p class="art-sub">Andrés Alvarado dispara en Principiante, Travis Ning le arrebata el liderato a Roberto Carlos Arango en Intermedio, y Luis Buenahora firma la única marca perfecta de la jornada en Open.</p>
+  </div>
+  <div class="winners-strip">
+    <div class="container" style="padding:0">
+      <div class="winners-grid">
+        <div class="winner-card">
+          <img src="fotos/jornada4/web/1d814cd9-f3bf-4ec5-84c2-e81ad54d933b.jpg" alt="Nery Gámez, líder general de Principiante" style="transform:scale(1.35);transform-origin:center 48%"/>
+          <div class="winner-caption">
+            <div class="winner-cat">Líder general · Principiante</div>
+            <div class="winner-name">Nery Gámez</div>
+          </div>
+        </div>
+        <div class="winner-card">
+          <img src="fotos/jornada4/web/5530b384-b0df-4fea-93f9-27509dcfa4fc.jpg" alt="Travis Ning, nuevo líder de Intermedio" style="object-position:center 32%"/>
+          <div class="winner-caption">
+            <div class="winner-cat">Nuevo líder · Intermedio</div>
+            <div class="winner-name">Travis Ning</div>
+          </div>
+        </div>
+        <div class="winner-card">
+          <img src="fotos/jornada4/web/9887adac-ad33-49c0-9709-8ecc3809e993.jpg" alt="Luis Buenahora, invicto en Open" style="object-position:center 22%"/>
+          <div class="winner-caption">
+            <div class="winner-cat">Invicto · Open</div>
+            <div class="winner-name">Luis Buenahora</div>
+          </div>
+        </div>
+      </div>
+      <div class="container"><div class="photo-credit">📸 Fotos: Container Studio</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════
+     CUERPO DEL ARTÍCULO
+══════════════════════════════════════ -->
+<article class="art-body">
+  <div class="narrow">
+    <p class="lead">La Jornada 5 dejó 56 partidos, un invicto perfecto y un cambio de liderato en la tabla general. A cinco de ocho jornadas jugadas, así se movió todo.</p>
+
+    <div class="cat-block">
+      <div class="cat-tag">Principiante</div>
+      <h2>Andrés Alvarado se impone con autoridad</h2>
+      <p>7 victorias en 8 partidos (0.950), su mejor marca de la temporada. José David Pérez Cajti y Maynor Amilkar Perez comparten el segundo lugar con 5 triunfos en 8 partidos.</p>
+      <div class="standings-table-wrap">
+        <table class="standings-table">
+          <thead><tr><th>#</th><th>Jugador</th><th>PJ</th><th>PG</th><th>Puntaje</th></tr></thead>
+          <tbody>
+            <tr class="row-top1"><td class="td-rank">1</td><td class="td-name">Andrés Alvarado</td><td class="td-mono">8</td><td class="td-mono">7</td><td class="td-pct">0.950</td></tr>
+            <tr><td class="td-rank">2</td><td class="td-name">José David Pérez Cajti</td><td class="td-mono">8</td><td class="td-mono">5</td><td class="td-pct">0.750</td></tr>
+            <tr><td class="td-rank">2</td><td class="td-name">Maynor Amilkar Perez</td><td class="td-mono">8</td><td class="td-mono">5</td><td class="td-pct">0.750</td></tr>
+            <tr><td class="td-rank">4</td><td class="td-name">Jefferson Perez</td><td class="td-mono">8</td><td class="td-mono">4</td><td class="td-pct">0.550</td></tr>
+            <tr><td class="td-rank">5</td><td class="td-name">Luisa Portocarrero</td><td class="td-mono">8</td><td class="td-mono">4</td><td class="td-pct">0.500</td></tr>
+            <tr><td class="td-rank">6</td><td class="td-name">Karen López</td><td class="td-mono">8</td><td class="td-mono">3</td><td class="td-pct">0.450</td></tr>
+            <tr><td class="td-rank">7</td><td class="td-name">Angela Carey</td><td class="td-mono">8</td><td class="td-mono">3</td><td class="td-pct">0.400</td></tr>
+            <tr><td class="td-rank">7</td><td class="td-name">Erik Herrera</td><td class="td-mono">8</td><td class="td-mono">3</td><td class="td-pct">0.400</td></tr>
+            <tr><td class="td-rank">9</td><td class="td-name">Adriana</td><td class="td-mono">8</td><td class="td-mono">3</td><td class="td-pct">0.375</td></tr>
+            <tr><td class="td-rank">9</td><td class="td-name">Mafer Castro</td><td class="td-mono">8</td><td class="td-mono">3</td><td class="td-pct">0.375</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="standings-note">PJ = partidos jugados · PG = partidos ganados · Puntaje = promedio ponderado de la jornada (Cancha A pesa 1.20).</div>
+    </div>
+
+    <div class="cat-block">
+      <div class="cat-tag">Intermedio</div>
+      <h2>Travis Ning gana la jornada y le arrebata el liderato a Roberto</h2>
+      <p>Travis lidera la jornada con 6 victorias en 8 partidos (0.900), apenas por delante del debut de Samuel Panjoj (6/8, 0.825). Roberto Carlos Arango, líder de las dos últimas recaps, se queda en el tercer lugar de la jornada con 5/8 — pero el resultado tiene un efecto mayor: en la tabla general, Travis le arrebata el primer lugar a Roberto, al menos de forma temporal. Antes de esta jornada Roberto lideraba con 0.900 de promedio general; ahora va segundo con 0.862, mientras Travis sube a 0.867 y toma la cima por primera vez en la temporada. La diferencia es de apenas 0.005, la más apretada del año.</p>
+      <div class="standings-table-wrap">
+        <table class="standings-table">
+          <thead><tr><th>#</th><th>Jugador</th><th>PJ</th><th>PG</th><th>Puntaje</th></tr></thead>
+          <tbody>
+            <tr class="row-top1"><td class="td-rank">1</td><td class="td-name">Travis Ning</td><td class="td-mono">8</td><td class="td-mono">6</td><td class="td-pct">0.900</td></tr>
+            <tr><td class="td-rank">2</td><td class="td-name">Samuel Panjoj</td><td class="td-mono">8</td><td class="td-mono">6</td><td class="td-pct">0.825</td></tr>
+            <tr><td class="td-rank">3</td><td class="td-name">Roberto Carlos Arango</td><td class="td-mono">8</td><td class="td-mono">5</td><td class="td-pct">0.750</td></tr>
+            <tr><td class="td-rank">3</td><td class="td-name">Anibal López Rogel</td><td class="td-mono">8</td><td class="td-mono">6</td><td class="td-pct">0.750</td></tr>
+            <tr><td class="td-rank">5</td><td class="td-name">Chris Gwinner</td><td class="td-mono">8</td><td class="td-mono">4</td><td class="td-pct">0.600</td></tr>
+            <tr><td class="td-rank">6</td><td class="td-name">Luis Arriola</td><td class="td-mono">8</td><td class="td-mono">4</td><td class="td-pct">0.550</td></tr>
+            <tr><td class="td-rank">7</td><td class="td-name">Juan José Corado</td><td class="td-mono">8</td><td class="td-mono">3</td><td class="td-pct">0.375</td></tr>
+            <tr><td class="td-rank">7</td><td class="td-name">Paul Vernon Gonzalez</td><td class="td-mono">8</td><td class="td-mono">3</td><td class="td-pct">0.375</td></tr>
+            <tr><td class="td-rank">9</td><td class="td-name">Marlonn Contreras</td><td class="td-mono">8</td><td class="td-mono">2</td><td class="td-pct">0.250</td></tr>
+            <tr><td class="td-rank">10</td><td class="td-name">Madeleine Pardo</td><td class="td-mono">8</td><td class="td-mono">1</td><td class="td-pct">0.125</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="standings-note">PJ = partidos jugados · PG = partidos ganados · Puntaje = promedio ponderado de la jornada (Cancha A pesa 1.20).</div>
+    </div>
+
+    <div class="cat-block">
+      <div class="cat-tag">Open</div>
+      <h2>Luis Buenahora no pierde ni un partido</h2>
+      <p>8 de 8. Es la única marca perfecta de la jornada en cualquier categoría. Segundo lugar compartido entre Jesús Javier Corado Urizar y Alejandro Corzo, ambos en su debut, con 4 victorias en 7 partidos (0.629).</p>
+      <div class="standings-table-wrap">
+        <table class="standings-table">
+          <thead><tr><th>#</th><th>Jugador</th><th>PJ</th><th>PG</th><th>Puntaje</th></tr></thead>
+          <tbody>
+            <tr class="row-top1"><td class="td-rank">1</td><td class="td-name">Luis Buenahora</td><td class="td-mono">8</td><td class="td-mono">8</td><td class="td-pct">1.200</td></tr>
+            <tr><td class="td-rank">2</td><td class="td-name">Jesús Javier Corado Urizar</td><td class="td-mono">7</td><td class="td-mono">4</td><td class="td-pct">0.629</td></tr>
+            <tr><td class="td-rank">2</td><td class="td-name">Alejandro Corzo</td><td class="td-mono">7</td><td class="td-mono">4</td><td class="td-pct">0.629</td></tr>
+            <tr><td class="td-rank">4</td><td class="td-name">Carlos Rosales</td><td class="td-mono">7</td><td class="td-mono">4</td><td class="td-pct">0.600</td></tr>
+            <tr><td class="td-rank">5</td><td class="td-name">Juan José Corado</td><td class="td-mono">6</td><td class="td-mono">3</td><td class="td-pct">0.500</td></tr>
+            <tr><td class="td-rank">6</td><td class="td-name">Ángel Soto</td><td class="td-mono">8</td><td class="td-mono">3</td><td class="td-pct">0.450</td></tr>
+            <tr><td class="td-rank">6</td><td class="td-name">Arnaud Hammer</td><td class="td-mono">8</td><td class="td-mono">3</td><td class="td-pct">0.450</td></tr>
+            <tr><td class="td-rank">8</td><td class="td-name">Miguel García</td><td class="td-mono">7</td><td class="td-mono">2</td><td class="td-pct">0.314</td></tr>
+            <tr><td class="td-rank">9</td><td class="td-name">Pablo Velasquez</td><td class="td-mono">6</td><td class="td-mono">1</td><td class="td-pct">0.167</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="standings-note">PJ = partidos jugados · PG = partidos ganados · Puntaje = promedio ponderado de la jornada (Cancha A pesa 1.20).</div>
+    </div>
+
+    <div class="general-block">
+      <div class="cat-tag">Tabla general</div>
+      <h2>Así va la temporada — 5 de 8 jornadas jugadas</h2>
+      <p>Nery Gámez sigue arriba en Principiante con 0.925 de promedio, aunque no jugó esta jornada — nadie que sí compitió lo superó. En Intermedio, Travis Ning toma la cima por primera vez en la temporada. En Open, Luis Buenahora extiende su ventaja a 0.900 de promedio general. Quedan tres jornadas.</p>
+      <div class="general-grid">
+        <div class="general-card">
+          <div class="general-cat">Principiante</div>
+          <div class="general-name">Nery Gámez</div>
+          <div class="general-avg">0.925</div>
+          <div class="general-note">No jugó la Jornada 5 y sigue arriba con el promedio de sus 3 sesiones jugadas.</div>
+        </div>
+        <div class="general-card">
+          <div class="general-cat">Intermedio</div>
+          <div class="general-name">Travis Ning</div>
+          <div class="general-avg">0.867</div>
+          <div class="general-note">Le arrebata el liderato a Roberto Carlos Arango (0.862) por apenas 0.005.</div>
+        </div>
+        <div class="general-card">
+          <div class="general-cat">Open</div>
+          <div class="general-name">Luis Buenahora</div>
+          <div class="general-avg">0.900</div>
+          <div class="general-note">Extiende su ventaja tras un invicto 8/8 en la Jornada 5.</div>
+        </div>
+      </div>
+      <div class="standings-note">Tabla general = promedio de las sesiones jugadas, descartando la peor a partir de la 4ª jornada. Se necesitan 3+ sesiones jugadas para entrar al ranking oficial.</div>
+    </div>
+  </div>
+</article>
+
+<!-- ══════════════════════════════════════
+     CTA DE CIERRE
+══════════════════════════════════════ -->
+<section class="art-cta">
+  <div class="narrow">
+    <div class="label">Quedan 3 jornadas</div>
+    <h2>El tramo final ya empezó</h2>
+    <p>Tres jornadas más y se cierra la Temporada 1. Todavía hay mucho por definirse en las tres categorías.</p>
+    <a class="btn-primary" href="sesion.html?n=6">Inscribirme a la próxima jornada</a>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════
+     FOOTER
+══════════════════════════════════════ -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-brand">
+      <h3>Antigua Ladder League</h3>
+      <p>Competencia semanal de pickleball en La Antigua Guatemala. Temporada 1 · Julio – Septiembre 2026.</p>
+      <div class="social-row">
+        <a class="social-icon" href="https://www.instagram.com/antiguapickleball" target="_blank" title="Instagram">📷</a>
+        <a class="social-icon" href="https://www.facebook.com/p/Antigua-Pickleball-61567310379538/" target="_blank" title="Facebook">👥</a>
+        <a class="social-icon" href="https://wa.me/50230912707" title="WhatsApp">💬</a>
+      </div>
+    </div>
+    <div class="footer-col">
+      <h4>Ladder</h4>
+      <ul>
+        <li><a href="index.html#formato">Formato</a></li>
+        <li><a href="index.html#standings">Ranking</a></li>
+        <li><a href="index.html#calendario">Calendario</a></li>
+        <li><a href="noticias.html">Noticias</a></li>
+        <li><a href="galeria.html">Galería</a></li>
+        <li><a href="videos.html">Videos</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h4>Antigua PB</h4>
+      <ul>
+        <li><a href="https://antigua-pickleball.com">Inicio</a></li>
+        <li><a href="https://antigua-pickleball.com/eventos.html">Eventos</a></li>
+        <li><a href="https://antigua-pickleball.com/canchas.html">Canchas</a></li>
+        <li><a href="https://antigua-pickleball.com/clinicas.html">Clínicas</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h4>Contacto</h4>
+      <ul>
+        <li><a href="https://wa.me/50230912707">+502 3091-2707</a></li>
+        <li><a href="mailto:info@antiguapickleball.gt">Email</a></li>
+        <li><a href="inscribirse.html">Inscripción</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span>© 2026 Antigua Pickleball</span>
+    <span style="color:rgba(255,255,255,.18)">Ladder League · Temporada 1 🏓</span>
+  </div>
+</footer>
+
+<script>
+document.getElementById('hamburger').addEventListener('click', () => {
+  document.getElementById('mobile-menu').classList.toggle('open');
+});
+</script>
+
+<!-- ══ AUTH BRIDGE — sesión compartida con antigua-pickleball.com ══ -->
+<script src="js/auth-bridge-client.js"></script>
+<script>
+  APAuth.onReady(function(user) {
+    const slot    = document.getElementById('nav-auth-slot');
+    const mobMenu = document.getElementById('mobile-menu');
+    if (!slot) return;
+
+    if (user) {
+      const name     = user.displayName || user.email.split('@')[0];
+      const first    = name.split(' ')[0];
+      const initials = name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+      const profileURL = 'perfil.html';
+
+      const isAdmin = user.role === 'admin';
+      slot.innerHTML = `
+        ${isAdmin ? `<a href="admin.html" style="font-family:'Barlow Condensed',sans-serif;font-size:.75rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);text-decoration:none;padding:5px 10px;border:1px solid var(--border);margin-right:4px" title="Panel Admin">⚙ Admin</a>` : ''}
+        <a class="nav-user" href="${profileURL}" title="${name}">
+          <span class="nav-user-avatar">${initials}</span>${first}
+        </a><button onclick="APAuth.signOut();location.href='https://antigua-pickleball.com/login.html?redirect='+encodeURIComponent(location.href)" title="Salir / cambiar de cuenta" style="font-family:'Barlow Condensed',sans-serif;font-size:.78rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#6b6b74;background:none;border:1px solid #e2e2de;padding:6px 11px;cursor:pointer;margin-left:6px">Salir</button>`;
+
+      if (mobMenu) {
+        const a = document.createElement('a');
+        a.href = profileURL;
+        a.style.cssText = 'color:var(--red);font-weight:800;border-bottom:2px solid #fac5c7';
+        a.textContent = '👤 ' + first;
+        mobMenu.insertBefore(a, mobMenu.firstChild);
+      }
+    } else {
+      const loginURL = 'https://antigua-pickleball.com/login.html?redirect=' + encodeURIComponent(window.location.href);
+      slot.innerHTML = `
+        <a href="${loginURL}" style="font-family:'Barlow Condensed',sans-serif;font-size:.85rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);text-decoration:none;padding:7px 14px;border:1px solid var(--border);white-space:nowrap;transition:color .2s">
+          Ingresar
+        </a>`;
+
+      if (mobMenu) {
+        const a = document.createElement('a');
+        a.href = loginURL;
+        a.style.cssText = 'color:var(--red);font-weight:700;border-bottom:2px solid #fac5c7';
+        a.textContent = '👤 Ingresar / Mi Perfil';
+        mobMenu.insertBefore(a, mobMenu.firstChild);
+      }
+    }
+  });
+</script>
+</body>
+</html>
