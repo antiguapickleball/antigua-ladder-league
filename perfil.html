@@ -1475,7 +1475,7 @@ function renderNavChip(user) {
   slot.innerHTML = `
     <a class="nav-user" href="perfil.html">
       <span class="nav-user-avatar">${escHtml(initials)}</span>${escHtml(first)}
-    </a><button onclick="APAuth.signOut();location.href='https://antigua-pickleball.com/login.html?signout=1&redirect='+encodeURIComponent(location.href)" title="Salir / cambiar de cuenta" style="font-family:'Barlow Condensed',sans-serif;font-size:.78rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#6b6b74;background:none;border:1px solid #e2e2de;padding:6px 11px;cursor:pointer;margin-left:6px">Salir</button>`;
+    </a><button onclick="APAuth.signOut();location.href='https://antigua-pickleball.com/login.html?signout=1&redirect='+encodeURIComponent(location.origin+'/')" title="Salir / cambiar de cuenta" style="font-family:'Barlow Condensed',sans-serif;font-size:.78rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#6b6b74;background:none;border:1px solid #e2e2de;padding:6px 11px;cursor:pointer;margin-left:6px">Salir</button>`;
   if (mobMenu && !document.getElementById('mob-auth-btn')) {
     const a = document.createElement('a');
     a.id = 'mob-auth-btn'; a.href = 'perfil.html';
@@ -1503,7 +1503,7 @@ document.getElementById('hamburger').addEventListener('click', () => {
 // ── Cerrar sesión ──
 document.getElementById('btn-signout').addEventListener('click', () => {
   APAuth.signOut();
-  window.location.href = 'index.html';
+  window.location.href = 'https://antigua-pickleball.com/login.html?signout=1&redirect=' + encodeURIComponent(location.origin + '/');
 });
 
 // ── Init: verificar sesión ──

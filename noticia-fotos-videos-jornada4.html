@@ -593,7 +593,7 @@ document.getElementById('hamburger').addEventListener('click', () => {
         ${isAdmin ? `<a href="admin.html" style="font-family:'Barlow Condensed',sans-serif;font-size:.75rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);text-decoration:none;padding:5px 10px;border:1px solid var(--border);margin-right:4px" title="Panel Admin">⚙ Admin</a>` : ''}
         <a class="nav-user" href="${profileURL}" title="${name}">
           <span class="nav-user-avatar">${initials}</span>${first}
-        </a><button onclick="APAuth.signOut();location.href='https://antigua-pickleball.com/login.html?signout=1&redirect='+encodeURIComponent(location.href)" title="Salir / cambiar de cuenta" style="font-family:'Barlow Condensed',sans-serif;font-size:.78rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#6b6b74;background:none;border:1px solid #e2e2de;padding:6px 11px;cursor:pointer;margin-left:6px">Salir</button>`;
+        </a><button onclick="APAuth.signOut();location.href='https://antigua-pickleball.com/login.html?signout=1&redirect='+encodeURIComponent(location.origin+'/')" title="Salir / cambiar de cuenta" style="font-family:'Barlow Condensed',sans-serif;font-size:.78rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#6b6b74;background:none;border:1px solid #e2e2de;padding:6px 11px;cursor:pointer;margin-left:6px">Salir</button>`;
 
       if (mobMenu) {
         const a = document.createElement('a');
