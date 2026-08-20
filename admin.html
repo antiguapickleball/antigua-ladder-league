@@ -1883,7 +1883,9 @@ async function viewBoleta(docId) {
   try {
     const snap = await db.collection(COL('ladder_boletas')).doc(docId).get();
     if (!snap.exists) { toast('Boleta no encontrada', true); return; }
-    const data = snap.data().data; // data:image/jpeg;base64,... o data:application/pdf;base64,...
+    // Campo normal es "data" (saveBoleta en sesion.html); "file" es el nombre que usaba
+    // el formulario de segunda categoría (submitTransfer2) — mismo dato, campo distinto.
+    const data = snap.data().data || snap.data().file; // data:image/jpeg;base64,... o data:application/pdf;base64,...
 
     if (data.startsWith('data:application/pdf')) {
       // Abrir PDF en nueva pestaña

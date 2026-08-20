@@ -1912,13 +1912,18 @@ function appendSegundaCategoria(container, user, myRegs, inscritos) {
       if (!file2) { errEl2.textContent = '✕ Adjunta tu boleta de pago.'; errEl2.style.display = 'block'; return; }
       errEl2.style.display = 'none';
       let boletaDocId = null;
+      let boletaError = null;
       try {
-        const reader = new FileReader();
-        const b64 = await new Promise((res, rej) => { reader.onload = e => res(e.target.result); reader.onerror = rej; reader.readAsDataURL(file2); });
-        const boletaRef = await db.collection(COL('ladder_boletas')).add({ uid: user.uid, sesionNum: NUM, uploadedAt: firebase.firestore.Timestamp.now(), file: b64, fileName: file2.name });
-        boletaDocId = boletaRef.id;
-      } catch (_) {}
-      await saveRegistration(user, getDuprId2(), cat2, null, 'pending_review', { paymentMethod:'transfer', phone:phone2, boletaDocId, nombre: getNombre2() });
+        const base64 = await compressBoleta(file2);
+        boletaDocId  = await saveBoleta(user.uid, NUM, base64);
+      } catch (e) {
+        console.warn('Boleta no se pudo subir; la inscripción continúa:', e);
+        boletaError = String(e?.message || e).slice(0, 300);
+      }
+      await saveRegistration(user, getDuprId2(), cat2, null, 'pending_review', {
+        paymentMethod: 'transfer', phone: phone2, nombre: getNombre2(),
+        ...(boletaDocId ? { boletaDocId } : { boletaPendiente: true, boletaError }),
+      });
     };
 
     document.getElementById('btn-waitlist-2').addEventListener('click', joinWaitlist2);
