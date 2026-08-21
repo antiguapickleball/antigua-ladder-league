@@ -846,6 +846,11 @@ const CATEGORIAS = [
   { id: 'open',         label: 'Open',         rango: '3.7+' },
 ];
 
+// Rating mínimo de DUPR dobles para inscribirse en Open por el formulario público.
+// Excepción: si Luis registra al jugador manualmente desde admin.html, este gate no aplica
+// (ese panel nunca tuvo este chequeo — ver bitacora/ladder.md).
+const OPEN_MIN_DUPR = 3.5;
+
 // Estado global
 let _inscritos        = [];
 let _firebaseAuthReady = false;
@@ -1743,6 +1748,32 @@ function renderRegContainer(user, inscritos) {
       }
     }
 
+    // 2b. Mínimo de rating para Open (excepción si ya jugó Open antes con partidos reales)
+    if (_pendingCategoria === 'open') {
+      duprError.textContent = '🔍 Verificando tu rating DUPR…';
+      duprError.style.background = '#f0f9ff';
+      duprError.style.borderColor = '#7dd3fc';
+      duprError.style.color = '#0369a1';
+      duprError.style.display = 'block';
+      try {
+        const res  = await fetch(`https://ap-dupr-api.netlify.app/.netlify/functions/dupr?id=${encodeURIComponent(duprId)}`);
+        const data = await res.json();
+        const rating = data.doubles ?? data.doublesVerified ?? null;
+        const cumpleMinimo = rating !== null && rating !== 'NR' && parseFloat(rating) > OPEN_MIN_DUPR;
+        if (!cumpleMinimo && !(await yaJugoCategoria(duprId, 'open'))) {
+          duprError.style.background = '#fef2f2';
+          duprError.style.borderColor = '#fca5a5';
+          duprError.style.color = '#991b1b';
+          duprError.textContent = (rating === null || rating === 'NR')
+            ? `⛔ Open requiere un rating DUPR de dobles verificado superior a ${OPEN_MIN_DUPR}. Tu perfil DUPR todavía no tiene rating de dobles.`
+            : `⛔ Tu rating DUPR de dobles (${rating}) no alcanza el mínimo para Open (superior a ${OPEN_MIN_DUPR}). Selecciona Intermedio.`;
+          return;
+        }
+      } catch (_) {
+        // Si falla la consulta, dejamos pasar (no bloqueamos por error de red)
+      }
+    }
+
     // Todo OK — mostrar pago
     duprError.style.display = 'none';
     const full = isFullForNew(_inscritos, _pendingCategoria);
@@ -1982,6 +2013,26 @@ function appendSegundaCategoria(container, user, myRegs, inscritos) {
           if (rating !== null && rating !== 'NR' && parseFloat(rating) > limite && !(await yaJugoCategoria(duprId, cat2))) {
             duprError2.style.background = '#fef2f2'; duprError2.style.borderColor = '#fca5a5'; duprError2.style.color = '#991b1b';
             duprError2.textContent = `⛔ Tu rating DUPR de dobles (${rating}) supera el límite (máx ${limite}).`;
+            return;
+          }
+        } catch (_) {}
+      }
+
+      // Mínimo de rating para Open (excepción si ya jugó Open antes con partidos reales)
+      if (cat2 === 'open' && duprId) {
+        duprError2.textContent = '🔍 Verificando tu rating DUPR…';
+        duprError2.style.background = '#f0f9ff'; duprError2.style.borderColor = '#7dd3fc'; duprError2.style.color = '#0369a1';
+        duprError2.style.display = 'block';
+        try {
+          const res  = await fetch(`https://ap-dupr-api.netlify.app/.netlify/functions/dupr?id=${encodeURIComponent(duprId)}`);
+          const data = await res.json();
+          const rating = data.doubles ?? data.doublesVerified ?? null;
+          const cumpleMinimo = rating !== null && rating !== 'NR' && parseFloat(rating) > OPEN_MIN_DUPR;
+          if (!cumpleMinimo && !(await yaJugoCategoria(duprId, 'open'))) {
+            duprError2.style.background = '#fef2f2'; duprError2.style.borderColor = '#fca5a5'; duprError2.style.color = '#991b1b';
+            duprError2.textContent = (rating === null || rating === 'NR')
+              ? `⛔ Open requiere un rating DUPR de dobles verificado superior a ${OPEN_MIN_DUPR}.`
+              : `⛔ Tu rating DUPR de dobles (${rating}) no alcanza el mínimo para Open (superior a ${OPEN_MIN_DUPR}).`;
             return;
           }
         } catch (_) {}
