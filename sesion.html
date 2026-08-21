@@ -1633,6 +1633,15 @@ function renderRegContainer(user, inscritos) {
       const hint = document.getElementById('dupr-hint');
       if (hint) hint.innerHTML = `Tu DUPR ID no está en tu perfil. Ingrésalo aquí. <a href="https://dupr.com" target="_blank">dupr.com</a>`;
     }
+    // Si el jugador ya había elegido categoría antes de que el DUPR ID
+    // terminara de cargar, el error "necesitas ingresar tu DUPR ID" pudo
+    // quedar mostrado con el campo todavía vacío en ese momento. Con el ID
+    // ya cargado, re-disparamos la validación para que el error se limpie solo.
+    const duprError = document.getElementById('dupr-cat-error');
+    if (saved && _pendingCategoria && duprError && duprError.style.display !== 'none') {
+      const radio = document.querySelector(`input[name="categoria"][value="${_pendingCategoria}"]`);
+      if (radio) radio.dispatchEvent(new Event('change', { bubbles: true }));
+    }
   });
 
   // Cargar teléfono (transferencia y lista de espera)
