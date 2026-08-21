@@ -788,14 +788,29 @@ function startPage(s) {
 let unsubscribeInscritos = null;
 function loadInscritos(currentUser) {
   if (unsubscribeInscritos) unsubscribeInscritos();
+
+  // Si la conexión a Firestore se queda colgada (sin éxito NI error — pasa con algunos
+  // bloqueadores de anuncios/redes restrictivas que descartan la conexión en silencio),
+  // el onSnapshot de abajo nunca dispara ninguno de los dos callbacks y la página se queda
+  // en "Cargando…" para siempre. Este timeout le da al jugador una salida.
+  let _resuelto = false;
+  const _timeoutCarga = setTimeout(() => {
+    if (_resuelto) return;
+    const list = document.getElementById('inscritos-list');
+    if (list) list.innerHTML =
+      `<div class="inscritos-empty">Esto está tardando más de lo normal — puede ser tu conexión o un bloqueador de anuncios. <a href="" style="color:var(--red)">Recargar la página</a></div>`;
+  }, 8000);
+
   unsubscribeInscritos = db.collection(COLLECTION).doc(DOC_ID)
     .onSnapshot(snap => {
+      _resuelto = true; clearTimeout(_timeoutCarga);
       const data      = snap.exists ? snap.data() : {};
       const inscritos = data.inscritos || [];
       renderInscritos(inscritos, currentUser);
       // Actualizar estado del botón de registro
       updateRegState(inscritos, currentUser);
     }, err => {
+      _resuelto = true; clearTimeout(_timeoutCarga);
       console.error('Error cargando inscritos:', err);
       document.getElementById('inscritos-list').innerHTML =
         `<div class="inscritos-empty">Error cargando datos. <a href="" style="color:var(--red)">Recargar</a></div>`;
