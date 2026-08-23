@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Noticias · Antigua Ladder League</title>
-<meta name="description" content="Noticias, resúmenes de jornada y actualizaciones de la Antigua Ladder League."/>
+<title>Debut soñado: Yangmali Sahadev Rai gana Open en su única jornada · Antigua Ladder League</title>
+<meta name="description" content="De visita desde Estados Unidos, Yangmali Sahadev Rai jugó una sola jornada de la Antigua Ladder League — y se llevó Open, la categoría más competitiva de la liga, con 7 victorias en 8 partidos."/>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,400;0,600;0,700;0,800;0,900;1,700;1,900&family=Barlow:wght@300;400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"/>
@@ -30,6 +30,7 @@
     --border:     #e2e2de;
   }
   .container { max-width: 1160px; margin: 0 auto; padding: 0 24px; }
+  .narrow { max-width: 780px; margin: 0 auto; padding: 0 24px; }
   .label {
     font-family: 'Space Mono', monospace;
     font-size: .65rem; font-weight: 700;
@@ -38,15 +39,9 @@
     display: flex; align-items: center; gap: 10px;
   }
   .label::before { content: ''; display: block; width: 24px; height: 3px; background: var(--red); flex-shrink: 0; }
-  .section-title {
-    font-family: 'Barlow Condensed', sans-serif;
-    font-size: clamp(2rem, 4.5vw, 3.2rem);
-    font-weight: 900; letter-spacing: .01em; text-transform: uppercase;
-    color: var(--dark); line-height: 1; margin-top: 8px;
-  }
 
   /* ════════════════════════════════════════════
-     NAV — copiado de index.html para consistencia
+     NAV
   ════════════════════════════════════════════ */
   #nav {
     position: fixed; top: 0; left: 0; right: 0; z-index: 100;
@@ -78,7 +73,7 @@
     font-size: .9rem; font-weight: 600; letter-spacing: .05em; text-transform: uppercase;
     color: var(--muted); text-decoration: none;
     padding: 6px 14px; transition: color .2s;
-  white-space: nowrap;
+    white-space: nowrap;
   }
   .nav-links a:hover, .nav-links a.active { color: var(--red); }
   .nav-actions { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
@@ -90,7 +85,6 @@
     transition: background .2s; white-space: nowrap;
   }
   .nav-btn:hover { background: var(--red-dark); }
-  /* Auth user chip */
   .nav-user {
     display: flex; align-items: center; gap: 8px;
     background: #fff4f4; color: var(--red);
@@ -108,15 +102,13 @@
     display: flex; align-items: center; justify-content: center;
     font-size: .72rem; font-weight: 900; flex-shrink: 0;
   }
-    /* móvil: el nav no debe desbordar — ocultar logo Quattro y compactar marca */
   @media (max-width: 560px) {
     .nav-brand img[src*="quattro"] { display: none !important; }
     .nav-brand .nav-brand-divider + img[src*="quattro"] { display: none !important; }
     .nav-brand { gap: 8px; min-width: 0; }
     .nav-brand-name { font-size: .92rem; white-space: nowrap; }
   }
-
-  /* móvil: compactar acciones del nav para que nada se corte */
+  #nav-auth-slot { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
   @media (max-width: 560px) {
     .nav-btn { padding: 7px 12px !important; font-size: .78rem !important; }
     .nav-user { padding: 4px !important; gap: 0 !important; }
@@ -125,17 +117,6 @@
     .nav-user .nav-user-avatar { font-size: .72rem !important; }
     button[title="Salir / cambiar de cuenta"] { padding: 5px 8px !important; font-size: .68rem !important; margin-left: 4px !important; }
     .nav-chip-admin { font-size: .6rem !important; padding: 4px 6px !important; }
-    .nav-actions, #nav-auth-slot { gap: 6px !important; }
-  }
-
-#nav-auth-slot { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
-  @media (max-width: 560px) {
-    .nav-btn { padding: 7px 12px !important; font-size: .78rem !important; }
-    .nav-user { padding: 4px !important; gap: 0 !important; }
-    .nav-user > :not(.nav-user-avatar) { display: none; }
-    .nav-user { font-size: 0 !important; }
-    .nav-user .nav-user-avatar { font-size: .72rem !important; }
-    button[title="Salir / cambiar de cuenta"] { padding: 5px 8px !important; font-size: .68rem !important; margin-left: 4px !important; }
     .nav-actions, #nav-auth-slot { gap: 6px !important; }
   }
   .hamburger {
@@ -160,61 +141,111 @@
   }
 
   /* ════════════════════════════════════════════
-     HEADER
+     ARTICLE HEADER
   ════════════════════════════════════════════ */
-  .news-header {
-    padding: 140px 0 40px;
-    background: var(--light);
-    border-bottom: 1px solid var(--border);
-  }
-  .news-header p { color: var(--muted); margin-top: 14px; max-width: 560px; font-size: .98rem; }
-
-  /* ════════════════════════════════════════════
-     GRID DE NOTICIAS
-  ════════════════════════════════════════════ */
-  .news-grid-wrap { padding: 40px 0 80px; }
-  .news-grid {
-    display: grid; gap: 24px;
-    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-  }
-  .news-card {
-    background: #fff;
-    border: 1px solid var(--border);
-    overflow: hidden;
-    text-decoration: none; color: inherit;
-    transition: transform .22s, box-shadow .22s;
-    display: flex; flex-direction: column;
-  }
-  .news-card:hover { transform: translateY(-4px); box-shadow: 0 12px 40px rgba(0,0,0,.1); }
-  .news-card-img {
-    overflow: hidden; background: var(--light2); position: relative;
-    display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px;
-  }
-  .news-thumb-cell { position: relative; overflow: hidden; aspect-ratio: 4/5; }
-  .news-thumb-cell img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .4s; }
-  .news-card:hover .news-thumb-cell img { transform: scale(1.04); }
-  .news-card-body { padding: 24px 26px 26px; flex: 1; display: flex; flex-direction: column; gap: 10px; }
-  .news-card-tag {
+  .art-header { padding: 130px 0 0; background: var(--light); }
+  .art-header-top { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+  .art-meta {
     font-family: 'Space Mono', monospace;
-    font-size: .6rem; letter-spacing: .16em; text-transform: uppercase;
-    color: var(--red); font-weight: 700;
+    font-size: .72rem; letter-spacing: .08em; text-transform: uppercase;
+    color: var(--muted); margin-top: 16px;
   }
-  .news-card h3 {
+  .art-title {
     font-family: 'Barlow Condensed', sans-serif;
-    font-size: 1.55rem; font-weight: 800; letter-spacing: .02em; text-transform: uppercase;
-    color: var(--dark); line-height: 1.05;
+    font-size: clamp(2.2rem, 5.4vw, 4rem);
+    font-weight: 900; letter-spacing: .005em; text-transform: uppercase;
+    color: var(--dark); line-height: .98; margin-top: 10px;
   }
-  .news-card p { font-size: .9rem; font-weight: 300; color: var(--muted); line-height: 1.6; flex: 1; }
-  .news-card-cta {
-    margin-top: 4px;
-    font-family: 'Barlow Condensed', sans-serif;
-    font-size: .85rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase;
-    color: var(--red);
+  .art-title .accent { color: var(--red); }
+  .art-sub {
+    font-size: 1.1rem; font-weight: 300; color: var(--muted);
+    max-width: 640px; line-height: 1.6; margin-top: 18px;
   }
-  .news-empty { color: var(--muted); padding: 40px 0; text-align: center; font-size: .95rem; }
+
+  /* Toggle de idioma */
+  .lang-toggle {
+    display: flex; gap: 2px; background: var(--border);
+    padding: 2px; flex-shrink: 0;
+  }
+  .lang-btn {
+    font-family: 'Space Mono', monospace;
+    font-size: .7rem; font-weight: 700; letter-spacing: .08em;
+    background: transparent; color: var(--muted);
+    border: none; padding: 7px 16px; cursor: pointer;
+    transition: background .2s, color .2s;
+  }
+  .lang-btn.active { background: var(--red); color: #fff; }
+
+  /* Hero banner ancho */
+  .hero-strip { padding: 36px 0 0; }
+  .hero-banner { position: relative; overflow: hidden; aspect-ratio: 21/9; background: var(--light2); }
+  .hero-banner img { width: 100%; height: 100%; object-fit: cover; object-position: center 32%; display: block; }
+  @media (max-width: 700px) {
+    .hero-banner { aspect-ratio: 4/5; }
+  }
+  .photo-credit {
+    font-family: 'Space Mono', monospace;
+    font-size: .68rem; letter-spacing: .06em; color: var(--muted);
+    text-align: right; padding: 8px 0 0;
+  }
 
   /* ════════════════════════════════════════════
-     FOOTER — copiado de index.html
+     ARTICLE BODY
+  ════════════════════════════════════════════ */
+  .art-body { padding: 56px 0 20px; }
+  .art-body p {
+    font-size: 1.1rem; line-height: 1.8; color: var(--text); font-weight: 300;
+    margin-bottom: 22px;
+  }
+  .art-body p.lead {
+    font-size: 1.3rem; font-weight: 400; color: var(--dark);
+  }
+
+  /* Bloque de estadísticas */
+  .stat-strip {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px;
+    background: var(--border); border: 1px solid var(--border);
+    margin: 36px 0;
+  }
+  @media (max-width: 560px) { .stat-strip { grid-template-columns: 1fr; } }
+  .stat-cell { background: #fff; padding: 22px; text-align: center; }
+  .stat-cell-label {
+    font-family: 'Space Mono', monospace; font-size: .6rem; letter-spacing: .12em;
+    text-transform: uppercase; color: var(--muted); margin-bottom: 6px;
+  }
+  .stat-cell-value {
+    font-family: 'Barlow Condensed', sans-serif; font-size: 2rem; font-weight: 900;
+    color: var(--red); line-height: 1;
+  }
+  .stat-cell-sub { font-size: .8rem; color: var(--muted); margin-top: 4px; }
+
+  /* ════════════════════════════════════════════
+     CTA DE CIERRE
+  ════════════════════════════════════════════ */
+  .art-cta {
+    margin: 40px 0 0; padding: 44px 0 72px;
+    background: var(--dark2); color: #fff;
+  }
+  .art-cta .label::before { background: var(--red); }
+  .art-cta h2 {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: clamp(1.8rem, 4vw, 2.6rem);
+    font-weight: 900; letter-spacing: .01em; text-transform: uppercase;
+    color: #fff; margin-top: 8px; line-height: 1.05;
+  }
+  .art-cta p { color: rgba(255,255,255,.65); font-size: 1rem; font-weight: 300; line-height: 1.65; max-width: 600px; margin-top: 14px; }
+  .btn-primary {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: .95rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+    background: var(--red); color: #fff;
+    padding: 15px 38px; text-decoration: none;
+    transition: background .2s, transform .15s;
+    display: inline-block; margin-top: 24px;
+  }
+  .btn-primary:hover { background: var(--red-dark); transform: translateY(-1px); }
+
+  /* ════════════════════════════════════════════
+     FOOTER
   ════════════════════════════════════════════ */
   footer {
     background: var(--dark2);
@@ -255,14 +286,8 @@
   @media (max-width: 860px) { .footer-inner { grid-template-columns: 1fr 1fr; } }
   @media (max-width: 560px) { .footer-inner { grid-template-columns: 1fr; } }
 
-/* móvil: el link 'Ingresar' (sin login) usa padding inline generoso que no
-   estaba cubierto por la compactación de .nav-btn/.nav-user — se salía del
-   borde derecho en pantallas angostas junto al botón hamburguesa. */
-@media (max-width: 560px) {
-  #nav-auth-slot > a:not(.nav-user) { padding: 6px 9px !important; font-size: .74rem !important; }
-  .hamburger { padding: 9px 9px !important; }
-  .nav-inner { padding: 0 10px !important; }
-}
+  /* Toggle de idioma dentro del cuerpo */
+  .lang-en { display: none; }
 </style>
 </head>
 <body>
@@ -312,24 +337,118 @@
 </header>
 
 <!-- ══════════════════════════════════════
-     HEADER
+     HEADER DEL ARTÍCULO
 ══════════════════════════════════════ -->
-<section class="news-header">
+<section class="art-header">
   <div class="container">
-    <div class="label">Temporada 1</div>
-    <h1 class="section-title">Noticias</h1>
-    <p>Resúmenes de cada jornada, tablas de posiciones y todo lo que se vive en las canchas de Club Quattro — para jugadores y para quien quiera seguirle la pista a la Antigua Ladder League.</p>
+    <div class="art-header-top">
+      <div class="label">Noticias · Jornada 6</div>
+      <div class="lang-toggle">
+        <button class="lang-btn active" id="btn-lang-es" onclick="setLang('es', true)">ES</button>
+        <button class="lang-btn" id="btn-lang-en" onclick="setLang('en', true)">EN</button>
+      </div>
+    </div>
+    <div class="art-meta">Domingo 23 de agosto, 2026 · Club Quattro, La Antigua Guatemala</div>
+
+    <div class="lang-es">
+      <h1 class="art-title">Debut soñado: Yangmali Sahadev Rai gana <span class="accent">Open</span> en su única jornada</h1>
+      <p class="art-sub">De visita desde Estados Unidos, jugó una sola jornada y se llevó la categoría más competitiva de la liga.</p>
+    </div>
+    <div class="lang-en">
+      <h1 class="art-title">Dream Debut: Yangmali Sahadev Rai Wins <span class="accent">Open</span> in His Only Appearance</h1>
+      <p class="art-sub">Visiting from the United States, he played a single session and walked away with the league's most competitive category.</p>
+    </div>
+  </div>
+  <div class="hero-strip">
+    <div class="container" style="padding:0">
+      <div class="hero-banner">
+        <img src="fotos/jornada6/web/2dad9a15-d0f4-42f7-8184-e095f3614f8b.jpg" alt="Yangmali Sahadev Rai celebrando durante la Jornada 6"/>
+      </div>
+      <div class="container"><div class="photo-credit">📸 Fotos: Container Studio</div></div>
+    </div>
   </div>
 </section>
 
 <!-- ══════════════════════════════════════
-     GRID
+     CUERPO DEL ARTÍCULO
 ══════════════════════════════════════ -->
-<div class="news-grid-wrap">
-  <div class="container">
-    <div class="news-grid" id="news-grid"></div>
+<article class="art-body">
+  <div class="narrow">
+
+    <div class="lang-es">
+      <p class="lead">Yangmali Sahadev Rai no es un nombre que hayas visto antes en la Antigua Ladder League, y es probable que no lo vuelvas a ver en la cancha esta temporada.</p>
+      <p>Vino de visita desde Estados Unidos, se anotó para jugar Open en la Jornada 6 — la categoría más disputada de toda la liga — y ganó 7 de 8 partidos (0.950).</p>
+      <p>No hubo tiempo para acostumbrarse a la cancha, a los rivales, ni al calor del mediodía en Club Quattro. Una sola jornada, un debut perfecto, y de regreso a casa con una de las mejores actuaciones del día.</p>
+
+      <div class="stat-strip">
+        <div class="stat-cell">
+          <div class="stat-cell-label">Jornadas jugadas</div>
+          <div class="stat-cell-value">1</div>
+          <div class="stat-cell-sub">Solo la Jornada 6</div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-cell-label">Récord</div>
+          <div class="stat-cell-value">7-1</div>
+          <div class="stat-cell-sub">0.950 de puntaje</div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-cell-label">Segundo lugar</div>
+          <div class="stat-cell-value">0.900</div>
+          <div class="stat-cell-sub">Christian Chang</div>
+        </div>
+      </div>
+
+      <p>Fue, de lejos, la mejor actuación de un debutante en lo que va de la temporada — y también una de las más breves. Antigua Ladder League no sabe si lo volverá a ver, pero por una jornada, la categoría más dura de la liga fue suya.</p>
+    </div>
+
+    <div class="lang-en">
+      <p class="lead">Yangmali Sahadev Rai isn't a name you've seen before at the Antigua Ladder League, and you probably won't see him on court again this season.</p>
+      <p>Visiting from the United States, he signed up to play Open in Jornada 6 — the most contested category in the league — and won 7 of 8 matches (0.950).</p>
+      <p>There was no time to get used to the court, the opponents, or the midday heat at Club Quattro. One session, one perfect debut, and back home with one of the best performances of the day.</p>
+
+      <div class="stat-strip">
+        <div class="stat-cell">
+          <div class="stat-cell-label">Sessions played</div>
+          <div class="stat-cell-value">1</div>
+          <div class="stat-cell-sub">Jornada 6 only</div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-cell-label">Record</div>
+          <div class="stat-cell-value">7-1</div>
+          <div class="stat-cell-sub">0.950 score</div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-cell-label">Runner-up</div>
+          <div class="stat-cell-value">0.900</div>
+          <div class="stat-cell-sub">Christian Chang</div>
+        </div>
+      </div>
+
+      <p>It was, by far, the best performance from a newcomer this season — and one of the shortest. The Antigua Ladder League doesn't know if he'll be back, but for one session, the league's toughest category was his.</p>
+    </div>
+
   </div>
-</div>
+</article>
+
+<!-- ══════════════════════════════════════
+     CTA DE CIERRE
+══════════════════════════════════════ -->
+<section class="art-cta">
+  <div class="narrow">
+    <div class="lang-es">
+      <div class="label">Jornada 6</div>
+      <h2>Revisa el resumen completo</h2>
+      <p>Jefferson Perez, Luis Arriola y el regreso de Christian Chang a la cima de Open.</p>
+      <a class="btn-primary" href="noticia-jornada6-recap.html">Ver la recap de la Jornada 6</a>
+    </div>
+    <div class="lang-en">
+      <div class="label">Jornada 6</div>
+      <h2>Check out the full recap</h2>
+      <p>Jefferson Perez, Luis Arriola, and Christian Chang's return to the top of Open.</p>
+      <a class="btn-primary" href="noticia-jornada6-recap.html">See the Jornada 6 recap</a>
+    </div>
+  </div>
+</section>
 
 <!-- ══════════════════════════════════════
      FOOTER
@@ -381,197 +500,29 @@
 </footer>
 
 <script>
-/* ════════════════════════════════════════════════════════════
-   NOTICIAS — agregar una entrada nueva arriba cada vez que se
-   publique una noticia nueva (más reciente primero).
-════════════════════════════════════════════════════════════ */
-const NOTICIAS = [
-  {
-    href: 'noticia-yangmali-sahadev-rai.html',
-    tag: 'Jornada 6 · 23 Ago 2026',
-    title: 'Debut soñado: Yangmali Sahadev Rai gana Open en su única jornada',
-    excerpt: 'De visita desde Estados Unidos, jugó una sola jornada y se llevó la categoría más competitiva de la liga con 7 victorias en 8 partidos. Disponible en español e inglés.',
-    imgs: [
-      'fotos/jornada6/web/2dad9a15-d0f4-42f7-8184-e095f3614f8b.jpg',
-      'fotos/jornada6/web/7606595c-01de-4e61-91c5-b9a0667865e4.jpg',
-      'fotos/jornada6/web/d48a6cb6-a2af-4bd4-bfc3-10143a43655e.jpg',
-    ],
-  },
-  {
-    href: 'noticia-jornada6-recap.html',
-    tag: 'Jornada 6 · 23 Ago 2026',
-    title: 'Christian Chang vuelve y toma la cima de Open',
-    excerpt: 'Jefferson Perez firma su mejor jornada del año en Principiante y Luis Arriola gana Intermedio, mientras Christian Chang regresa y ya lidera la tabla general de Open.',
-    imgs: [
-      { src: 'fotos/jornada4/web/ade62cc7-58d8-45ce-9e37-3ef6bf422877.jpg', style: 'object-position:center 5%;transform:scale(1.66)' },
-      { src: 'fotos/jornada6/web/f61356af-fa77-46bd-aa4a-bdb57a893103.jpg', style: 'object-position:center 24%;transform:scale(1.4)' },
-      { src: 'fotos/jornada6/web/a43df56f-baa9-42cb-8ad3-bb1a643c077a.jpg', style: 'object-position:center 22%;transform:scale(1.72)' },
-    ],
-  },
-  {
-    href: 'noticia-jornada5-recap.html',
-    tag: 'Jornada 5 · 16 Ago 2026',
-    title: '56 partidos, un invicto perfecto y la tabla general se reordena',
-    excerpt: 'Andrés Alvarado dispara en Principiante, Travis Ning le arrebata el liderato a Roberto Carlos Arango en Intermedio, y Luis Buenahora firma la única marca perfecta de la jornada en Open.',
-    imgs: [
-      { src: 'fotos/jornada4/web/1d814cd9-f3bf-4ec5-84c2-e81ad54d933b.jpg', style: 'object-position:center 32%;transform:scale(1.9)' },
-      { src: 'fotos/jornada4/web/5530b384-b0df-4fea-93f9-27509dcfa4fc.jpg', style: 'object-position:center 12%;transform:scale(1.84)' },
-      { src: 'fotos/jornada4/web/9887adac-ad33-49c0-9709-8ecc3809e993.jpg', style: 'object-position:center 5%;transform:scale(1.57)' },
-    ],
-  },
-  {
-    href: 'noticia-premios-temporada1.html',
-    tag: 'Premios · 9 Ago 2026',
-    title: '¡Ya sabemos cuánto vale ser campeón!',
-    excerpt: 'Q900 para el campeón de Open, Q700 para Intermedio y Q400 para Principiante al cierre de la Temporada 1. Los segundos y terceros lugares se llevan premios de Hector\'s Bistro y Quattro Club.',
-    imgs: [
-      'fotos/jornada4/web/02da4e4c-dee0-4391-ba9c-4662e01dac60.jpg',
-      'fotos/jornada4/web/083b0000-a3e0-40d6-8777-054ece4181fd.jpg',
-      'fotos/jornada4/web/108fad6a-f34b-4d0a-85cd-9e9874be6064.jpg',
-    ],
-  },
-  {
-    href: 'noticia-fotos-videos-jornada4.html',
-    tag: 'Fotos y Videos · 9 Ago 2026',
-    title: 'Ya puedes revivir tus partidos',
-    excerpt: 'Las fotos completas de la Jornada 4 ya están en la Galería, cortesía de Container Studio. Además estrenamos videos por partido con jugadores etiquetados y "Mis Videos" en tu perfil.',
-    imgs: [
-      'fotos/jornada4/web/11146d73-9d1c-4e9d-8443-de1025d65003.jpg',
-      'fotos/jornada4/web/93589c91-fbdc-412d-9fe1-b2fd5931aec7.jpg',
-      'fotos/jornada4/web/440bb70f-ffa8-4f06-b92b-e047ac5bfe19.jpg',
-    ],
-  },
-  {
-    href: 'noticia-jornada4-recap.html',
-    tag: 'Jornada 4 · 8 Ago 2026',
-    title: 'Dos líderes que no sueltan el primer lugar',
-    excerpt: 'Nery Gámez y Roberto Carlos Arango repiten al frente de Principiante e Intermedio, y Luis Buenahora se lleva Open. Tablas de posiciones completas de las tres categorías.',
-    imgs: [
-      'fotos/jornada4/web/1d814cd9-f3bf-4ec5-84c2-e81ad54d933b.jpg',
-      'fotos/jornada4/web/e3193528-4462-4c25-aec8-80ea28be8761.jpg',
-      'fotos/jornada4/web/ca5461c8-0371-4292-9e94-919537dd2975.jpg',
-    ],
-  },
-  {
-    href: 'noticia-como-funciona-el-ranking.html',
-    tag: 'Guía · 1 Ago 2026',
-    title: '¿Cómo se arma el ranking, en realidad?',
-    excerpt: 'Las 3 reglas que mueven la tabla: las 3 sesiones mínimas para entrar al ranking oficial, el descarte a partir de la 4ta jornada, y el bono de Cancha A — con ejemplos reales de ahora mismo.',
-    imgs: [
-      'fotos/jornada1/web/29f038cb-0a44-41b5-b630-b5e4bffcfb72.jpg',
-      'fotos/jornada1/web/3d0b3003-3886-4456-9a70-9fba7a9f724a.jpg',
-      'fotos/jornada1/web/60d25c71-45b9-4786-96a7-b1c76b51043d.jpg',
-    ],
-  },
-  {
-    href: 'noticia-jornada3-recap.html',
-    tag: 'Jornada 3 · 1 Ago 2026',
-    title: 'Caras nuevas, líderes nuevos',
-    excerpt: '60 partidos y una tabla que se movió de arriba a abajo en las tres categorías. En Open, el debut más esperado de la liga llegó a imponer condiciones desde el primer partido.',
-    imgs: [
-      'fotos/jornada2/web/nery-gamez.jpg',
-      'fotos/jornada1/web/94806e74-e6a2-4885-8886-217ce2548967.jpg',
-      'fotos/jornada3/web/Foto-8.jpg',
-    ],
-  },
-  {
-    href: 'noticia-jornada3-regreso.html',
-    tag: 'Aviso · 27 Jul 2026',
-    title: '¡La Antigua Ladder League vuelve este sábado!',
-    excerpt: 'Retomamos con la Jornada 3 el 1 de agosto y seguimos cada sábado hasta el 5 de septiembre. Intermedio ya está lleno — Principiante y Open todavía tienen cupo.',
-    imgs: [
-      'fotos/jornada1/web/d4705d68-e5e7-493f-aace-6667a64b86a8.jpg',
-      'fotos/jornada1/web/f51ae9ec-8e9a-4774-b14b-83a8679c4e45.jpg',
-      'fotos/jornada1/web/a9614bdb-6679-42ed-a42c-98f6ed67d6df.jpg',
-    ],
-  },
-  {
-    href: 'noticia-karen-lopez-remontada.html',
-    tag: 'Jugadora destacada · 20 Jul 2026',
-    title: 'Karen López firma la remontada más grande de la liga',
-    excerpt: 'De estar casi al fondo de la tabla en la Jornada 1 a compartir el primer lugar de Principiante en la Jornada 2 — el salto de nivel más grande que se ha visto en la liga hasta ahora.',
-    imgs: [
-      'fotos/jornada1/web/6d43d5c5-aaca-4e01-9c17-fe0904504b75.jpg',
-      'fotos/jornada2/web/karen-lopez.jpg',
-      'fotos/jornada1/web/82c6a227-04a9-4d4e-8464-7a3bf26613e9.jpg',
-    ],
-  },
-  {
-    href: 'noticia-jornada2-recap.html',
-    tag: 'Jornada 2 · 18 Jul 2026',
-    title: 'La Antigua Ladder League sigue creciendo',
-    excerpt: '30 jugadores, 15 de ellos debutando en la liga, y dos recién llegados que terminaron liderando su categoría el mismo día que se estrenaron.',
-    imgs: [
-      'fotos/jornada2/web/nery-gamez.jpg',
-      'fotos/jornada2/web/travis-ning.jpg',
-      'fotos/jornada2/web/luis-rodriguez.jpg',
-    ],
-  },
-  {
-    href: 'noticia-cambio-fecha-semana3.html',
-    tag: 'Aviso · 15 Jul 2026',
-    title: 'La Semana 3 se corre para dejarle la cancha a las mujeres',
-    excerpt: 'Movemos la Jornada 3 una semana para que nadie tenga que elegir entre jugar con nosotros o ir a apoyar el OneShot Femenino. El cierre de Temporada 1 pasa del 29 de agosto al 5 de septiembre.',
-    imgs: [
-      'fotos/jornada1/web/4ce3aeff-0f77-4391-b78d-4ede4b714997.jpg',
-      'fotos/jornada1/web/26a2fb5e-897a-4a9c-8509-c9ecbf2eb5e7.jpg',
-      'fotos/jornada1/web/04e1371f-dc9a-4239-9a26-5965dee61168.jpg',
-    ],
-  },
-  {
-    href: 'noticia-don-gus-regresa.html',
-    tag: 'Comunidad · 7 Jul 2026',
-    title: '¡Don Gus está de vuelta en la cancha!',
-    excerpt: 'Después de una pausa por lesiones y quebrantos de salud, uno de los jugadores más queridos de la comunidad volvió a Club Quattro con toda la alegría de siempre.',
-    imgs: [
-      'fotos/jornada1/web/1f53d22e-1c39-40d2-998e-24accede4541.jpg',
-      'fotos/jornada1/web/701e2b23-8f30-4933-97ff-02e11a4029d7.jpg',
-      'fotos/jornada1/web/31707d0f-9c73-4bb1-9ed9-32804ba05a58.jpg',
-    ],
-  },
-  {
-    href: 'noticia-jornada1-arranque.html',
-    tag: 'Jornada 1 · 4 Jul 2026',
-    title: '¡Arrancó la Antigua Ladder League!',
-    excerpt: 'Partidos apretados, buena porra y tres nuevos líderes de categoría: así se vivió el debut de la Temporada 1 en Club Quattro.',
-    imgs: [
-      'fotos/jornada1/web/9988bdd4-f01c-4d8e-a28e-f9095abc863f.jpg',
-      'fotos/jornada1/web/0fc1f3c9-8f36-4aa0-94f6-4a35d299090b.jpg',
-      'fotos/jornada1/web/ebced658-78b8-4fa8-b075-ac6ad1e782a9.jpg',
-    ],
-  },
-  // Agrega la próxima noticia aquí arriba de esta línea:
-  // { href:'noticia-....html', tag:'Jornada 3 · ...', title:'...', excerpt:'...', imgs:['fotos/jornada3/web/a.jpg','fotos/jornada3/web/b.jpg','fotos/jornada3/web/c.jpg'] },
-];
-
-function renderNews() {
-  const grid = document.getElementById('news-grid');
-  if (!NOTICIAS.length) {
-    grid.innerHTML = `<div class="news-empty">Todavía no hay noticias publicadas.</div>`;
-    return;
-  }
-  grid.innerHTML = NOTICIAS.map(n => `
-    <a class="news-card" href="${n.href}">
-      <div class="news-card-img" style="grid-template-columns:repeat(${n.imgs.length},1fr)">${n.imgs.map(img => {
-        const src = typeof img === 'string' ? img : img.src;
-        const style = typeof img === 'string' ? '' : ` style="${img.style}"`;
-        return `<div class="news-thumb-cell"><img src="${src}" loading="lazy" decoding="async" alt="${n.title}"${style}/></div>`;
-      }).join('')}</div>
-      <div class="news-card-body">
-        <div class="news-card-tag">${n.tag}</div>
-        <h3>${n.title}</h3>
-        <p>${n.excerpt}</p>
-        <div class="news-card-cta">Leer noticia →</div>
-      </div>
-    </a>
-  `).join('');
-}
-renderNews();
-
-// Menú móvil
 document.getElementById('hamburger').addEventListener('click', () => {
   document.getElementById('mobile-menu').classList.toggle('open');
 });
+
+function setLang(lang, updateUrl) {
+  const isEs = lang === 'es';
+  document.querySelectorAll('.lang-es').forEach(el => el.style.display = isEs ? 'block' : 'none');
+  document.querySelectorAll('.lang-en').forEach(el => el.style.display = isEs ? 'none' : 'block');
+  document.getElementById('btn-lang-es').classList.toggle('active', isEs);
+  document.getElementById('btn-lang-en').classList.toggle('active', !isEs);
+  document.documentElement.lang = lang;
+  if (updateUrl) {
+    const url = new URL(window.location.href);
+    if (isEs) url.searchParams.delete('lang'); else url.searchParams.set('lang', 'en');
+    history.replaceState(null, '', url);
+  }
+}
+
+// Idioma inicial: respeta ?lang=en en la URL para poder compartir el link directo
+(function initLang() {
+  const params = new URLSearchParams(window.location.search);
+  setLang(params.get('lang') === 'en' ? 'en' : 'es', false);
+})();
 </script>
 
 <!-- ══ AUTH BRIDGE — sesión compartida con antigua-pickleball.com ══ -->
@@ -591,9 +542,9 @@ document.getElementById('hamburger').addEventListener('click', () => {
       const isAdmin = user.role === 'admin';
       slot.innerHTML = `
         ${isAdmin ? `<a href="admin.html" style="font-family:'Barlow Condensed',sans-serif;font-size:.75rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);text-decoration:none;padding:5px 10px;border:1px solid var(--border);margin-right:4px" title="Panel Admin">⚙ Admin</a>` : ''}
-        <a class="nav-user" href="${profileURL}" title="${escHtml(name)}">
-          <span class="nav-user-avatar">${escHtml(initials)}</span>${escHtml(first)}
-        </a><button onclick="APAuth.signOut();location.href='https://antigua-pickleball.com/login.html?signout=1&redirect='+encodeURIComponent(location.origin+'/')" title="Salir / cambiar de cuenta" style="font-family:'Barlow Condensed',sans-serif;font-size:.78rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#6b6b74;background:none;border:1px solid #e2e2de;padding:6px 11px;cursor:pointer;margin-left:6px">Salir</button>`;
+        <a class="nav-user" href="${profileURL}" title="${name}">
+          <span class="nav-user-avatar">${initials}</span>${first}
+        </a><button onclick="APAuth.signOut();location.href='https://antigua-pickleball.com/login.html?redirect='+encodeURIComponent(location.href)" title="Salir / cambiar de cuenta" style="font-family:'Barlow Condensed',sans-serif;font-size:.78rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#6b6b74;background:none;border:1px solid #e2e2de;padding:6px 11px;cursor:pointer;margin-left:6px">Salir</button>`;
 
       if (mobMenu) {
         const a = document.createElement('a');
