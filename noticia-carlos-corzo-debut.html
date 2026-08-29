@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Debut invicto: Carlos Corzo gana Intermedio sin perder un partido · Antigua Ladder League</title>
+<meta name="description" content="En su primera jornada en la Antigua Ladder League, Carlos Corzo ganó los 8 partidos que jugó en Intermedio (1.100 de puntaje) — la marca más alta de cualquier categoría en la Jornada 7."/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,400;0,600;0,700;0,800;0,900;1,700;1,900&family=Barlow:wght@300;400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"/>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'Barlow', sans-serif;
+    background: #fff;
+    color: #111113;
+    -webkit-font-smoothing: antialiased;
+  }
+  :root {
+    --red:        #e4252e;
+    --red-dark:   #b81d24;
+    --red-light:  #fdecea;
+    --dark:       #111113;
+    --dark2:      #1c1c1e;
+    --text:       #1c1c1e;
+    --muted:      #6b6b74;
+    --light:      #f7f7f5;
+    --light2:     #eeeeeb;
+    --border:     #e2e2de;
+  }
+  .container { max-width: 1160px; margin: 0 auto; padding: 0 24px; }
+  .narrow { max-width: 780px; margin: 0 auto; padding: 0 24px; }
+  .label {
+    font-family: 'Space Mono', monospace;
+    font-size: .65rem; font-weight: 700;
+    letter-spacing: .18em; text-transform: uppercase;
+    color: var(--red);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .label::before { content: ''; display: block; width: 24px; height: 3px; background: var(--red); flex-shrink: 0; }
+
+  /* ════════════════════════════════════════════
+     NAV
+  ════════════════════════════════════════════ */
+  #nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    background: rgba(255,255,255,.96);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    box-shadow: 0 1px 12px rgba(0,0,0,.07);
+  }
+  .nav-inner {
+    display: flex; align-items: center; justify-content: space-between;
+    max-width: 1260px; margin: 0 auto;
+    padding: 0 24px; height: 60px;
+  }
+  .nav-brand {
+    display: flex; align-items: center; gap: 12px;
+    text-decoration: none; flex-shrink: 0;
+  }
+  .nav-brand img { height: 28px; width: auto; }
+  .nav-brand-divider { width: 1px; height: 18px; background: var(--border); }
+  .nav-brand-name {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 1.05rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase;
+    color: var(--red);
+  }
+  .nav-links { display: none; align-items: center; gap: 0; list-style: none; }
+  @media (min-width: 1240px) { .nav-links { display: flex; } }
+  .nav-links a {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: .9rem; font-weight: 600; letter-spacing: .05em; text-transform: uppercase;
+    color: var(--muted); text-decoration: none;
+    padding: 6px 14px; transition: color .2s;
+    white-space: nowrap;
+  }
+  .nav-links a:hover, .nav-links a.active { color: var(--red); }
+  .nav-actions { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+  .nav-btn {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: .88rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+    background: var(--red); color: #fff;
+    padding: 9px 22px; text-decoration: none;
+    transition: background .2s; white-space: nowrap;
+  }
+  .nav-btn:hover { background: var(--red-dark); }
+  .nav-user {
+    display: flex; align-items: center; gap: 8px;
+    background: #fff4f4; color: var(--red);
+    border: 1.5px solid #fac5c7;
+    padding: 5px 13px 5px 5px;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: .88rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
+    text-decoration: none; white-space: nowrap;
+    transition: background .2s;
+  }
+  .nav-user:hover { background: #ffe8e8; }
+  .nav-user-avatar {
+    width: 26px; height: 26px;
+    background: var(--red); color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: .72rem; font-weight: 900; flex-shrink: 0;
+  }
+  @media (max-width: 560px) {
+    .nav-brand img[src*="quattro"] { display: none !important; }
+    .nav-brand .nav-brand-divider + img[src*="quattro"] { display: none !important; }
+    .nav-brand { gap: 8px; min-width: 0; }
+    .nav-brand-name { font-size: .92rem; white-space: nowrap; }
+  }
+  #nav-auth-slot { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+  @media (max-width: 560px) {
+    .nav-btn { padding: 7px 12px !important; font-size: .78rem !important; }
+    .nav-user { padding: 4px !important; gap: 0 !important; }
+    .nav-user > :not(.nav-user-avatar) { display: none; }
+    .nav-user { font-size: 0 !important; }
+    .nav-user .nav-user-avatar { font-size: .72rem !important; }
+    button[title="Salir / cambiar de cuenta"] { padding: 5px 8px !important; font-size: .68rem !important; margin-left: 4px !important; }
+    .nav-chip-admin { font-size: .6rem !important; padding: 4px 6px !important; }
+    .nav-actions, #nav-auth-slot { gap: 6px !important; }
+  }
+  .hamburger {
+    display: flex; flex-direction: column; gap: 5px;
+    background: none; border: 1px solid var(--border);
+    padding: 9px 11px; cursor: pointer;
+  }
+  .hamburger span { display: block; width: 18px; height: 1.5px; background: var(--dark); }
+  @media (min-width: 1240px) { .hamburger { display: none; } }
+  .mobile-menu {
+    display: none; flex-direction: column;
+    background: #fff; border-top: 1px solid var(--border);
+    padding: 8px 24px 16px;
+  }
+  .mobile-menu.open { display: flex; }
+  .mobile-menu a {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 1.05rem; font-weight: 600; letter-spacing: .05em; text-transform: uppercase;
+    color: var(--muted); text-decoration: none;
+    padding: 11px 0; border-bottom: 1px solid var(--border);
+    transition: color .2s;
+  }
+
+  /* ════════════════════════════════════════════
+     ARTICLE HEADER
+  ════════════════════════════════════════════ */
+  .art-header { padding: 130px 0 0; background: var(--light); }
+  .art-meta {
+    font-family: 'Space Mono', monospace;
+    font-size: .72rem; letter-spacing: .08em; text-transform: uppercase;
+    color: var(--muted); margin-top: 16px;
+  }
+  .art-title {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: clamp(2.2rem, 5.4vw, 4rem);
+    font-weight: 900; letter-spacing: .005em; text-transform: uppercase;
+    color: var(--dark); line-height: .98; margin-top: 10px;
+  }
+  .art-title .accent { color: var(--red); }
+  .art-sub {
+    font-size: 1.1rem; font-weight: 300; color: var(--muted);
+    max-width: 640px; line-height: 1.6; margin-top: 18px;
+  }
+
+  /* Hero banner ancho */
+  .hero-strip { padding: 36px 0 0; }
+  .hero-banner { position: relative; overflow: hidden; aspect-ratio: 21/9; background: var(--light2); }
+  .hero-banner img { width: 100%; height: 100%; object-fit: cover; display: block; object-position: center 30%; }
+  @media (max-width: 700px) {
+    .hero-banner { aspect-ratio: 4/5; }
+  }
+  .photo-credit {
+    font-family: 'Space Mono', monospace;
+    font-size: .68rem; letter-spacing: .06em; color: var(--muted);
+    text-align: right; padding: 8px 0 0;
+  }
+
+  /* ════════════════════════════════════════════
+     ARTICLE BODY
+  ════════════════════════════════════════════ */
+  .art-body { padding: 56px 0 20px; }
+  .art-body p {
+    font-size: 1.1rem; line-height: 1.8; color: var(--text); font-weight: 300;
+    margin-bottom: 22px;
+  }
+  .art-body p.lead {
+    font-size: 1.3rem; font-weight: 400; color: var(--dark);
+  }
+
+  /* Bloque de estadísticas */
+  .stat-strip {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px;
+    background: var(--border); border: 1px solid var(--border);
+    margin: 36px 0;
+  }
+  @media (max-width: 560px) { .stat-strip { grid-template-columns: 1fr; } }
+  .stat-cell { background: #fff; padding: 22px; text-align: center; }
+  .stat-cell-label {
+    font-family: 'Space Mono', monospace; font-size: .6rem; letter-spacing: .12em;
+    text-transform: uppercase; color: var(--muted); margin-bottom: 6px;
+  }
+  .stat-cell-value {
+    font-family: 'Barlow Condensed', sans-serif; font-size: 2rem; font-weight: 900;
+    color: var(--red); line-height: 1;
+  }
+  .stat-cell-sub { font-size: .8rem; color: var(--muted); margin-top: 4px; }
+
+  /* ════════════════════════════════════════════
+     CTA DE CIERRE
+  ════════════════════════════════════════════ */
+  .art-cta {
+    margin: 40px 0 0; padding: 44px 0 72px;
+    background: var(--dark2); color: #fff;
+  }
+  .art-cta .label::before { background: var(--red); }
+  .art-cta h2 {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: clamp(1.8rem, 4vw, 2.6rem);
+    font-weight: 900; letter-spacing: .01em; text-transform: uppercase;
+    color: #fff; margin-top: 8px; line-height: 1.05;
+  }
+  .art-cta p { color: rgba(255,255,255,.65); font-size: 1rem; font-weight: 300; line-height: 1.65; max-width: 600px; margin-top: 14px; }
+  .btn-primary {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: .95rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+    background: var(--red); color: #fff;
+    padding: 15px 38px; text-decoration: none;
+    transition: background .2s, transform .15s;
+    display: inline-block; margin-top: 24px;
+  }
+  .btn-primary:hover { background: var(--red-dark); transform: translateY(-1px); }
+
+  /* ════════════════════════════════════════════
+     FOOTER
+  ════════════════════════════════════════════ */
+  footer {
+    background: var(--dark2);
+    border-top: 4px solid var(--red);
+    padding: 60px 24px 36px;
+    color: rgba(255,255,255,.5);
+  }
+  .footer-inner {
+    max-width: 1160px; margin: 0 auto;
+    display: grid; gap: 48px;
+    grid-template-columns: 2fr 1fr 1fr 1fr;
+  }
+  .footer-brand h3 {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 1.3rem; font-weight: 900; letter-spacing: .05em; text-transform: uppercase;
+    color: #fff; margin-bottom: 12px;
+  }
+  .footer-brand p { font-size: .86rem; line-height: 1.65; font-weight: 300; }
+  .footer-col h4 {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: .9rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase;
+    color: #fff; margin-bottom: 16px;
+  }
+  .footer-col ul { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+  .footer-col ul li a { font-size: .86rem; color: rgba(255,255,255,.4); text-decoration: none; font-weight: 300; transition: color .2s; }
+  .footer-col ul li a:hover { color: #fff; }
+  .social-row { display: flex; gap: 8px; margin-top: 20px; }
+  .social-icon { width: 36px; height: 36px; border: 1px solid rgba(255,255,255,.15); display: flex; align-items: center; justify-content: center; text-decoration: none; font-size: .9rem; transition: background .2s, border-color .2s; }
+  .social-icon:hover { background: var(--red); border-color: var(--red); }
+  .footer-bottom {
+    max-width: 1160px; margin: 36px auto 0;
+    padding-top: 20px; border-top: 1px solid rgba(255,255,255,.08);
+    display: flex; align-items: center; justify-content: space-between;
+    flex-wrap: wrap; gap: 10px;
+    font-family: 'Space Mono', monospace;
+    font-size: .62rem; letter-spacing: .08em; text-transform: uppercase;
+  }
+  @media (max-width: 860px) { .footer-inner { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 560px) { .footer-inner { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════
+     NAV
+══════════════════════════════════════ -->
+<header id="nav">
+  <div class="nav-inner">
+    <div class="nav-brand" style="cursor:default">
+      <a href="https://antigua-pickleball.com" title="Ir a Antigua Pickleball"><img src="logo.png" alt="Antigua Pickleball" height="28" style="display:block"/></a>
+      <div class="nav-brand-divider"></div>
+      <a href="index.html" class="nav-brand-name" style="text-decoration:none">Ladder League</a>
+      <div class="nav-brand-divider"></div>
+      <img src="img/quattro.png" alt="Quattro Club" style="height:28px;width:auto;background:#111113;padding:4px 9px;border-radius:4px;box-sizing:content-box" onerror="this.style.display='none'"/>
+    </div>
+    <ul class="nav-links">
+      <li><a href="index.html#formato">Formato</a></li>
+      <li><a href="index.html#horarios">Horarios</a></li>
+      <li><a href="index.html#standings">Ranking</a></li>
+      <li><a href="index.html#calendario">Calendario</a></li>
+      <li><a href="index.html#reglamento">Reglamento</a></li>
+      <li><a href="noticias.html" class="active">Noticias</a></li>
+      <li><a href="galeria.html">Galería</a></li>
+      <li><a href="videos.html">Videos</a></li>
+      <li><a href="https://antigua-pickleball.com">← Antigua PB</a></li>
+    </ul>
+    <div class="nav-actions">
+      <div id="nav-auth-slot"></div>
+      <a class="nav-btn" href="inscribirse.html">Inscríbete</a>
+      <button class="hamburger" id="hamburger" aria-label="Menú">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </div>
+  <div class="mobile-menu" id="mobile-menu">
+    <a href="index.html#formato">Formato</a>
+    <a href="index.html#horarios">Horarios</a>
+    <a href="index.html#standings">Ranking</a>
+    <a href="index.html#calendario">Calendario</a>
+    <a href="index.html#reglamento">Reglamento</a>
+    <a href="noticias.html">Noticias</a>
+    <a href="galeria.html">Galería</a>
+    <a href="videos.html">Videos</a>
+    <a href="https://antigua-pickleball.com">← Antigua Pickleball</a>
+  </div>
+</header>
+
+<!-- ══════════════════════════════════════
+     HEADER DEL ARTÍCULO
+══════════════════════════════════════ -->
+<section class="art-header">
+  <div class="container">
+    <div class="label">Noticias · Jornada 7</div>
+    <div class="art-meta">Sábado 29 de agosto, 2026 · Club Quattro, La Antigua Guatemala</div>
+    <h1 class="art-title">Debut invicto: Carlos Corzo gana Intermedio sin perder un <span class="accent">partido</span></h1>
+    <p class="art-sub">Jugador nuevo, 8 de 8 en su primera jornada — la marca más alta de cualquier categoría en toda la Jornada 7.</p>
+  </div>
+  <div class="hero-strip">
+    <div class="container" style="padding:0">
+      <div class="hero-banner">
+        <img src="fotos/jornada7/web/2ee551ce-0119-4388-923c-8bb33bf6f240.jpg" alt="Carlos Corzo celebrando durante su debut en la Jornada 7"/>
+      </div>
+      <div class="container"><div class="photo-credit">📸 Fotos: Container Studio</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════
+     CUERPO DEL ARTÍCULO
+══════════════════════════════════════ -->
+<article class="art-body">
+  <div class="narrow">
+    <p class="lead">Carlos Corzo nunca había jugado una jornada de la Antigua Ladder League. Jugó una — y ganó las ocho.</p>
+    <p>En su debut en Intermedio, ganó los 8 partidos que disputó (1.100 de puntaje) — la marca más alta de cualquier categoría en toda la Jornada 7. Ni Principiante (0.800) ni Open (1.050) llegaron tan arriba.</p>
+    <p>El segundo lugar de la categoría fue para Ángel Estuardo Ramírez de León, con 6 victorias en 8 partidos (0.800) — un resultado sólido que, aun así, quedó a tres partidos de distancia del debutante.</p>
+
+    <div class="stat-strip">
+      <div class="stat-cell">
+        <div class="stat-cell-label">Jornadas jugadas</div>
+        <div class="stat-cell-value">1</div>
+        <div class="stat-cell-sub">Su debut, Jornada 7</div>
+      </div>
+      <div class="stat-cell">
+        <div class="stat-cell-label">Récord</div>
+        <div class="stat-cell-value">8-0</div>
+        <div class="stat-cell-sub">1.100 de puntaje</div>
+      </div>
+      <div class="stat-cell">
+        <div class="stat-cell-label">Segundo lugar</div>
+        <div class="stat-cell-value">0.800</div>
+        <div class="stat-cell-sub">Ángel Estuardo Ramírez de León</div>
+      </div>
+    </div>
+
+    <p>Todavía es pronto para saber cómo le va en las próximas jornadas. Pero en su primera vez en la cancha, nadie en Intermedio jugó mejor que él.</p>
+  </div>
+</article>
+
+<!-- ══════════════════════════════════════
+     CTA DE CIERRE
+══════════════════════════════════════ -->
+<section class="art-cta">
+  <div class="narrow">
+    <div class="label">Jornada 7</div>
+    <h2>Revisa el resumen completo</h2>
+    <p>José David Pérez Cajti en Principiante y Christian Chang extendiendo su racha en Open.</p>
+    <a class="btn-primary" href="noticia-jornada7-recap.html">Ver la recap de la Jornada 7</a>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════
+     FOOTER
+══════════════════════════════════════ -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-brand">
+      <h3>Antigua Ladder League</h3>
+      <p>Competencia semanal de pickleball en La Antigua Guatemala. Temporada 1 · Julio – Septiembre 2026.</p>
+      <div class="social-row">
+        <a class="social-icon" href="https://www.instagram.com/antiguapickleball" target="_blank" title="Instagram">📷</a>
+        <a class="social-icon" href="https://www.facebook.com/p/Antigua-Pickleball-61567310379538/" target="_blank" title="Facebook">👥</a>
+        <a class="social-icon" href="https://wa.me/50230912707" title="WhatsApp">💬</a>
+      </div>
+    </div>
+    <div class="footer-col">
+      <h4>Ladder</h4>
+      <ul>
+        <li><a href="index.html#formato">Formato</a></li>
+        <li><a href="index.html#standings">Ranking</a></li>
+        <li><a href="index.html#calendario">Calendario</a></li>
+        <li><a href="noticias.html">Noticias</a></li>
+        <li><a href="galeria.html">Galería</a></li>
+        <li><a href="videos.html">Videos</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h4>Antigua PB</h4>
+      <ul>
+        <li><a href="https://antigua-pickleball.com">Inicio</a></li>
+        <li><a href="https://antigua-pickleball.com/eventos.html">Eventos</a></li>
+        <li><a href="https://antigua-pickleball.com/canchas.html">Canchas</a></li>
+        <li><a href="https://antigua-pickleball.com/clinicas.html">Clínicas</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h4>Contacto</h4>
+      <ul>
+        <li><a href="https://wa.me/50230912707">+502 3091-2707</a></li>
+        <li><a href="mailto:info@antiguapickleball.gt">Email</a></li>
+        <li><a href="inscribirse.html">Inscripción</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span>© 2026 Antigua Pickleball</span>
+    <span style="color:rgba(255,255,255,.18)">Ladder League · Temporada 1 🏓</span>
+  </div>
+</footer>
+
+<script>
+document.getElementById('hamburger').addEventListener('click', () => {
+  document.getElementById('mobile-menu').classList.toggle('open');
+});
+</script>
+
+<!-- ══ AUTH BRIDGE — sesión compartida con antigua-pickleball.com ══ -->
+<script src="js/auth-bridge-client.js"></script>
+<script>
+  APAuth.onReady(function(user) {
+    const slot    = document.getElementById('nav-auth-slot');
+    const mobMenu = document.getElementById('mobile-menu');
+    if (!slot) return;
+
+    if (user) {
+      const name     = user.displayName || user.email.split('@')[0];
+      const first    = name.split(' ')[0];
+      const initials = name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+      const profileURL = 'perfil.html';
+
+      const isAdmin = user.role === 'admin';
+      slot.innerHTML = `
+        ${isAdmin ? `<a href="admin.html" style="font-family:'Barlow Condensed',sans-serif;font-size:.75rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);text-decoration:none;padding:5px 10px;border:1px solid var(--border);margin-right:4px" title="Panel Admin">⚙ Admin</a>` : ''}
+        <a class="nav-user" href="${profileURL}" title="${name}">
+          <span class="nav-user-avatar">${initials}</span>${first}
+        </a><button onclick="APAuth.signOut();location.href='https://antigua-pickleball.com/login.html?redirect='+encodeURIComponent(location.href)" title="Salir / cambiar de cuenta" style="font-family:'Barlow Condensed',sans-serif;font-size:.78rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#6b6b74;background:none;border:1px solid #e2e2de;padding:6px 11px;cursor:pointer;margin-left:6px">Salir</button>`;
+
+      if (mobMenu) {
+        const a = document.createElement('a');
+        a.href = profileURL;
+        a.style.cssText = 'color:var(--red);font-weight:800;border-bottom:2px solid #fac5c7';
+        a.textContent = '👤 ' + first;
+        mobMenu.insertBefore(a, mobMenu.firstChild);
+      }
+    } else {
+      const loginURL = 'https://antigua-pickleball.com/login.html?redirect=' + encodeURIComponent(window.location.href);
+      slot.innerHTML = `
+        <a href="${loginURL}" style="font-family:'Barlow Condensed',sans-serif;font-size:.85rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);text-decoration:none;padding:7px 14px;border:1px solid var(--border);white-space:nowrap;transition:color .2s">
+          Ingresar
+        </a>`;
+
+      if (mobMenu) {
+        const a = document.createElement('a');
+        a.href = loginURL;
+        a.style.cssText = 'color:var(--red);font-weight:700;border-bottom:2px solid #fac5c7';
+        a.textContent = '👤 Ingresar / Mi Perfil';
+        mobMenu.insertBefore(a, mobMenu.firstChild);
+      }
+    }
+  });
+</script>
+</body>
+</html>
