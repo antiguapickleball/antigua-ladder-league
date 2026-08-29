@@ -4651,6 +4651,51 @@ function _worstDuprDiff(matches, duprEff) {
   });
   return worst;
 }
+function _totalDuprDiff(matches, duprEff) {
+  return matches.reduce((total, m) => {
+    const s1 = m.pair1.reduce((s,u) => s + (duprEff?.[u]||0), 0);
+    const s2 = m.pair2.reduce((s,u) => s + (duprEff?.[u]||0), 0);
+    return total + Math.abs(s1 - s2);
+  }, 0);
+}
+function _matchKey(m) {
+  return [m.pair1, m.pair2]
+    .map(pair => [...pair].sort().join('||'))
+    .sort()
+    .join('::');
+}
+function _countPlayerGames(matches, uids) {
+  const counts = Object.fromEntries(uids.map(u => [u, 0]));
+  matches.forEach(m => [...m.pair1, ...m.pair2].forEach(u => counts[u]++));
+  return counts;
+}
+function _countRelations(matches, relation) {
+  const counts = {};
+  const add = (a,b) => { const key = _pk(a,b); counts[key] = (counts[key]||0) + 1; };
+  matches.forEach(m => {
+    if (relation === 'partners') {
+      add(m.pair1[0], m.pair1[1]);
+      add(m.pair2[0], m.pair2[1]);
+    } else {
+      m.pair1.forEach(a => m.pair2.forEach(b => add(a,b)));
+    }
+  });
+  return counts;
+}
+function _combinedDeviation(a, b, keys, target) {
+  return keys.reduce((sum, key) => {
+    const diff = (a[key]||0) + (b[key]||0) - target;
+    return sum + diff*diff;
+  }, 0);
+}
+function _lexicographicallyBetter(score, bestScore) {
+  if (!bestScore) return true;
+  for (let i = 0; i < score.length; i++) {
+    if (score[i] < bestScore[i]) return true;
+    if (score[i] > bestScore[i]) return false;
+  }
+  return false;
+}
 // Jugador sin DUPR -> se le asigna el promedio del grupo (de los que si tienen), solo para
 // este calculo. Si NADIE en el grupo tiene DUPR, retorna null (no hay balance posible).
 function _effectiveDuprMap(uids, duprRating) {
@@ -4718,6 +4763,62 @@ function genMatchesBalanced(uids, total, duprRating) {
   return best;
 }
 
+// EXPERIMENTO SOLO EN `nueva`: segunda ronda para exactamente 6 jugadores.
+// La R1 ya cubre las 15 parejas posibles (16 espacios de pareja en 8 partidos). Para R2
+// se prueban las 720 ordenaciones posibles y se elige, en este orden, la que:
+// 1) no repite ningun partido completo de R1; 2) deja 10-11 partidos por jugador en el
+// total de la jornada; 3) reparte los cruces como rivales de la forma mas distinta y
+// uniforme posible; 4) reparte la pareja extra repetida; 5) minimiza primero el peor
+// diferencial DUPR y despues la suma de diferenciales. Nunca baja la cobertura de parejas.
+function genSecondRoundBalanced6(uids, total, duprRating, round1) {
+  const coverage = _uniquePairsCovered(round1);
+  const r1MatchKeys = new Set(round1.map(_matchKey));
+  const r1Games = _countPlayerGames(round1, uids);
+  const r1Opponents = _countRelations(round1, 'opponents');
+  const r1Partners = _countRelations(round1, 'partners');
+  const relationKeys = [];
+  for (let i = 0; i < uids.length; i++) {
+    for (let j = i + 1; j < uids.length; j++) relationKeys.push(_pk(uids[i], uids[j]));
+  }
+  const duprEff = _effectiveDuprMap(uids, duprRating);
+  const seen = new Set();
+  let best = null, bestScore = null;
+
+  for (const order of _permute(uids)) {
+    const candidate = genMatches(order, total);
+    if (_uniquePairsCovered(candidate) < coverage) continue;
+    const scheduleKey = candidate.map(_matchKey).join('~~');
+    if (seen.has(scheduleKey)) continue;
+    seen.add(scheduleKey);
+
+    const exactRepeats = candidate.reduce((n,m) => n + (r1MatchKeys.has(_matchKey(m)) ? 1 : 0), 0);
+    const r2Games = _countPlayerGames(candidate, uids);
+    const totalGames = uids.map(u => r1Games[u] + r2Games[u]);
+    const gameSpread = Math.max(...totalGames) - Math.min(...totalGames);
+    const gameDeviation = totalGames.reduce((sum,n) => sum + Math.pow(n - 64/6, 2), 0);
+    const r2Opponents = _countRelations(candidate, 'opponents');
+    const r2Partners = _countRelations(candidate, 'partners');
+    const opponentDeviation = _combinedDeviation(r1Opponents, r2Opponents, relationKeys, 64/15);
+    const partnerDeviation = _combinedDeviation(r1Partners, r2Partners, relationKeys, 32/15);
+    const worstDupr = duprEff ? _worstDuprDiff(candidate, duprEff) : 0;
+    const totalDupr = duprEff ? _totalDuprDiff(candidate, duprEff) : 0;
+    const score = [
+      exactRepeats,
+      gameSpread,
+      gameDeviation,
+      opponentDeviation,
+      partnerDeviation,
+      worstDupr,
+      totalDupr,
+    ];
+    if (_lexicographicallyBetter(score, bestScore)) {
+      best = candidate;
+      bestScore = score;
+    }
+  }
+  return best || genMatchesBalanced(uids, total, duprRating);
+}
+
 // ── Generate and save fixture ──
 async function doGenerateFixture(sesionNum, categoria, btn) {
   const isS1 = sesionNum === 1;
@@ -4763,16 +4864,22 @@ async function doGenerateFixture(sesionNum, categoria, btn) {
     };
   } else {
     const uids = confirmed.map(p => p.uid);
-    const totalRounds = n <= 5 ? 2 : 1;
+    const isSixPlayerRallyTest = IS_TEST_ENV && n === 6;
+    const totalRounds = n <= 5 || isSixPlayerRallyTest ? 2 : 1;
     const perRound = matchesForGroup(n);
-    const r1 = genMatchesBalanced(uids, perRound, playerDuprRating).map((m,i) => ({...m, id:`r1_m${i+1}`, round:1}));
+    const r1Base = genMatchesBalanced(uids, perRound, playerDuprRating);
+    const r2Base = isSixPlayerRallyTest
+      ? genSecondRoundBalanced6(uids, perRound, playerDuprRating, r1Base)
+      : (totalRounds === 2 ? genMatchesBalanced(uids, perRound, playerDuprRating) : null);
+    const r1 = r1Base.map((m,i) => ({...m, id:`r1_m${i+1}`, round:1}));
     const r2 = totalRounds === 2
-      ? genMatchesBalanced(uids, perRound, playerDuprRating).map((m,i) => ({...m, id:`r2_m${i+1}`, round:2}))
+      ? r2Base.map((m,i) => ({...m, id:`r2_m${i+1}`, round:2}))
       : null;
     fixture = {
       format:'1court', totalRounds,
       courtA:uids, courtB:null,
       rounds: r2 ? [{num:1,matches:r1},{num:2,matches:r2}] : [{num:1,matches:r1}],
+      ...(isSixPlayerRallyTest ? { scoring:'rally15', experimentalSixPlayers:true } : {}),
     };
   }
 
@@ -5156,15 +5263,36 @@ function renderFixtureHTML(fx, sesionNum, categoria) {
     </div>`;
   } else {
     const uids = fx.courtA || [];
+    const totalMatches = (fx.rounds||[]).reduce((sum,r) => sum + (r.matches||[]).length, 0);
+    const scoringBadge = fx.scoring === 'rally15'
+      ? `<span style="display:inline-block;margin-left:8px;background:#fff7ed;color:#9a3412;border:1px solid #fdba74;padding:2px 7px;font-weight:800">⚡ Rally scoring a 15</span>`
+      : '';
     html += `<div style="margin-bottom:16px;font-size:.82rem;color:var(--muted)">
-      📋 <strong>${uids.length}</strong> jugadores · <strong>${fx.totalRounds}</strong> ronda${fx.totalRounds>1?'s':''} · 1 cancha
+      📋 <strong>${uids.length}</strong> jugadores · <strong>${fx.totalRounds}</strong> ronda${fx.totalRounds>1?'s':''} · <strong>${totalMatches}</strong> partidos · 1 cancha${scoringBadge}
       <span style="margin-left:12px">${uids.map(u=>`<span style="background:#f0f0ee;padding:2px 7px;margin-right:4px;font-size:.78rem">${escHtml(pn[u]||u)}${ratingBadge(u)}</span>`).join('')}</span>
     </div>`;
+    if (fx.experimentalSixPlayers) {
+      const allMatches = (fx.rounds||[]).flatMap(r => r.matches||[]);
+      const games = _countPlayerGames(allMatches, uids);
+      const r1Keys = new Set(((fx.rounds||[])[0]?.matches||[]).map(_matchKey));
+      const exactRepeats = ((fx.rounds||[])[1]?.matches||[]).filter(m => r1Keys.has(_matchKey(m))).length;
+      html += `<div style="margin:-4px 0 20px;padding:12px 14px;background:#fff7ed;border:1px solid #fdba74;color:#7c2d12;font-size:.8rem">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-weight:900;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">🧪 Prueba: formato de 6 jugadores</div>
+        <div>2 rondas × 8 partidos. Todos hacen pareja con los otros 5 jugadores en cada ronda. Partidos completos repetidos entre rondas: <strong>${exactRepeats}</strong>.</div>
+        <div style="margin-top:7px">${uids.map(u=>`<span style="display:inline-block;background:#fff;border:1px solid #fed7aa;padding:2px 7px;margin:2px 3px 2px 0">${escHtml(pn[u]||u)}: <strong>${games[u]} PJ</strong></span>`).join('')}</div>
+      </div>`;
+    }
   }
 
   // Rounds
   (fx.rounds||[]).forEach(round => {
-    html += `<div class="round-section"><div class="round-title">Ronda ${round.num}</div>`;
+    const roundMatchCount = fx.format === '2courts'
+      ? (round.matchesA||[]).length + (round.matchesB||[]).length
+      : (round.matches||[]).length;
+    const roundMeta = fx.scoring === 'rally15'
+      ? ` <span style="font-size:.72rem;font-weight:700;color:#9a3412;letter-spacing:.02em">· ${roundMatchCount} partidos · Rally a 15</span>`
+      : '';
+    html += `<div class="round-section"><div class="round-title">Ronda ${round.num}${roundMeta}</div>`;
 
     if (fx.format === '2courts') {
       const allScoredA = (round.matchesA||[]).length > 0 && (round.matchesA||[]).every(m=>m.score);
@@ -5297,6 +5425,10 @@ async function trySaveScore(sesionNum, categoria, roundNum, court, matchId) {
   const snap = await db.collection(COL('ladder_fixtures')).doc(docId).get();
   if (!snap.exists) return;
   const fx = snap.data();
+  if (fx.scoring === 'rally15' && (s1 > 15 || s2 > 15 || Math.max(s1,s2) !== 15)) {
+    toast('En rally scoring a 15, el marcador ganador debe ser 15', true);
+    return;
+  }
 
   let updated = false;
   const updatedRounds = (fx.rounds||[]).map(r => {
