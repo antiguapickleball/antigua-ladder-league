@@ -4037,16 +4037,18 @@ function renderLadderHTML(rows) {
 function deleteCurrentFixture() {
   if (!_fixtureCat) { toast('Abre primero el panel de fixture', true); return; }
   if (!confirm(`¿Borrar el fixture de ${_fixtureCat} · Sesión ${_currentSession}? Se perderán todos los resultados.`)) return;
-  const docId = `t1_sesion_${_currentSession}_${_fixtureCat}`;
+  const docId = fixtureDocId(_currentSession, _fixtureCat);
   db.collection(COL('ladder_fixtures')).doc(docId).delete()
     .then(() => {
+      delete _fixtureDocCache[docId];
+      delete _fixtureStatusCache[String(_currentSession)];
       toast(`✓ Fixture de ${_fixtureCat} · Sesión ${_currentSession} eliminado`);
       document.getElementById('fixture-panel').style.display = 'none';
       const counts = {};
       ['principiante','intermedio','open'].forEach(c => {
         counts[c] = (_allData[_currentSession]||[]).filter(p=>p.status==='confirmed'&&p.categoria===c).length;
       });
-      renderFixtureCatSection(_currentSession, counts);
+      renderFixtureCatSection(_currentSession, counts, true);
     })
     .catch(e => toast('✕ Error: ' + e.message, true));
 }
@@ -4189,7 +4191,9 @@ async function saveSubstitute() {
 
     closeModal('modal-substitute');
     toast(`✓ ${inNombre} sustituye a ${outNombre} desde Ronda 2 · usa "📊 Publicar Sesión" para actualizar el ranking`);
-    loadAndRenderFixture(sesionNum, categoria);
+    delete _fixtureDocCache[fixtureDocId(sesionNum, categoria)];
+    delete _fixtureStatusCache[String(sesionNum)];
+    loadAndRenderFixture(sesionNum, categoria, true);
   } catch (err) {
     console.error(err);
     toast('✕ Error al guardar la sustitución', true);
@@ -4206,6 +4210,8 @@ async function deleteSessionFixtures(sesionNum) {
     await Promise.all(cats.map(c =>
       db.collection(COL('ladder_fixtures')).doc(`t1_sesion_${sesionNum}_${c}`).delete().catch(()=>{})
     ));
+    cats.forEach(c => { delete _fixtureDocCache[fixtureDocId(sesionNum, c)]; });
+    delete _fixtureStatusCache[String(sesionNum)];
     toast(`✓ Fixtures de Sesión ${sesionNum} eliminados`);
     document.getElementById('fixture-panel').style.display = 'none';
   } catch(e) { toast('✕ Error: ' + e.message, true); }
@@ -4892,8 +4898,10 @@ async function doGenerateFixture(sesionNum, categoria, btn) {
   fixture.status       = 'r1_active';
   fixture.generatedAt  = firebase.firestore.Timestamp.now();
 
-  const docId = `t1_sesion_${sesionNum}_${categoria}`;
+  const docId = fixtureDocId(sesionNum, categoria);
   await db.collection(COL('ladder_fixtures')).doc(docId).set(fixture);
+  _fixtureDocCache[docId] = fixture;
+  delete _fixtureStatusCache[String(sesionNum)];
   toast(`✓ Fixture generado · ${categoria} · Sesión ${sesionNum}`);
   openFixtureForCat(sesionNum, categoria);
 }
@@ -5016,9 +5024,61 @@ async function sortByRanking(confirmed, sesionNum, categoria) {
 
 // ── Fixture panel UI ──
 let _fixtureCat = 'principiante';
+const _fixtureDocCache = Object.create(null);
+const _fixtureStatusCache = Object.create(null);
+const _fixtureStatusInFlight = Object.create(null);
+const FIXTURE_STATUS_CACHE_MS = 5000;
+const FIXTURE_LOAD_TIMEOUT_MS = 10000;
+
+function fixtureDocId(sesionNum, categoria) {
+  return `t1_sesion_${sesionNum}_${categoria}`;
+}
+
+function fixtureWithTimeout(promise, label) {
+  let timer;
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`${label} tardó más de 10 segundos`)), FIXTURE_LOAD_TIMEOUT_MS);
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+}
+
+async function loadFixtureStatuses(sesionNum, cats, force = false) {
+  const key = String(sesionNum);
+  const cached = _fixtureStatusCache[key];
+  if (!force && cached && Date.now() - cached.at < FIXTURE_STATUS_CACHE_MS) return cached.statuses;
+  if (!force && _fixtureStatusInFlight[key]) return _fixtureStatusInFlight[key];
+
+  const request = fixtureWithTimeout(
+    db.collection(COL('ladder_fixtures')).where('sesionNum', '==', Number(sesionNum)).get(),
+    'La consulta de fixtures'
+  ).then(snap => {
+    const byCat = {};
+    snap.docs.forEach(doc => {
+      const fx = doc.data();
+      if (!cats.includes(fx.categoria)) return;
+      byCat[fx.categoria] = fx;
+      _fixtureDocCache[doc.id] = fx;
+    });
+    const statuses = cats.map(cat => {
+      const fx = byCat[cat];
+      return fx ? { cat, status: fx.status || 'r1_active', fx } : { cat, status: 'none' };
+    });
+    _fixtureStatusCache[key] = { at: Date.now(), statuses };
+    return statuses;
+  }).catch(err => {
+    console.warn('No se pudo cargar el estado de fixtures:', err);
+    return cats.map(cat => {
+      const fx = _fixtureDocCache[fixtureDocId(sesionNum, cat)];
+      return fx ? { cat, status: fx.status || 'r1_active', fx } : { cat, status: 'unknown' };
+    });
+  }).finally(() => { delete _fixtureStatusInFlight[key]; });
+
+  _fixtureStatusInFlight[key] = request;
+  return request;
+}
 
 // ── Fixture category section (per-category status + access) ──
-async function renderFixtureCatSection(sesionNum, counts) {
+async function renderFixtureCatSection(sesionNum, counts, force = false) {
   const section = document.getElementById('fixture-cats-section');
   if (!section) return;
   section.style.display = 'block';
@@ -5032,15 +5092,9 @@ async function renderFixtureCatSection(sesionNum, counts) {
     <div style="padding:12px 16px;font-size:.82rem;color:var(--muted)">Cargando estado…</div>
   </div>`;
 
-  // Load fixture status for each category in parallel
-  const statuses = await Promise.all(cats.map(async cat => {
-    try {
-      const snap = await db.collection(COL('ladder_fixtures')).doc(`t1_sesion_${sesionNum}_${cat}`).get();
-      if (!snap.exists) return { cat, status: 'none' };
-      const fx = snap.data();
-      return { cat, status: fx.status || 'r1_active', fx };
-    } catch(e) { return { cat, status: 'none' }; }
-  }));
+  // Una sola consulta por sesión. Antes se hacían 3 lecturas cada vez que se dibujaba
+  // esta sección, incluso varias veces seguidas durante la carga inicial.
+  const statuses = await loadFixtureStatuses(sesionNum, cats, force);
 
   const rows = statuses.map(({ cat, status, fx }) => {
     const n = counts[cat] || 0;
@@ -5048,7 +5102,13 @@ async function renderFixtureCatSection(sesionNum, counts) {
 
     // Status badge
     let badge = '', btnLabel = '', btnStyle = '';
-    if (status === 'none') {
+    if (status === 'unknown') {
+      badge = `<span style="background:#fef3c7;color:#92400e;padding:2px 8px;font-size:.7rem;font-family:'Space Mono',monospace">Carga lenta</span>`;
+      if (n >= 4) {
+        btnLabel = '↻ Abrir / reintentar';
+        btnStyle = 'background:#fff7ed;color:#9a3412;border-color:#fdba74';
+      }
+    } else if (status === 'none') {
       badge = `<span style="background:#f0f0ee;color:var(--muted);padding:2px 8px;font-size:.7rem;font-family:'Space Mono',monospace">Sin fixture</span>`;
       if (n >= 4) {
         btnLabel = '⚙️ Generar';
@@ -5123,17 +5183,27 @@ function closeFixturePanel() {
   ['principiante','intermedio','open'].forEach(c => {
     counts[c] = (_allData[_currentSession]||[]).filter(p=>p.status==='confirmed'&&p.categoria===c).length;
   });
-  renderFixtureCatSection(_currentSession, counts);
+  renderFixtureCatSection(_currentSession, counts, true);
 }
 
-async function loadAndRenderFixture(sesionNum, categoria) {
+async function loadAndRenderFixture(sesionNum, categoria, force = false) {
   const inner = document.getElementById('fixture-inner');
   if (!inner) return;
+  const docId = fixtureDocId(sesionNum, categoria);
+
+  if (!force && _fixtureDocCache[docId]) {
+    inner.innerHTML = renderFixtureHTML(_fixtureDocCache[docId], sesionNum, categoria);
+    return;
+  }
+
   inner.innerHTML = '<div style="padding:16px;color:var(--muted);font-size:.82rem;font-family:\'Space Mono\',monospace">Cargando…</div>';
 
   try {
     console.log('[fixture] loading', sesionNum, categoria);
-    const snap = await db.collection(COL('ladder_fixtures')).doc(`t1_sesion_${sesionNum}_${categoria}`).get();
+    const snap = await fixtureWithTimeout(
+      db.collection(COL('ladder_fixtures')).doc(docId).get(),
+      'La carga del fixture'
+    );
     console.log('[fixture] loaded, exists:', snap.exists);
     if (!snap.exists) {
       const cnt = (_allData[sesionNum]||[]).filter(p=>p.status==='confirmed'&&p.categoria===categoria).length;
@@ -5149,6 +5219,7 @@ async function loadAndRenderFixture(sesionNum, categoria) {
       return;
     }
     const fx = snap.data();
+    _fixtureDocCache[docId] = fx;
     // Migración: fixtures generados antes de guardar playerDuprRating → resolverlo UNA vez y persistirlo
     if (!fx.playerDuprRating && fx.playerDupr && Object.keys(fx.playerDupr).length) {
       await prefetchDuprRatings(Object.values(fx.playerDupr));
@@ -5158,18 +5229,12 @@ async function loadAndRenderFixture(sesionNum, categoria) {
         if (r != null) playerDuprRating[uid] = r;
       });
       fx.playerDuprRating = playerDuprRating;
-      db.collection(COL('ladder_fixtures')).doc(`t1_sesion_${sesionNum}_${categoria}`)
+      db.collection(COL('ladder_fixtures')).doc(docId)
         .update({ playerDuprRating }).catch(() => {});
     }
     console.log('[fixture] rendering HTML...');
     inner.innerHTML = renderFixtureHTML(fx, sesionNum, categoria);
     console.log('[fixture] render done');
-    // Refresh category section badges (awaited so scroll restore happens after)
-    const counts = {};
-    ['principiante','intermedio','open'].forEach(c => {
-      counts[c] = (_allData[sesionNum]||[]).filter(p=>p.status==='confirmed'&&p.categoria===c).length;
-    });
-    await renderFixtureCatSection(sesionNum, counts);
   } catch(err) {
     console.error('loadAndRenderFixture error:', err);
     inner.innerHTML = `<div style="padding:20px;color:var(--red);font-size:.85rem">
@@ -5189,7 +5254,7 @@ function rankByCourt(uids, stats) {
 }
 
 async function generateRound2(sesionNum, categoria) {
-  const docId = `t1_sesion_${sesionNum}_${categoria}`;
+  const docId = fixtureDocId(sesionNum, categoria);
   const snap = await db.collection(COL('ladder_fixtures')).doc(docId).get().catch(e=>{toast('✕ '+e.message,true);return null;});
   if (!snap || !snap.exists) return;
   const fx = snap.data();
@@ -5235,8 +5300,10 @@ async function generateRound2(sesionNum, categoria) {
   });
 
   toast('✓ Ronda 2 generada — grupos actualizados');
+  delete _fixtureDocCache[docId];
+  delete _fixtureStatusCache[String(sesionNum)];
   const _sy = window.scrollY;
-  await loadAndRenderFixture(parseInt(sesionNum), categoria);
+  await loadAndRenderFixture(parseInt(sesionNum), categoria, true);
   requestAnimationFrame(() => requestAnimationFrame(() => window.scrollTo({ top: _sy, behavior: 'instant' })));
 }
 
@@ -5421,32 +5488,58 @@ async function trySaveScore(sesionNum, categoria, roundNum, court, matchId) {
   if (isNaN(s1) || isNaN(s2) || s1 < 0 || s2 < 0) { toast('Ingresa ambos resultados', true); return; }
   if (s1 === s2) { toast('El resultado no puede ser empate', true); return; }
 
-  const docId = `t1_sesion_${sesionNum}_${categoria}`;
-  const snap = await db.collection(COL('ladder_fixtures')).doc(docId).get();
-  if (!snap.exists) return;
-  const fx = snap.data();
-  if (fx.scoring === 'rally15' && (s1 > 15 || s2 > 15 || Math.max(s1,s2) !== 15)) {
-    toast('En rally scoring a 15, el marcador ganador debe ser 15', true);
-    return;
-  }
+  const docId = fixtureDocId(sesionNum, categoria);
+  const matchScore = document.getElementById('sc1_'+matchId)?.closest('.match-score');
+  const saveBtn = matchScore?.querySelector('button');
+  const originalBtnText = saveBtn?.textContent || '';
+  if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Guardando…'; }
 
-  let updated = false;
-  const updatedRounds = (fx.rounds||[]).map(r => {
-    if (r.num !== parseInt(roundNum)) return r;
-    const upd = arr => (arr||[]).map(m => {
-      if (m.id !== matchId) return m;
-      updated = true;
-      return {...m, score:{s1,s2}};
+  try {
+    let fx = _fixtureDocCache[docId];
+    if (!fx) {
+      const snap = await fixtureWithTimeout(
+        db.collection(COL('ladder_fixtures')).doc(docId).get(),
+        'La carga del fixture'
+      );
+      if (!snap.exists) throw new Error('No se encontró el fixture');
+      fx = snap.data();
+    }
+    if (fx.scoring === 'rally15' && (s1 > 15 || s2 > 15 || Math.max(s1,s2) !== 15)) {
+      throw new Error('En rally scoring a 15, el marcador ganador debe ser 15');
+    }
+
+    let updated = false;
+    const updatedRounds = (fx.rounds||[]).map(r => {
+      if (r.num !== parseInt(roundNum)) return r;
+      const upd = arr => (arr||[]).map(m => {
+        if (m.id !== matchId) return m;
+        updated = true;
+        return {...m, score:{s1,s2}};
+      });
+      if (fx.format === '2courts') return {...r, matchesA:upd(r.matchesA), matchesB:upd(r.matchesB)};
+      return {...r, matches:upd(r.matches)};
     });
-    if (fx.format === '2courts') return {...r, matchesA:upd(r.matchesA), matchesB:upd(r.matchesB)};
-    return {...r, matches:upd(r.matches)};
-  });
 
-  if (!updated) { toast('No se encontró el partido', true); return; }
-  await db.collection(COL('ladder_fixtures')).doc(docId).update({rounds:updatedRounds});
-  const scrollY = window.scrollY;
-  await loadAndRenderFixture(parseInt(sesionNum), categoria);
-  requestAnimationFrame(() => requestAnimationFrame(() => window.scrollTo({ top: scrollY, behavior: 'instant' })));
+    if (!updated) throw new Error('No se encontró el partido');
+    await fixtureWithTimeout(
+      db.collection(COL('ladder_fixtures')).doc(docId).update({rounds:updatedRounds}),
+      'El guardado del marcador'
+    );
+
+    const updatedFx = {...fx, rounds:updatedRounds};
+    _fixtureDocCache[docId] = updatedFx;
+    delete _fixtureStatusCache[String(sesionNum)];
+
+    const scrollY = window.scrollY;
+    const inner = document.getElementById('fixture-inner');
+    if (inner) inner.innerHTML = renderFixtureHTML(updatedFx, parseInt(sesionNum), categoria);
+    toast('✓ Marcador guardado');
+    requestAnimationFrame(() => requestAnimationFrame(() => window.scrollTo({ top: scrollY, behavior: 'instant' })));
+  } catch(err) {
+    console.error('trySaveScore error:', err);
+    toast('✕ ' + (err.message || 'No se pudo guardar el marcador'), true);
+    if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = originalBtnText; }
+  }
 }
 
 // ── Standings computation ──
