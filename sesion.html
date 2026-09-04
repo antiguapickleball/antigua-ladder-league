@@ -1131,6 +1131,16 @@ function horaTexto(categoria) {
   const h12 = ((hh + 11) % 12) + 1;
   return `${h12}:${String(mm).padStart(2,'0')} ${hh < 12 ? 'am' : 'pm'}`;
 }
+// Normaliza un teléfono para wa.me: los números locales de Guatemala se guardan
+// como 8 dígitos sin código de país. Sin el "502" adelante, WhatsApp interpreta
+// los primeros dígitos como código de país extranjero y el número "no existe"
+// (ej: 49808144 -> lo lee como +49, Alemania). Caso real: Roger, confirmación
+// de Semana 8 no llegó por esto — 2026-09-04.
+function waPhoneDigits(phone) {
+  let d = (phone || '').replace(/\D/g, '').replace(/^0+/, '');
+  if (d.length === 8) d = '502' + d;
+  return d;
+}
 // Aviso por correo al admin (antiguapickleball@gmail.com) cuando se libera un cupo confirmado.
 // El correo trae: nombre del 1° en lista de espera, link de WhatsApp directo a ese jugador
 // (con mensaje listo) y link al panel del Ladder. La promoción la hace el admin manualmente.
@@ -1178,7 +1188,7 @@ function avisarNuevoRegistroAdmin(sesionNum, categoria, entry) {
     waMsgJugador = `¡Hola ${entry.nombre}! Te saluda *Antigua Pickleball* 🎾 Tu inscripción fue recibida: Semana ${sesionNum} (${fecha}), categoría *${catLabel}*, ${hora}.`;
   }
   const waLink = entry.phone
-    ? `https://wa.me/${entry.phone.replace(/\D/g,'')}?text=${encodeURIComponent(waMsgJugador)}`
+    ? `https://wa.me/${waPhoneDigits(entry.phone)}?text=${encodeURIComponent(waMsgJugador)}`
     : null;
 
   const payload = {
@@ -1202,7 +1212,7 @@ function avisarCupoLiberadoAdmin(sesionNum, categoria, primero, enEspera, yaConf
   const hora  = horaTexto(categoria);
   const waMsg = `¡Hola ${primero.nombre}! Te saluda *Antigua Pickleball* 🎾 Se ha liberado un espacio en el Antigua Ladder League y esperamos tu confirmación para incluirte en la *Sesión ${sesionNum}* (${fecha}), categoría *${catLabel}*, que inicia a las *${hora}*. Responde *SÍ* para confirmar tu cupo. ¡Te esperamos en cancha!`;
   const waLink = primero.phone
-    ? `https://wa.me/${primero.phone.replace(/\D/g,'')}?text=${encodeURIComponent(waMsg)}`
+    ? `https://wa.me/${waPhoneDigits(primero.phone)}?text=${encodeURIComponent(waMsg)}`
     : '(el jugador no tiene teléfono registrado)';
   const payload = {
     to:         'antiguapickleball@gmail.com',

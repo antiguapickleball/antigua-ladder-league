@@ -1204,13 +1204,23 @@ function horaTexto(categoria) {
   const h12 = ((hh + 11) % 12) + 1;
   return `${h12}:${String(mm).padStart(2,'0')} ${hh < 12 ? 'am' : 'pm'}`;
 }
+// Normaliza un teléfono para wa.me: los números locales de Guatemala se guardan
+// como 8 dígitos sin código de país. Sin el "502" adelante, WhatsApp interpreta
+// los primeros dígitos como código de país extranjero y el número "no existe"
+// (ej: 49808144 -> lo lee como +49, Alemania). Caso real: Roger, confirmación
+// de Semana 8 no llegó por esto — 2026-09-04.
+function waPhoneDigits(phone) {
+  let d = (phone || '').replace(/\D/g, '').replace(/^0+/, '');
+  if (d.length === 8) d = '502' + d;
+  return d;
+}
 function waPromoLink(nombre, sesionNum, categoria, phone) {
   if (!phone) return '';
   const catLabels = { principiante:'Principiante', intermedio:'Intermedio', open:'Open' };
   const s = SEMANAS.find(x => x.num === sesionNum);
   const fecha = s ? s.fecha : `Semana ${sesionNum}`;
   const msg = `¡Hola ${nombre}! Te saluda *Antigua Pickleball* 🎾 Se ha liberado un espacio en el Antigua Ladder League y esperamos tu confirmación para incluirte en la *Sesión ${sesionNum}* (${fecha}), categoría *${catLabels[categoria]||categoria}*, que inicia a las *${horaTexto(categoria)}*. Responde *SÍ* para confirmar tu cupo. ¡Te esperamos en cancha!`;
-  return `https://wa.me/${phone.replace(/\D/g,'')}?text=${encodeURIComponent(msg)}`;
+  return `https://wa.me/${waPhoneDigits(phone)}?text=${encodeURIComponent(msg)}`;
 }
 
 // ¿Ya pagó/autorizó su cupo? (tarjeta capturada o transferencia ya aprobada)
@@ -1228,7 +1238,7 @@ function waInviteLink(nombre, sesionNum, categoria, phone) {
   const fecha = s ? s.fecha : `Semana ${sesionNum}`;
   const link = `https://ladder.antigua-pickleball.com/sesion.html?n=${sesionNum}`;
   const msg = `¡Hola ${nombre}! Te saluda *Antigua Pickleball* 🎾 Se liberó un cupo en el Antigua Ladder League: *Sesión ${sesionNum}* (${fecha}), categoría *${catLabels[categoria]||categoria}*, ${horaTexto(categoria)}. Para tomarlo, completa tu pago aquí: ${link} — tarjeta/PayPal ($10, entra directo) o transferencia (Q75, confirmamos apenas validemos tu boleta). ¡Te esperamos en cancha!`;
-  return `https://wa.me/${phone.replace(/\D/g,'')}?text=${encodeURIComponent(msg)}`;
+  return `https://wa.me/${waPhoneDigits(phone)}?text=${encodeURIComponent(msg)}`;
 }
 
 // Igual que waInviteLink() pero para el aviso MASIVO a toda la lista de espera: deja claro
@@ -1240,7 +1250,7 @@ function waOfertaCupoLink(nombre, sesionNum, categoria, phone, horaLimiteTexto) 
   const fecha = s ? s.fecha : `Semana ${sesionNum}`;
   const link = `https://ladder.antigua-pickleball.com/sesion.html?n=${sesionNum}`;
   const msg = `¡Hola ${nombre}! Te saluda *Antigua Pickleball* 🎾 Se liberó un cupo en el Antigua Ladder League: *Sesión ${sesionNum}* (${fecha}), categoría *${catLabels[categoria]||categoria}*, ${horaTexto(categoria)}. Como hay más de una persona en lista de espera, *el primero en completar su pago se queda con el cupo*. Tienes hasta las *${horaLimiteTexto}* (${HOLD_HOURS} horas) para pagar aquí: ${link} — tarjeta/PayPal ($10, entra directo) o transferencia (Q75). Si alguien más paga antes que tú, tu pago no se pierde: sigues en lista de espera con pago vigente y entras directo en el siguiente cupo libre. ¡Te esperamos en cancha!`;
-  return `https://wa.me/${phone.replace(/\D/g,'')}?text=${encodeURIComponent(msg)}`;
+  return `https://wa.me/${waPhoneDigits(phone)}?text=${encodeURIComponent(msg)}`;
 }
 
 // ── Invitar a un jugador de lista de espera a pagar el cupo liberado ──
@@ -1308,7 +1318,7 @@ function waSugerirCambioLink(nombre, sesionNum, categoria, phone) {
     : 'ninguna por ahora, pero seguimos abriendo sesiones';
   const link = `https://ladder.antigua-pickleball.com/sesion.html?n=${sesionNum}`;
   const msg = `¡Hola ${nombre}! Te saluda *Antigua Pickleball* 🎾 Por ahora no hay cupo disponible en *Sesión ${sesionNum}* (${fecha}), categoría *${catLabels[categoria]||categoria}* — sigues en lista de espera y te avisamos si se libera un lugar. Si prefieres no esperar, te recomendamos cambiarte a otra sesión con cupo disponible: *${listaTexto}*. Puedes hacer el cambio tú mismo aquí: ${link}`;
-  return `https://wa.me/${phone.replace(/\D/g,'')}?text=${encodeURIComponent(msg)}`;
+  return `https://wa.me/${waPhoneDigits(phone)}?text=${encodeURIComponent(msg)}`;
 }
 function sugerirCambio(sesionNum, uid) {
   const player = (_allData[sesionNum]||[]).find(p=>p.uid===uid);
@@ -1361,7 +1371,7 @@ Reglas rápidas:
 }
 function recordatorioLink(nombre, sesionNum, categoria, phone) {
   if (!phone) return '';
-  return `https://wa.me/${phone.replace(/\D/g,'')}?text=${encodeURIComponent(recordatorioMsg(nombre, sesionNum, categoria))}`;
+  return `https://wa.me/${waPhoneDigits(phone)}?text=${encodeURIComponent(recordatorioMsg(nombre, sesionNum, categoria))}`;
 }
 function recordatorioMailSubject(sesionNum, categoria) {
   const catLabels = { principiante:'Principiante', intermedio:'Intermedio', open:'Open' };
@@ -1642,7 +1652,7 @@ function renderPending() {
         : '<span style="color:var(--muted);font-size:.75rem">Sin boleta</span>';
 
     const waMsg  = encodeURIComponent(`Hola ${p.nombre}, tu inscripción en Ladder League ${sesLabels(p.sesionNum)} fue confirmada. ¡Nos vemos en cancha!`);
-    const waLink = `https://wa.me/${(p.phone||'').replace(/\D/g,'')}?text=${waMsg}`;
+    const waLink = `https://wa.me/${waPhoneDigits(p.phone)}?text=${waMsg}`;
 
     return `<tr class="pending-row">
       <td class="nombre">${escHtml(p.nombre)}<br><span style="font-size:.72rem;color:var(--muted)">${escHtml(p.email)}</span></td>
@@ -1777,7 +1787,7 @@ async function acceptPending(sesionNum, uid) {
       const msg = lleno
         ? `Hola ${player.nombre} 👋 ¡Tu pago fue aprobado y tu registro al Antigua Ladder League quedó listo! La categoría ${catLabel} (${fecha} a las ${horaTexto(player.categoria)}, Semana ${sesionNum}) está llena, así que entraste a la *lista de espera* con tu pago vigente. Si se libera un cupo, entras directo. 🎾`
         : `Hola ${player.nombre} 👋 ¡Tu pago fue aprobado! Quedaste *inscrito (titular)* en el Antigua Ladder League: ${catLabel}, ${fecha} a las ${horaTexto(player.categoria)} (Semana ${sesionNum}). ¡Nos vemos en cancha! 🎾`;
-      window.open(`https://wa.me/${player.phone.replace(/\D/g,'')}?text=${encodeURIComponent(msg)}`, '_blank');
+      window.open(`https://wa.me/${waPhoneDigits(player.phone)}?text=${encodeURIComponent(msg)}`, '_blank');
     }
 
     avisarTransferAprobadaAdmin(sesionNum, player, lleno);
@@ -1829,7 +1839,7 @@ async function denyPending(sesionNum, uid) {
 
     if (player.phone) {
       const msg = encodeURIComponent(`Hola ${player.nombre}, lamentablemente tu inscripción en Antigua Ladder League no pudo ser validada. Contáctanos para más información.`);
-      window.open(`https://wa.me/${player.phone.replace(/\D/g,'')}?text=${msg}`, '_blank');
+      window.open(`https://wa.me/${waPhoneDigits(player.phone)}?text=${msg}`, '_blank');
     }
 
     toast(`Inscripción de ${player.nombre} denegada`);
@@ -2262,7 +2272,7 @@ function avisarCambioSesionAdmin(sesionOrigen, sesionDestino, finalStatus, playe
     ? `¡Hola ${player.nombre}! Te saluda *Antigua Pickleball* 🎾 Tu cambio de sesión fue procesado: ahora estás en *Sesión ${sesionDestino}*, categoría *${catLabel}*. Sin embargo, la sesión está llena por el momento, por lo que quedaste en *lista de espera*. Te avisaremos cuando se confirme tu lugar. ¡Gracias!`
     : `¡Hola ${player.nombre}! Te saluda *Antigua Pickleball* 🎾 Tu cambio de sesión fue procesado exitosamente ✅ Ahora estás inscrito en *Sesión ${sesionDestino}*, categoría *${catLabel}*. ¡Nos vemos en cancha!`;
   const waLink = player.phone
-    ? `https://wa.me/${player.phone.replace(/\D/g,'')}?text=${encodeURIComponent(waMsgJugador)}`
+    ? `https://wa.me/${waPhoneDigits(player.phone)}?text=${encodeURIComponent(waMsgJugador)}`
     : '';
   const payload = {
     to:         'antiguapickleball@gmail.com',
