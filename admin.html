@@ -3620,6 +3620,14 @@ async function exportDuprCsv() {
   const fechaISO = duprFechaISO(sesion?.fecha);
   const catLabels = { principiante:'Principiante', intermedio:'Intermedio', open:'Open' };
 
+  // DUPR ID vigente por uid — el fixture guarda una COPIA de cada DUPR ID al generarse
+  // (fx.playerDupr) y esa copia nunca se actualiza si después corriges el ID de alguien
+  // desde "Editar". Se prefiere siempre el valor actual de la inscripción; si el jugador
+  // ya no está en el roster (caso raro), cae de vuelta a lo que tenía guardado el fixture.
+  const regSnap = await db.collection(COLLECTION).doc(`t1_sesion_${sn}`).get();
+  const liveDupr = {};
+  (regSnap.data()?.inscritos || []).forEach(p => { if (p.uid && p.duprId) liveDupr[p.uid] = p.duprId; });
+
   const rows = [];
   const missingDupr = [];
   let totalMatches = 0;
@@ -3630,7 +3638,7 @@ async function exportDuprCsv() {
     if (!snap.exists) continue;
     const fx = snap.data();
     const pn = fx.playerNames || {};
-    const pd = fx.playerDupr || {};
+    const pd = { ...(fx.playerDupr || {}), ...liveDupr };
     const event = `Antigua Ladder League - Sesión ${sn} - ${catLabels[cat]}`;
 
     const allMatches = [];
